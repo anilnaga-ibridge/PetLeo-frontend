@@ -16,12 +16,7 @@ initConfigStore()
 
 const configStore = useConfigStore()
 
-const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
-if (token) {
-  console.log('✅ User is still logged in with token:', token)
-} else {
-  console.log('❌ No token found, user must log in again')
-}
+
 
 </script>
 

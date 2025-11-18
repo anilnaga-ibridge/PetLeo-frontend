@@ -271,7 +271,7 @@ const onSubmit = () => {
 
 
 
-
+<!-- 
 <script setup>
 import axios from 'axios'
 import { ref, nextTick } from 'vue'
@@ -418,176 +418,857 @@ const onSubmit = () => {
     if (valid) sendOtp()
   })
 }
+</script> -->
+
+
+<!-- 
+<script setup>
+import axios from 'axios'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { VForm } from 'vuetify/components/VForm'
+import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
+import { VNodeRenderer } from '@layouts/components/VNodeRenderer'
+import { themeConfig } from '@themeConfig'
+
+import authV2LoginIllustrationLight from '@images/pages/auth-v2-login-illustration-light.png'
+import authV2LoginIllustrationDark from '@images/pages/auth-v2-login-illustration-dark.png'
+import authV2LoginIllustrationBorderedLight from '@images/pages/auth-v2-login-illustration-bordered-light.png'
+import authV2LoginIllustrationBorderedDark from '@images/pages/auth-v2-login-illustration-bordered-dark.png'
+import authV2MaskDark from '@images/pages/misc-mask-dark.png'
+import authV2MaskLight from '@images/pages/misc-mask-light.png'
+
+const router = useRouter()
+const imageVariant = useGenerateImageVariant(
+  authV2LoginIllustrationLight,
+  authV2LoginIllustrationDark,
+  authV2LoginIllustrationBorderedLight,
+  authV2LoginIllustrationBorderedDark,
+  true
+)
+const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
+
+definePage({ meta: { layout: 'blank', unauthenticatedOnly: true }})
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const SEND_OTP_URL = `${API_BASE}/auth/api/auth/send-otp/`
+const RESEND_OTP_URL = `${API_BASE}/auth/api/auth/resend-otp/`
+
+const refVForm = ref()
+const isLoading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+const form = ref({ phone_number: '' })
+const rememberMe = ref(false)
+
+const showVerifyPrompt = ref(false)
+const resendMessage = ref('')
+const resendCountdown = ref(0)
+let timer = null
+
+const sendOtp = async () => {
+  if (!form.value.phone_number) {
+    errorMessage.value = '📱 Phone number is required.'
+    return
+  }
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+    successMessage.value = ''
+    showVerifyPrompt.value = false
+
+    localStorage.setItem('remember_me', rememberMe.value ? 'true' : 'false')
+
+    const r = await axios.post(SEND_OTP_URL, {
+      phone_number: form.value.phone_number,
+      purpose: 'login',
+    })
+
+    if (r.data?.session_id) localStorage.setItem('session_id', r.data.session_id)
+
+    successMessage.value = 'OTP sent successfully!'
+    setTimeout(() => router.replace('/verifyotp'), 600)
+  } catch (err) {
+    const msg = err.response?.data?.message || err.response?.data?.detail || 'Failed to send OTP.'
+    errorMessage.value = msg
+    if (msg.toLowerCase().includes('not verified') || msg.toLowerCase().includes('please verify')) {
+      // backend used to block — with our new backend it should auto-switch to auto_verify_login,
+      // but keep UX just in case: show verify prompt and offer resend.
+      showVerifyPrompt.value = true
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const resendVerificationOtp = async () => {
+  try {
+    const phone = form.value.phone_number
+    if (!phone) { errorMessage.value = '⚠️ Missing phone number.'; return }
+    const res = await axios.post(RESEND_OTP_URL, { phone_number: phone })
+    resendMessage.value = '📩 OTP resent successfully! Please verify your number.'
+    startCountdown()
+    if (res.data?.session_id) localStorage.setItem('session_id', res.data.session_id)
+    setTimeout(() => router.push('/verifyotp'), 600)
+  } catch (err) {
+    resendMessage.value = err.response?.data?.detail || '❌ Failed to resend OTP.'
+  }
+}
+
+const startCountdown = () => {
+  clearInterval(timer)
+  resendCountdown.value = 30
+  timer = setInterval(() => {
+    if (resendCountdown.value > 0) resendCountdown.value-- ; else clearInterval(timer)
+  }, 1000)
+}
+
+const onSubmit = () => {
+  refVForm.value?.validate().then(({ valid }) => { if (valid) sendOtp() })
+}
+</script> -->
+
+<!-- 
+<script setup>
+import axios from 'axios'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { VForm } from 'vuetify/components/VForm'
+import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
+import { VNodeRenderer } from '@layouts/components/VNodeRenderer'
+import { themeConfig } from '@themeConfig'
+import { useAbility } from '@casl/vue'
+import { useCookie } from '@/@core/composable/useCookie'
+
+import authV2LoginIllustrationLight from '@images/pages/auth-v2-login-illustration-light.png'
+import authV2LoginIllustrationDark from '@images/pages/auth-v2-login-illustration-dark.png'
+import authV2LoginIllustrationBorderedLight from '@images/pages/auth-v2-login-illustration-bordered-light.png'
+import authV2LoginIllustrationBorderedDark from '@images/pages/auth-v2-login-illustration-bordered-dark.png'
+import authV2MaskDark from '@images/pages/misc-mask-dark.png'
+import authV2MaskLight from '@images/pages/misc-mask-light.png'
+
+const router = useRouter()
+const ability = useAbility()
+const cookie = useCookie()
+
+// UI images
+const imageVariant = useGenerateImageVariant(
+  authV2LoginIllustrationLight,
+  authV2LoginIllustrationDark,
+  authV2LoginIllustrationBorderedLight,
+  authV2LoginIllustrationBorderedDark,
+  true
+)
+const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
+
+definePage({ meta: { layout: 'blank', unauthenticatedOnly: true }})
+
+// API URLs
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const SEND_OTP_URL = `${API_BASE}/auth/api/auth/send-otp/`
+const RESEND_OTP_URL = `${API_BASE}/auth/api/auth/resend-otp/`
+const LOGIN_PIN_URL = `${API_BASE}/auth/login-with-pin/`
+
+// ----------------------
+// STATES FOR OTP LOGIN
+// ----------------------
+const refVForm = ref()
+const isLoading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+const form = ref({ phone_number: '' })
+const rememberMe = ref(false)
+const showVerifyPrompt = ref(false)
+const resendMessage = ref('')
+const resendCountdown = ref(0)
+let timer = null
+
+// ----------------------
+// STATE FOR PIN LOGIN UI
+// ----------------------
+const showPinLogin = ref(false)     // toggle between OTP and PIN UI
+const phone = ref('')               // phone for PIN login
+const pin = ref('')                 // pin for PIN login
+const loading = ref(false)          // loading for PIN login
+
+// ================
+// SEND OTP
+// ================
+const sendOtp = async () => {
+  if (!form.value.phone_number) {
+    errorMessage.value = '📱 Phone number is required.'
+    return
+  }
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+    successMessage.value = ''
+    showVerifyPrompt.value = false
+
+    localStorage.setItem('remember_me', rememberMe.value ? 'true' : 'false')
+
+    const r = await axios.post(SEND_OTP_URL, {
+      phone_number: form.value.phone_number,
+      purpose: 'login',
+    })
+console.log('✅ OTP sent response:', r.data)
+    if (r.data?.session_id) localStorage.setItem('session_id', r.data.session_id)
+
+    successMessage.value = 'OTP sent successfully!'
+    setTimeout(() => router.replace('/verifyotp'), 600)
+  } catch (err) {
+    const msg = err.response?.data?.message || err.response?.data?.detail || 'Failed to send OTP.'
+    errorMessage.value = msg
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// ================
+// RESEND OTP
+// ================
+const resendVerificationOtp = async () => {
+  try {
+    const phone = form.value.phone_number
+    const res = await axios.post(RESEND_OTP_URL, { phone_number: phone })
+    resendMessage.value = '📩 OTP resent successfully!'
+    startCountdown()
+    if (res.data?.session_id) localStorage.setItem('session_id', res.data.session_id)
+    setTimeout(() => router.push('/verifyotp'), 300)
+  } catch (err) {
+    resendMessage.value = '❌ Failed to resend OTP.'
+  }
+}
+
+const startCountdown = () => {
+  clearInterval(timer)
+  resendCountdown.value = 30
+  timer = setInterval(() => {
+    if (resendCountdown.value > 0) resendCountdown.value--
+    else clearInterval(timer)
+  }, 1000)
+}
+
+const onSubmit = () => {
+  refVForm.value?.validate().then(({ valid }) => { if (valid) sendOtp() })
+}
+// =========================
+// PIN LOGIN FUNCTION (FIXED)
+// =========================
+const loginWithPin = async () => {
+  if (!phone.value || !pin.value) {
+    errorMessage.value = 'Phone and PIN are required.'
+    return
+  }
+
+  try {
+    loading.value = true
+    errorMessage.value = ''
+
+    const res = await axios.post(LOGIN_PIN_URL, {
+      phone_number: phone.value,
+      pin: pin.value,
+      remember_me: rememberMe.value,
+    })
+console.log('PIN login response:', res.data)
+
+    if (res.data?.accessToken) {
+      const { accessToken, userData, userAbilityRules } = res.data
+
+      // -----------------------------
+      // 1. Update CASL and cookies
+      // -----------------------------
+      useCookie('userAbilityRules').value = userAbilityRules
+      ability.update(userAbilityRules)
+
+      useCookie('userData').value = userData
+      useCookie('accessToken').value = accessToken
+
+      // -----------------------------
+      // 2. Persist login (local/session)
+      // -----------------------------
+      if (rememberMe.value) {
+        localStorage.setItem('accessToken', accessToken)
+        localStorage.setItem('userData', JSON.stringify(userData))
+      } else {
+        sessionStorage.setItem('accessToken', accessToken)
+        sessionStorage.setItem('userData', JSON.stringify(userData))
+      }
+
+      // -----------------------------
+      // 3. WAIT until cookies are ready
+      // (Fixes userData undefined on first login)
+      // -----------------------------
+      await new Promise(resolve => setTimeout(resolve, 30))
+
+      // -----------------------------
+      // 4. Redirect to dashboard
+      // -----------------------------
+      router.replace('/')
+      return
+    }
+
+    // If backend didn’t return token
+    errorMessage.value = res.data?.message || 'Login failed.'
+
+  } catch (err) {
+    console.error('PIN login error:', err)
+    errorMessage.value =
+      err.response?.data?.detail ||
+      err.response?.data?.message ||
+      'PIN login failed.'
+  } finally {
+    loading.value = false
+  }
+}
+
+</script> -->
+
+<!-- <script setup>
+import axios from 'axios'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAbility } from '@casl/vue'
+import { useCookie } from '@/@core/composable/useCookie'
+import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
+import { themeConfig } from '@themeConfig'
+
+// Images
+import authV2LoginIllustrationLight from '@images/pages/auth-v2-login-illustration-light.png'
+import authV2LoginIllustrationDark from '@images/pages/auth-v2-login-illustration-dark.png'
+import authV2LoginIllustrationBorderedLight from '@images/pages/auth-v2-login-illustration-bordered-light.png'
+import authV2LoginIllustrationBorderedDark from '@images/pages/auth-v2-login-illustration-bordered-dark.png'
+import authV2MaskDark from '@images/pages/misc-mask-dark.png'
+import authV2MaskLight from '@images/pages/misc-mask-light.png'
+
+definePage({ meta: { layout: 'blank', unauthenticatedOnly: true }})
+
+const router = useRouter()
+const ability = useAbility()
+const cookie = useCookie()
+
+/* UI images */
+const imageVariant = useGenerateImageVariant(
+  authV2LoginIllustrationLight,
+  authV2LoginIllustrationDark,
+  authV2LoginIllustrationBorderedLight,
+  authV2LoginIllustrationBorderedDark,
+  true
+)
+const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
+
+/* API URLs */
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const SEND_OTP_URL = `${API_BASE}/auth/api/auth/send-otp/`
+const LOGIN_PIN_URL = `${API_BASE}/auth/login-with-pin/`
+
+/* ============================
+   OTP LOGIN STATE
+============================ */
+const form = ref({ phone_number: '' })
+const rememberMe = ref(false)
+const isLoading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+
+/* ============================
+   PIN LOGIN STATE
+============================ */
+const showPinLogin = ref(false)
+const pinPhone = ref('')
+const pin = ref('')
+const pinLoading = ref(false)
+
+/* ============================
+   SEND OTP
+============================ */
+const sendOtp = async () => {
+  if (!form.value.phone_number) {
+    errorMessage.value = 'Phone number is required.'
+    return
+  }
+
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+
+    localStorage.setItem('remember_me', rememberMe.value ? 'true' : 'false')
+
+    const r = await axios.post(SEND_OTP_URL, {
+      phone_number: form.value.phone_number,
+      purpose: 'login',
+    })
+
+    console.log("OTP sent:", r.data)
+
+    if (r.data?.session_id)
+      localStorage.setItem('session_id', r.data.session_id)
+
+    router.replace('/verifyotp')
+
+  } catch (err) {
+    errorMessage.value =
+      err.response?.data?.detail ||
+      err.response?.data?.message ||
+      'Failed to send OTP.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+/* ============================
+   LOGIN WITH PIN
+============================ */
+const loginWithPin = async () => {
+  if (!pinPhone.value || !pin.value) {
+    errorMessage.value = "Phone and PIN are required."
+    return
+  }
+
+  try {
+    pinLoading.value = true
+    errorMessage.value = ''
+
+    const res = await axios.post(LOGIN_PIN_URL, {
+      phone_number: pinPhone.value,
+      pin: pin.value,
+      remember_me: rememberMe.value,
+    })
+
+    console.log("PIN login response:", res.data)
+
+    if (res.data?.accessToken) {
+      const { accessToken, userData, userAbilityRules } = res.data
+
+      useCookie("accessToken").value = accessToken
+      useCookie("userData").value = userData
+      useCookie("userAbilityRules").value = userAbilityRules
+
+      ability.update(userAbilityRules)
+
+      if (rememberMe.value) {
+        localStorage.setItem('accessToken', accessToken)
+        localStorage.setItem('userData', JSON.stringify(userData))
+      } else {
+        sessionStorage.setItem('accessToken', accessToken)
+        sessionStorage.setItem('userData', JSON.stringify(userData))
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 50))
+      router.replace('/')
+      return
+    }
+
+    errorMessage.value = res.data?.message || 'Login failed.'
+
+  } catch (err) {
+    errorMessage.value =
+      err.response?.data?.detail ||
+      err.response?.data?.message ||
+      'PIN login failed.'
+  } finally {
+    pinLoading.value = false
+  }
+}
+
+/* ============================
+   SWITCH VIEW → PIN LOGIN
+============================ */
+const openPinLogin = () => {
+  showPinLogin.value = true
+  pinPhone.value = form.value.phone_number  // Auto-fill phone
+  errorMessage.value = ''
+}
+
+/* ============================
+   SWITCH VIEW → OTP LOGIN
+============================ */
+const useOtpInstead = () => {
+  showPinLogin.value = false
+  errorMessage.value = ''
+}
+</script> -->
+<script setup>
+import axios from 'axios'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAbility } from '@casl/vue'
+import { useCookie } from '@/@core/composable/useCookie'
+import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
+import { themeConfig } from '@themeConfig'
+
+// Images
+import authV2LoginIllustrationLight from '@images/pages/auth-v2-login-illustration-light.png'
+import authV2LoginIllustrationDark from '@images/pages/auth-v2-login-illustration-dark.png'
+import authV2LoginIllustrationBorderedLight from '@images/pages/auth-v2-login-illustration-bordered-light.png'
+import authV2LoginIllustrationBorderedDark from '@images/pages/auth-v2-login-illustration-bordered-dark.png'
+import authV2MaskDark from '@images/pages/misc-mask-dark.png'
+import authV2MaskLight from '@images/pages/misc-mask-light.png'
+
+definePage({ meta: { layout: 'blank', unauthenticatedOnly: true }})
+
+const router = useRouter()
+const ability = useAbility()
+const cookie = useCookie()
+
+/* UI images */
+const imageVariant = useGenerateImageVariant(
+  authV2LoginIllustrationLight,
+  authV2LoginIllustrationDark,
+  authV2LoginIllustrationBorderedLight,
+  authV2LoginIllustrationBorderedDark,
+  true
+)
+const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
+
+/* API URLs */
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const SEND_OTP_URL = `${API_BASE}/auth/api/auth/send-otp/`
+const RESET_PIN_URL = `${API_BASE}/auth/reset-pin/`
+const LOGIN_PIN_URL = `${API_BASE}/auth/login-with-pin/`
+
+/* ============================
+   OTP LOGIN STATE
+============================ */
+const form = ref({ phone_number: '' })
+const rememberMe = ref(false)
+const isLoading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+
+/* ============================
+   PIN LOGIN STATE
+============================ */
+const showPinLogin = ref(false)
+const pinPhone = ref('')
+const pin = ref('')
+const pinLoading = ref(false)
+
+/* ============================
+   RESET PIN UI STATE
+============================ */
+const showResetPinDialog = ref(false)
+const resetPhone = ref('')
+const resetLoading = ref(false)
+const resetError = ref('')
+const resetSuccess = ref('')
+
+
+/* ============================
+   SEND OTP (LOGIN)
+============================ */
+const sendOtp = async () => {
+  if (!form.value.phone_number) {
+    errorMessage.value = 'Phone number is required.'
+    return
+  }
+
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+
+    localStorage.setItem('remember_me', rememberMe.value ? 'true' : 'false')
+
+    const r = await axios.post(SEND_OTP_URL, {
+      phone_number: form.value.phone_number,
+      purpose: 'login',
+    })
+
+    console.log("OTP sent:", r.data)
+
+    if (r.data?.session_id)
+      localStorage.setItem('session_id', r.data.session_id)
+
+    router.replace('/verifyotp')
+
+  } catch (err) {
+    errorMessage.value =
+      err.response?.data?.detail ||
+      err.response?.data?.message ||
+      'Failed to send OTP.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+
+/* ============================
+   RESET PIN — SEND OTP ONCE
+============================ */
+const sendResetPinOtp = async () => {
+  if (!resetPhone.value) {
+    resetError.value = "Phone number is required."
+    return
+  }
+
+  resetLoading.value = true
+  resetError.value = ''
+  resetSuccess.value = ''
+
+  try {
+    const res = await axios.post(RESET_PIN_URL, {
+      phone_number: resetPhone.value
+    })
+
+    console.log("RESET PIN OTP:", res.data)
+
+    if (res.data.session_id) {
+      localStorage.setItem("session_id", res.data.session_id)
+      localStorage.setItem("reset_pin_phone", resetPhone.value)
+    }
+
+    resetSuccess.value = "OTP sent for PIN reset!"
+
+    setTimeout(() => {
+      showResetPinDialog.value = false
+      router.push("/verifyotp?mode=reset_pin")
+    }, 600)
+
+  } catch (err) {
+    resetError.value =
+      err.response?.data?.detail ||
+      err.response?.data?.message ||
+      "Failed to send reset OTP."
+  } finally {
+    resetLoading.value = false
+  }
+}
+
+
+/* ============================
+   LOGIN WITH PIN
+============================ */
+const loginWithPin = async () => {
+  if (!pinPhone.value || !pin.value) {
+    errorMessage.value = "Phone and PIN are required."
+    return
+  }
+
+  try {
+    pinLoading.value = true
+    errorMessage.value = ''
+
+    const res = await axios.post(LOGIN_PIN_URL, {
+      phone_number: pinPhone.value,
+      pin: pin.value,
+      remember_me: rememberMe.value,
+    })
+
+    console.log("PIN login response:", res.data)
+
+    if (res.data?.accessToken) {
+      const { accessToken, userData, userAbilityRules } = res.data
+
+      useCookie("accessToken").value = accessToken
+      useCookie("userData").value = userData
+      useCookie("userAbilityRules").value = userAbilityRules
+
+      ability.update(userAbilityRules)
+
+      if (rememberMe.value) {
+        localStorage.setItem('accessToken', accessToken)
+        localStorage.setItem('userData', JSON.stringify(userData))
+      } else {
+        sessionStorage.setItem('accessToken', accessToken)
+        sessionStorage.setItem('userData', JSON.stringify(userData))
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 50))
+      router.replace('/')
+      return
+    }
+
+    errorMessage.value = res.data?.message || 'Login failed.'
+
+  } catch (err) {
+    errorMessage.value =
+      err.response?.data?.detail ||
+      err.response?.data?.message ||
+      'PIN login failed.'
+  } finally {
+    pinLoading.value = false
+  }
+}
+
+
+/* ============================
+   SWITCH VIEW → PIN LOGIN
+============================ */
+const openPinLogin = () => {
+  showPinLogin.value = true
+  pinPhone.value = form.value.phone_number
+  errorMessage.value = ''
+}
+
+/* ============================
+   SWITCH → OTP LOGIN
+============================ */
+const useOtpInstead = () => {
+  showPinLogin.value = false
+  errorMessage.value = ''
+}
 </script>
-
 <template>
-  <RouterLink to="/">
-    <div class="auth-logo d-flex align-center gap-x-3 mb-4 ">
-      <VNodeRenderer :nodes="themeConfig.app.logo" />
-      <h1 class="auth-title">{{ themeConfig.app.title }}</h1>
+  <VRow no-gutters class="auth-wrapper bg-surface h-screen">
+
+    <!-- LEFT PANEL -->
+    <VCol md="6" class="d-none d-md-flex align-center justify-center bg-background">
+      <div class="text-center px-6">
+        <VImg :src="imageVariant" max-width="340" class="auth-illustration mb-4" />
+        <img :src="authThemeMask" height="140" width="150%" />
+      </div>
+    </VCol>
+
+    <!-- RIGHT PANEL -->
+    <VCol cols="12" md="6" class="d-flex justify-center align-start pt-12">
+      <VCard flat class="pa-8 w-100 rounded-xl" style="max-width:420px;">
+
+
+        <!-- ======================
+             OTP LOGIN
+        ======================= -->
+        <template v-if="!showPinLogin">
+          <VCardTitle class="text-h5 text-primary text-center">
+            Login via OTP 🔐
+          </VCardTitle>
+          <VCardSubtitle class="mb-4 text-center">
+            Enter your phone number to get OTP
+          </VCardSubtitle>
+
+          <VAlert v-if="errorMessage" type="error" variant="tonal" class="mb-3 text-center">
+            {{ errorMessage }}
+          </VAlert>
+
+          <AppTextField v-model="form.phone_number" label="Phone Number" prepend-inner-icon="tabler-phone" />
+
+          <VCheckbox v-model="rememberMe" label="Remember me" />
+
+          <VBtn block :loading="isLoading" class="mt-3" @click="sendOtp">
+            Send OTP
+          </VBtn>
+
+          <div class="mt-4 text-center">
+            <span @click="openPinLogin" class="text-primary" style="cursor:pointer;">
+              Sign in with PIN
+            </span>
+
+            <span class="mx-2">·</span>
+
+            <span @click="showResetPinDialog = true" class="text-primary" style="cursor:pointer;">
+              Forgot PIN?
+            </span>
+          </div>
+        </template>
+
+
+        <!-- ======================
+             PIN LOGIN
+        ======================= -->
+        <template v-else>
+          <VCardTitle class="text-h5 text-primary text-center">
+            Login with PIN 🔒
+          </VCardTitle>
+          <VCardSubtitle class="mb-4 text-center">Enter your phone number & PIN</VCardSubtitle>
+
+          <VAlert v-if="errorMessage" type="error" variant="tonal" class="mb-3 text-center">
+            {{ errorMessage }}
+          </VAlert>
+
+          <AppTextField v-model="pinPhone" label="Phone Number" />
+          <AppTextField v-model="pin" label="PIN" type="password" maxlength="6" />
+
+          <VCheckbox v-model="rememberMe" label="Remember me" />
+
+          <VBtn block :loading="pinLoading" class="mt-3" @click="loginWithPin">
+            Login
+          </VBtn>
+
+          <div class="mt-4 text-center">
+            <span @click="useOtpInstead" class="text-primary" style="cursor:pointer;">
+              Use OTP instead
+            </span>
+          </div>
+        </template>
+
+
+        <VDivider class="my-6" />
+
+        <div class="text-center">
+          New here?
+          <RouterLink class="text-primary" :to="{ name: 'register' }">Create account</RouterLink>
+        </div>
+
+      </VCard>
+    </VCol>
+  </VRow>
+
+
+  <!-- ======================
+       RESET PIN POPUP
+  ======================= -->
+<VDialog v-model="showResetPinDialog" persistent max-width="420px">
+  <VCard class="pa-6 rounded-xl">
+
+    <!-- Title Section -->
+    <div class="text-center mb-4">
+      <div class="text-h5 font-weight-medium">Reset PIN</div>
+      <p class="text-body-2 text-medium-emphasis mt-1">
+        Enter your phone number to receive an OTP and reset your PIN.
+      </p>
     </div>
-  </RouterLink>
 
-<VRow no-gutters class="auth-wrapper bg-surface h-screen">
-  <!-- Illustration -->
-  <VCol
-    md="6"
-    class="d-none d-md-flex align-center justify-center bg-background"
-    style="height: 100vh;"
-  >
-    <div class="text-center px-6">
-      <VImg
-        max-width="340"
-        :src="imageVariant"
-        class="auth-illustration mb-4"
-        style="filter: drop-shadow(0 3px 8px rgba(0,0,0,0.1));"
-      />
-      <img
-        class="auth-footer-mask"
-        :src="authThemeMask"
-        alt="mask"
-        height="140"
-        width="150%"
-        style="object-fit: cover;"
-      />
-    </div>
-  </VCol>
-
-  
-  <!-- Login Form -->
-<VCol
-  cols="12"
-  md="6"
-  class="d-flex justify-center"
-  style="height: 100vh; background: linear-gradient(180deg, #ffffff, #fafaff); align-items: flex-start; padding-top: 5vh;"
->
-  <VCard
-    flat
-    class="pa-8 w-100 mx-auto rounded-xl shadow-md"
-    style="max-width: 420px; background-color: white;"
-  >
-    <VCardTitle class="text-h5 mb-2 text-primary font-weight-bold text-center">
-      🔑 Login via OTP
-    </VCardTitle>
-
-    <VCardSubtitle
-      class="mb-4 text-medium-emphasis text-center"
-      style="font-size: 0.95rem;"
-    >
-      Enter your phone number to receive a one-time password.
-    </VCardSubtitle>
+    <!-- Input -->
+    <VTextField
+      v-model="resetPhone"
+      label="Phone Number"
+      variant="outlined"
+      density="comfortable"
+      class="mb-2"
+    />
 
     <!-- Alerts -->
     <VAlert
-      v-if="successMessage"
-      type="success"
-      variant="tonal"
-      class="mb-3 text-center"
-    >
-      {{ successMessage }}
-    </VAlert>
-    <VAlert
-      v-if="errorMessage"
+      v-if="resetError"
       type="error"
       variant="tonal"
-      class="mb-3 text-center"
+      density="comfortable"
+      class="mb-2"
     >
-      {{ errorMessage }}
+      {{ resetError }}
     </VAlert>
 
-    <!-- Form -->
-    <VForm ref="refVForm" @submit.prevent="onSubmit">
-      <AppTextField
-        v-model="form.phone_number"
-        label="Phone Number"
-        placeholder="+91 9876543210"
-        prepend-inner-icon="tabler-phone"
-        variant="outlined"
-        class="rounded-xl"
-      />
+    <VAlert
+      v-if="resetSuccess"
+      type="success"
+      variant="tonal"
+      density="comfortable"
+      class="mb-2"
+    >
+      {{ resetSuccess }}
+    </VAlert>
 
-      <VCheckbox v-model="rememberMe" label="Remember me" class="mt-3" />
+    <!-- Actions -->
+    <div class="d-flex justify-end gap-3 mt-4">
+      <VBtn
+        variant="text"
+        class="text-medium-emphasis"
+        @click="showResetPinDialog = false"
+      >
+        Cancel
+      </VBtn>
 
       <VBtn
-        block
-        type="submit"
         color="primary"
-        class="mt-4 rounded-lg font-weight-semibold elevation-2"
-        :loading="isLoading"
+        :loading="resetLoading"
+        @click="sendResetPinOtp"
       >
         Send OTP
       </VBtn>
-    </VForm>
-
-    <!-- 🟡 Unverified User Section -->
-    <div
-      v-if="showVerifyPrompt"
-      class="mt-6 pa-4 rounded-lg bg-amber-lighten-5 border border-amber-darken-2"
-    >
-      <div class="d-flex align-center mb-2">
-        <VIcon icon="tabler-alert-triangle" color="amber-darken-2" class="mr-2" />
-        <span class="text-amber-darken-3 font-weight-medium">
-          Your account is not verified yet.
-        </span>
-      </div>
-
-      <VBtn
-        color="success"
-        variant="flat"
-        block
-        class="rounded-lg font-weight-semibold"
-        :disabled="resendCountdown > 0"
-        @click="resendVerificationOtp"
-      >
-        <template v-if="resendCountdown > 0">
-          <VIcon icon="tabler-clock" size="18" class="mr-1" />
-          Resend in {{ resendCountdown }}s
-        </template>
-        <template v-else>
-          <VIcon icon="tabler-send" size="18" class="mr-1" />
-          Verify Now
-        </template>
-      </VBtn>
-
-      <div v-if="resendMessage" class="text-success text-caption mt-2 text-center">
-        {{ resendMessage }}
-      </div>
     </div>
 
-    <!-- Footer -->
-    <VDivider class="my-6" />
-    <div class="text-center">
-      <span>New on our platform?</span>
-      <RouterLink class="text-primary ms-1" :to="{ name: 'register' }">
-        Create an account
-      </RouterLink>
-    </div>
   </VCard>
-</VCol>
+</VDialog>
 
-</VRow>
+
 
 </template>
-
-<style lang="scss" scoped>
-.auth-wrapper {
-  padding: 2rem 1rem;
-}
-.auth-illustration {
-  max-width: 100%;
-  height: auto;
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.4s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-.auth-wrapper {
-  height: 100vh;
-  overflow: hidden;
-}
-
-</style>

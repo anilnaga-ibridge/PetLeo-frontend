@@ -84,6 +84,7 @@ console.log('Registration response:', r)
   }
 }
 </script> -->
+
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
