@@ -192,7 +192,7 @@ export const db = {
           title: 'User List',
         },
         {
-          url: { name: 'apps-user-view-id', params: { id: 21 } },
+          url: { name: 'apps-user-view-id', params: { id: 22 } },
           icon: 'tabler-eye',
           title: 'User View',
         },

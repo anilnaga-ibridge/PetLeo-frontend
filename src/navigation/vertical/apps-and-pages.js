@@ -1,3 +1,7 @@
+import { useCookie } from '@/@core/composable/useCookie'
+
+// Get logged-in user data from cookies
+const userData = useCookie('userData')
 export default [
   { heading: 'Apps & Pages' },
   {
@@ -96,7 +100,7 @@ export default [
     icon: { icon: 'tabler-user' },
     children: [
       { title: 'List', to: 'apps-user-list' },
-      { title: 'View', to: { name: 'apps-user-view-id', params: { id: 21 } } },
+      { title: 'View', to: { name: 'apps-user-view-id', params: { id: 22 } } },
     ],
   },
   {

@@ -16,7 +16,7 @@ const tabs = [
   },
   {
     icon: 'tabler-lock',
-    title: 'Security',
+    title: 'Securitys',
   },
   {
     icon: 'tabler-bookmark',
@@ -99,7 +99,7 @@ const { data: userData } = await useApi(`/apps/users/${ route.params.id }`)
       type="error"
       variant="tonal"
     >
-      Invoice with ID  {{ route.params.id }} not found!
+      User with ID  {{ route.params.id }} not found!
     </VAlert>
   </div>
 </template>

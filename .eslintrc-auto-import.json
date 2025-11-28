@@ -361,6 +361,7 @@
     "watchTriggerable": true,
     "watchWithFilter": true,
     "whenever": true,
-    "fullLogout": true
+    "fullLogout": true,
+    "decodeToken": true
   }
 }

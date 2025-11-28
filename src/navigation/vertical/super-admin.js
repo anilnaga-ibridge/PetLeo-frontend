@@ -1,57 +1,87 @@
 export default [
   {
-    heading: 'Super Admin',
+    heading: "Super Admin",
   },
-
-  // ==============================
-  // 🚀 Dynamic Service Management
-  // ==============================
   {
-    title: 'Dynamic Service Management',
-    icon: { icon: 'tabler-layout-dashboard' },
+    title: "Dynamic Service Management",
+    icon: { icon: "tabler-layout-dashboard" },
     children: [
       {
-        title: 'Dashboard',
-        to: 'superadmin-dashboard',
+        title: "Dashboard",
+        to: "superadmin-dashboard",
       },
       {
-        title: 'Services',
-        icon: { icon: 'tabler-tool' },
+        title: "Services",
+        icon: { icon: "tabler-tool" },
         children: [
-          { title: 'Add Service', to: 'superadmin-dynamicservicecrud-dynamicservices' },
-          { title: 'Service List', to: 'superadmin-dynamicservicecrud-createcategory' },
+          {
+            title: "Dynamic Services",
+            to: "superadmin-dynamicservicecrud-dynamicservices",
+          },
+          {
+            title: "Create Category",
+            to: "superadmin-dynamicservicecrud-createcategory",
+          },
+          {
+            title: "Facilities",
+            to: "superadmin-dynamicservicecrud-addfacility",
+          },
+          { title: "Pricing", to: "superadmin-dynamicservicecrud-addpricing" },
         ],
       },
       {
-        title: 'Orders',
-        icon: { icon: 'tabler-shopping-cart' },
+        title: "Plans & Billing",
+        icon: { icon: "tabler-shopping-cart" },
         children: [
-          { title: 'Order List', to: 'apps-ecommerce-order-list' },
-          { title: 'Order Details', to: { name: 'apps-ecommerce-order-details-id', params: { id: '9042' } } },
+          { title: "Billing-Cycle", to: "superadmin-plans-bill" },
+          { title: "Plans", to: "superadmin-plans-planss" },
+          { title: "Plan Prices", to: "superadmin-plans-plan-prices" },
+
+          { title: "Coupons", to: "superadmin-plans-coupon" },
+          { title: "Plan Items", to: "superadmin-plans-plan-items" },
         ],
       },
       {
-        title: 'Customers',
-        icon: { icon: 'tabler-users' },
+        title: "Pet Types & Breeds",
+        icon: { icon: "tabler-shopping-cart" },
         children: [
-          { title: 'Customer List', to: 'apps-ecommerce-customer-list' },
-          { title: 'Customer Details', to: { name: 'apps-ecommerce-customer-details-id', params: { id: 478426 } } },
+          { title: "Pet Types", to: "superadmin-pets-types" },
+          { title: "Pet Breeds", to: "superadmin-pets-breeds" },
+        ],
+      },
+      
+      {
+        title: "Providers",
+        icon: { icon: "tabler-users" },
+        children: [
+          {
+            title: "Provider Dynamic Fields",
+            to: "superadmin-dynamic-providerfields-profile-form",
+          },
+          {
+            title: "Provider Dynamic Form Values",
+            to: "superadmin-dynamic-providerfields-dynamicform",
+          },
+          {
+            title: "Provider Profile Crud",
+            to:"superadmin-dynamic-providerfields-provider-profile"
+          }
         ],
       },
       {
-        title: 'Manage Reviews',
-        icon: { icon: 'tabler-star' },
-        to: 'apps-ecommerce-manage-review',
+        title: "Manage Reviews",
+        icon: { icon: "tabler-star" },
+        to: "apps-ecommerce-manage-review",
       },
       {
-        title: 'Referrals',
-        icon: { icon: 'tabler-user-plus' },
-        to: 'apps-ecommerce-referrals',
+        title: "Referrals",
+        icon: { icon: "tabler-user-plus" },
+        to: "apps-ecommerce-referrals",
       },
       {
-        title: 'Settings',
-        icon: { icon: 'tabler-settings' },
-        to: 'apps-ecommerce-settings',
+        title: "Settings",
+        icon: { icon: "tabler-settings" },
+        to: "apps-ecommerce-settings",
       },
     ],
   },
@@ -60,14 +90,19 @@ export default [
   // ✅ Verified User Management
   // ==============================
   {
-    title: 'Verified User Management',
-    icon: { icon: 'tabler-users-group' },
+    title: "Verified User Management",
+    icon: { icon: "tabler-users-group" },
     children: [
       {
-        title: 'Verified Users',
-        icon: { icon: 'tabler-user-check' },
-        to: 'superadmin-verify-users-getallverifiedusers',
+        title: "Verified Users",
+        icon: { icon: "tabler-user-check" },
+        to: "superadmin-verify-users-getallverifiedusers",
       },
     ],
   },
-]
+  {
+    title: "Email Templates builder",
+    icon: { icon: "tabler-mail" },
+    to: "emailbuilder",
+  },
+];

@@ -1,6 +1,9 @@
 <script setup>
 import AddNewUserDrawer from '@/views/apps/user/list/AddNewUserDrawer.vue'
+import { useCookie } from '@/@core/composable/useCookie'
 
+// Get logged-in user data from cookies
+const userData = useCookie('userData')
 // 👉 Store
 const searchQuery = ref('')
 const selectedRole = ref()
@@ -414,7 +417,7 @@ const widgetData = ref([
             <div class="d-flex flex-column">
               <h6 class="text-base">
                 <RouterLink
-                  :to="{ name: 'apps-user-view-id', params: { id: item.id } }"
+                  :to="{ name: 'apps-user-view-id', params: { id: userData.value?.id } }"
                   class="font-weight-medium text-link"
                 >
                   {{ item.fullName }}

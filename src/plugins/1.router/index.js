@@ -2,7 +2,7 @@ import { setupLayouts } from 'virtual:generated-layouts'
 import { createRouter, createWebHistory } from 'vue-router/auto'
 import { redirects, routes } from './additional-routes'
 import { setupGuards } from './guards'
-
+import api from '@/plugins/axios'
 function recursiveLayouts(route) {
   if (route.children) {
     for (let i = 0; i < route.children.length; i++)
