@@ -55,16 +55,25 @@ export default [
         icon: { icon: "tabler-users" },
         children: [
           {
-            title: "Provider Dynamic Fields",
-            to: "superadmin-dynamic-providerfields-profile-form",
+            title: "Dynamic Profile Fields",
+            to: "superadmin-dynamic-providerfields-sprofile-form",
           },
           {
+            title:" Dynamic Doc Fields",
+            to:"superadmin-dynamic-providerfields-sdocuments-form"
+          }
+          ,
+          {
             title: "Provider Dynamic Form Values",
-            to: "superadmin-dynamic-providerfields-dynamicform",
+            to: "superadmin-dynamic-providerfields-dynamicprofileform",
           },
           {
             title: "Provider Profile Crud",
-            to:"superadmin-dynamic-providerfields-provider-profile"
+            to:"superadmin-dynamic-providerfields-docdynamic"
+          },
+          {
+            title:"Profile",
+            to:"superadmin-dynamic-providerfields-profile-documets"
           }
         ],
       },
