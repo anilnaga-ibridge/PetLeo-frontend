@@ -150,6 +150,8 @@ declare module 'vue-router/auto-routes' {
     'superadmin-plans-plan-items': RouteRecordInfo<'superadmin-plans-plan-items', '/superadmin/plans/plan-items', Record<never, never>, Record<never, never>>,
     'superadmin-plans-plan-prices': RouteRecordInfo<'superadmin-plans-plan-prices', '/superadmin/plans/plan-prices', Record<never, never>, Record<never, never>>,
     'superadmin-plans-planss': RouteRecordInfo<'superadmin-plans-planss', '/superadmin/plans/planss', Record<never, never>, Record<never, never>>,
+    'superadmin-roles-permissions-permissions': RouteRecordInfo<'superadmin-roles-permissions-permissions', '/superadmin/roles-permissions/permissions', Record<never, never>, Record<never, never>>,
+    'superadmin-roles-permissions-roles': RouteRecordInfo<'superadmin-roles-permissions-roles', '/superadmin/roles-permissions/roles', Record<never, never>, Record<never, never>>,
     'superadmin-verify-users-getallverifiedusers': RouteRecordInfo<'superadmin-verify-users-getallverifiedusers', '/superadmin/verify-users/getallverifiedusers', Record<never, never>, Record<never, never>>,
     'tables-data-table': RouteRecordInfo<'tables-data-table', '/tables/data-table', Record<never, never>, Record<never, never>>,
     'tables-simple-table': RouteRecordInfo<'tables-simple-table', '/tables/simple-table', Record<never, never>, Record<never, never>>,
