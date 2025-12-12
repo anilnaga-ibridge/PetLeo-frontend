@@ -1,8 +1,58 @@
 <script setup>
-const isNewPasswordVisible = ref(false)
-const isConfirmPasswordVisible = ref(false)
+import { ref } from 'vue'
+import { useApi } from '@/composables/useApi'
+
+const isOldPinVisible = ref(false)
+const isNewPinVisible = ref(false)
+const isConfirmPinVisible = ref(false)
+
+const oldPin = ref('')
+const newPin = ref('')
+const confirmPin = ref('')
+const loading = ref(false)
+
 const smsVerificationNumber = ref('+1(968) 819-2547')
 const isTwoFactorDialogOpen = ref(false)
+
+const changePin = async () => {
+  if (!oldPin.value || !newPin.value || !confirmPin.value) {
+    // You might want to add a toast notification here
+    alert("Please fill all fields")
+    return
+  }
+
+  if (newPin.value !== confirmPin.value) {
+    alert("New PINs do not match")
+    return
+  }
+
+  loading.value = true
+  try {
+    const { data, error } = await useApi('http://127.0.0.1:8000/auth/change-pin/', {
+      method: 'POST',
+      body: {
+        old_pin: oldPin.value,
+        new_pin: newPin.value,
+        confirm_new_pin: confirmPin.value
+      }
+    })
+
+    if (error.value) {
+      console.error("Change PIN Error:", error.value)
+      alert(error.value.detail || "Failed to change PIN")
+    } else {
+      alert("PIN changed successfully!")
+      oldPin.value = ''
+      newPin.value = ''
+      confirmPin.value = ''
+    }
+  } catch (err) {
+    console.error("Change PIN Exception:", err)
+    alert("An error occurred")
+  } finally {
+    loading.value = false
+  }
+}
 
 const recentDeviceHeader = [
   {
@@ -62,8 +112,8 @@ const recentDevices = [
 <template>
   <VRow>
     <VCol cols="12">
-      <!-- 👉 Change password -->
-      <VCard title="Change Password">
+      <!-- 👉 Change PIN -->
+      <VCard title="Change PIN">
         <VCardText>
           <VAlert
             closable
@@ -71,40 +121,57 @@ const recentDevices = [
             color="warning"
             class="mb-4"
             title="Ensure that these requirements are met"
-            text="Minimum 8 characters long, uppercase & symbol"
+            text="PIN must be 4-6 digits long."
           />
 
-          <VForm @submit.prevent="() => { }">
+          <VForm @submit.prevent="changePin">
             <VRow>
               <VCol
                 cols="12"
-                md="6"
+                md="4"
               >
                 <AppTextField
-                  label="New Password"
-                  placeholder="············"
-                  :type="isNewPasswordVisible ? 'text' : 'password'"
-                  :append-inner-icon="isNewPasswordVisible ? 'tabler-eye-off' : 'tabler-eye'"
-                  @click:append-inner="isNewPasswordVisible = !isNewPasswordVisible"
+                  v-model="oldPin"
+                  label="Old PIN"
+                  placeholder="······"
+                  :type="isOldPinVisible ? 'text' : 'password'"
+                  :append-inner-icon="isOldPinVisible ? 'tabler-eye-off' : 'tabler-eye'"
+                  @click:append-inner="isOldPinVisible = !isOldPinVisible"
                 />
               </VCol>
               <VCol
                 cols="12"
-                md="6"
+                md="4"
               >
                 <AppTextField
-                  label="Confirm Password"
-                  autocomplete="confirm-password"
-                  placeholder="············"
-                  :type="isConfirmPasswordVisible ? 'text' : 'password'"
-                  :append-inner-icon="isConfirmPasswordVisible ? 'tabler-eye-off' : 'tabler-eye'"
-                  @click:append-inner="isConfirmPasswordVisible = !isConfirmPasswordVisible"
+                  v-model="newPin"
+                  label="New PIN"
+                  placeholder="······"
+                  :type="isNewPinVisible ? 'text' : 'password'"
+                  :append-inner-icon="isNewPinVisible ? 'tabler-eye-off' : 'tabler-eye'"
+                  @click:append-inner="isNewPinVisible = !isNewPinVisible"
+                />
+              </VCol>
+              <VCol
+                cols="12"
+                md="4"
+              >
+                <AppTextField
+                  v-model="confirmPin"
+                  label="Confirm New PIN"
+                  placeholder="······"
+                  :type="isConfirmPinVisible ? 'text' : 'password'"
+                  :append-inner-icon="isConfirmPinVisible ? 'tabler-eye-off' : 'tabler-eye'"
+                  @click:append-inner="isConfirmPinVisible = !isConfirmPinVisible"
                 />
               </VCol>
 
               <VCol cols="12">
-                <VBtn type="submit">
-                  Change Password
+                <VBtn
+                  type="submit"
+                  :loading="loading"
+                >
+                  Change PIN
                 </VBtn>
               </VCol>
             </VRow>

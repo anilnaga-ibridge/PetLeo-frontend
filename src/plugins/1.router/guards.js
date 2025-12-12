@@ -1,4 +1,5 @@
 import { canNavigate } from '@layouts/plugins/casl'
+import { usePermissionStore } from '@/stores/permissionStore'
 
 export const setupGuards = router => {
   // 👉 router.beforeEach
@@ -15,9 +16,9 @@ export const setupGuards = router => {
          * Check if user is logged in by checking if token & user data exists in local storage
          * Feel free to update this logic to suit your needs
          */
-   const user = useCookie('userData').value
-const token = useCookie('accessToken').value
-const isLoggedIn = Boolean(user && token)
+    const user = useCookie('userData').value
+    const token = useCookie('accessToken').value
+    const isLoggedIn = Boolean(user && token)
 
     /*
           If user is logged in and is trying to access login like page, redirect to home
@@ -30,18 +31,31 @@ const isLoggedIn = Boolean(user && token)
       else
         return undefined
     }
+
+    // ✅ Permission Check
+    if (to.meta.permission) {
+      const permissionStore = usePermissionStore()
+      // Ensure permissions are loaded (might need to await or check if loaded)
+      // For now assuming loaded on layout mount or login
+
+      if (!permissionStore.hasPermission(to.meta.permission)) {
+        console.warn(`Access denied. Missing permission: ${to.meta.permission}`)
+        return { name: 'provider-dashboard' } // Redirect to dashboard
+      }
+    }
+
     if (!canNavigate(to) && to.matched.length) {
       /* eslint-disable indent */
-            return isLoggedIn
-                ? { name: 'not-authorized' }
-                : {
-                    name: 'login',
-                    query: {
-                        ...to.query,
-                        to: to.fullPath !== '/' ? to.path : undefined,
-                    },
-                }
-            /* eslint-enable indent */
+      return isLoggedIn
+        ? { name: 'not-authorized' }
+        : {
+          name: 'login',
+          query: {
+            ...to.query,
+            to: to.fullPath !== '/' ? to.path : undefined,
+          },
+        }
+      /* eslint-enable indent */
     }
   })
 }

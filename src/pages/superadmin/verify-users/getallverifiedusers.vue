@@ -7,7 +7,7 @@ import { useCookie } from '@/@core/composable/useCookie'
 import {
   VDialog, VCard, VCardTitle, VCardText, VCardActions, VTextField, VBtn, VIcon, VChip,
   VAvatar, VSelect, VRow, VCol, VCardItem, VCardSubtitle, VDivider, VNavigationDrawer,
-  VSheet, VForm, VProgressCircular, VSnackbar, VDataTable
+  VSheet, VForm, VProgressCircular, VSnackbar, VDataTable, VSwitch
 } from 'vuetify/components'
 
 // =============================
@@ -149,9 +149,36 @@ const addUser = async () => {
 
   } catch (err) {
     console.error("REG ERR:", err.response?.data)
-    openError(JSON.stringify(err.response?.data) || "Registration failed.")
+    const data = err.response?.data || {}
+    
+    if (data.phone_number) {
+      openError(data.phone_number[0])
+    } else if (data.email) {
+      openError(data.email[0])
+    } else if (data.detail) {
+      openError(data.detail)
+    } else {
+      openError("Registration failed. Please check inputs.")
+    }
   } finally {
     isRegistering.value = false
+  }
+}
+
+const toggleStatus = async (user) => {
+  try {
+    // Optimistic UI update
+    user.is_active = !user.is_active
+    
+    await axios.patch(`${API_BASE}${user.id}/`, 
+      { is_active: user.is_active }, 
+      { headers: tokenHeader() }
+    )
+    openSnack(`User ${user.is_active ? 'activated' : 'deactivated'} successfully!`)
+  } catch (err) {
+    // Revert on failure
+    user.is_active = !user.is_active
+    openError('Failed to update status.')
   }
 }
 
@@ -221,7 +248,8 @@ const headers = [
   { title: 'Email', key: 'email' },
   { title: 'Phone', key: 'phone_number' },
   { title: 'Role', key: 'role' },
- 
+  { title: 'Verified', key: 'is_verified', align: 'center' },
+  { title: 'Status', key: 'is_active', align: 'center' },
   { title: 'Actions', key: 'actions', sortable: false },
 ]
 
@@ -277,6 +305,28 @@ const headers = [
           <VChip color="primary" label size="small">
             {{ getRoleName(item.role) }}
           </VChip>
+        </template>
+
+        <template #item.is_verified="{ item }">
+          <VChip
+            :color="item.is_verified ? 'success' : 'error'"
+            label
+            size="small"
+            class="font-weight-bold"
+          >
+            {{ item.is_verified ? 'VERIFIED' : 'NOT VERIFIED' }}
+          </VChip>
+        </template>
+
+        <template #item.is_active="{ item }">
+          <VSwitch
+            v-model="item.is_active"
+            color="success"
+            density="compact"
+            hide-details
+            inset
+            @click.stop="toggleStatus(item)"
+          />
         </template>
 
         <template #item.actions="{ item }">

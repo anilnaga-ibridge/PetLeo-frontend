@@ -19,25 +19,19 @@ const userProfileList = [
     type: 'navItem',
     icon: 'tabler-user',
     title: 'Profile',
-    to: { name: 'pages-user-profile-tab', params: { tab: 'profile' } },
+    to: { name: 'provider-profile' },
   },
   {
     type: 'navItem',
     icon: 'tabler-settings',
     title: 'Settings',
-    to: {
-      name: 'pages-account-settings-tab',
-      params: { tab: 'account' },
-    },
+    to: { name: 'provider-settings-tab', params: { tab: 'account' } },
   },
   {
     type: 'navItem',
     icon: 'tabler-file-dollar',
     title: 'Billing Plan',
-    to: {
-      name: 'pages-account-settings-tab',
-      params: { tab: 'billing-plans' },
-    },
+    to: { name: 'provider-settings-tab', params: { tab: 'billing-plans' } },
     badgeProps: {
       color: 'error',
       content: '4',
@@ -48,13 +42,13 @@ const userProfileList = [
     type: 'navItem',
     icon: 'tabler-currency-dollar',
     title: 'Pricing',
-    to: { name: 'pages-pricing' },
+    to: { name: 'provider-pricing' },
   },
   {
     type: 'navItem',
     icon: 'tabler-help',
     title: 'FAQ',
-    to: { name: 'pages-faq' },
+    to: { name: 'provider-faq' },
   },
   { type: 'divider' },
   {

@@ -315,70 +315,91 @@ const skipSetPin = () => {
     </VCol>
 
     <!-- PIN Drawer -->
-    <v-dialog v-model="showSetPinDrawer" persistent max-width="520">
-      <v-card class="pa-6 rounded-xl" elevation="12" style="backdrop-filter: blur(24px);">
+    <v-dialog v-model="showSetPinDrawer" persistent max-width="440" transition="dialog-bottom-transition">
+      <v-card class="rounded-xl overflow-hidden pin-card" elevation="24">
+        
+        <!-- Decorative Header -->
+        <div class="d-flex justify-center pt-8 pb-6 bg-surface-variant-lighten-1 position-relative overflow-hidden">
+          <div class="decorative-circle"></div>
+          <div class="rounded-circle bg-white pa-4 elevation-3 z-index-1">
+            <VIcon icon="tabler-lock-check" size="42" color="primary" />
+          </div>
+        </div>
 
-        <v-card-title class="text-h5 font-weight-semibold text-center mb-1">
-          🔐 Set Your PIN
-        </v-card-title>
+        <v-card-item class="text-center pt-2 pb-2">
+          <v-card-title class="text-h5 font-weight-bold text-high-emphasis">
+            Secure Your Account
+          </v-card-title>
+          <v-card-subtitle class="text-body-1 text-medium-emphasis mt-1">
+            Create a 4-6 digit PIN for quick access
+          </v-card-subtitle>
+        </v-card-item>
 
-        <p class="text-body-2 text-medium-emphasis text-center mb-4">
-          Create your secure PIN to enable quick login
-        </p>
+        <v-card-text class="px-6 pt-2">
+          <VAlert
+            v-if="pinError"
+            type="error"
+            variant="tonal"
+            icon="tabler-alert-circle"
+            class="mb-5 rounded-lg text-caption font-weight-medium"
+            closable
+          >
+            {{ pinError }}
+          </VAlert>
 
-        <VAlert v-if="pinError" type="error" class="mb-4 rounded-lg" variant="tonal">
-          {{ pinError }}
-        </VAlert>
-
-        <v-row>
-          <v-col cols="12">
+          <div class="d-flex flex-column gap-y-4">
             <v-text-field
               v-model="newPin"
               type="password"
-              label="Enter New PIN"
+              label="New PIN"
               maxlength="6"
               variant="outlined"
+              color="primary"
               rounded="lg"
-              density="comfortable"
-              prepend-inner-icon="tabler-lock"
-              append-inner-icon="tabler-eye"
-              class="modern-input mb-4"
+              prepend-inner-icon="tabler-key"
+              class="pin-input"
               hide-details="auto"
+              placeholder="Enter 4-6 digits"
             />
-          </v-col>
 
-          <v-col cols="12">
             <v-text-field
               v-model="confirmPin"
               type="password"
               label="Confirm PIN"
               maxlength="6"
               variant="outlined"
+              color="primary"
               rounded="lg"
-              density="comfortable"
-              prepend-inner-icon="tabler-lock-check"
-              append-inner-icon="tabler-eye"
-              class="modern-input"
+              prepend-inner-icon="tabler-lock"
+              class="pin-input"
               hide-details="auto"
+              placeholder="Re-enter to confirm"
             />
-          </v-col>
-        </v-row>
+          </div>
+        </v-card-text>
 
-        <v-card-actions class="mt-4 d-flex justify-space-between">
-          <v-btn variant="text" class="text-body-2 text-medium-emphasis" @click="skipSetPin">
-            Skip for now
-          </v-btn>
-
+        <v-card-actions class="px-6 pb-8 pt-4 d-flex flex-column gap-y-3">
           <v-btn
+            block
             color="primary"
-            rounded="lg"
-            size="large"
-            elevation="4"
-            class="px-8"
+            size="x-large"
+            variant="flat"
+            class="rounded-lg font-weight-bold letter-spacing-1 shadow-primary"
             :loading="pinLoading"
             @click="submitPin"
           >
-            Save PIN
+            Set PIN
+          </v-btn>
+          
+          <v-btn
+            block
+            variant="text"
+            color="secondary"
+            size="small"
+            class="text-caption text-medium-emphasis"
+            @click="skipSetPin"
+          >
+            Skip for now
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -399,12 +420,43 @@ const skipSetPin = () => {
   transform: scale(1.02);
 }
 
-.v-card {
+/* Main Auth Card */
+.v-card:not(.pin-card) {
   background: rgba(245, 247, 255, 0.7) !important;
   border: 1px solid rgba(220, 225, 255, 0.45);
 }
 
+/* Pin Card Specifics */
+.pin-card {
+  background: white !important;
+  border: none;
+}
+
+.decorative-circle {
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120%;
+  height: 200px;
+  background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.1) 0%, rgba(255,255,255,0) 100%);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.z-index-1 {
+  z-index: 1;
+}
+
+.shadow-primary {
+  box-shadow: 0 8px 20px -6px rgba(var(--v-theme-primary), 0.6);
+}
+
+.letter-spacing-1 {
+  letter-spacing: 1px;
+}
+
 .v-dialog__content {
-  backdrop-filter: blur(24px);
+  backdrop-filter: blur(8px);
 }
 </style>

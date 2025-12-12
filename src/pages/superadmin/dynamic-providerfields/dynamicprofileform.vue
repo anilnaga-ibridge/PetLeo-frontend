@@ -111,7 +111,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
-import api from "@/plugins/axios";
+import { api } from "@/plugins/axios";
 import { useCookie } from "@/@core/composable/useCookie";
 
 const GET_PROFILE_API = "http://127.0.0.1:8002/api/provider/profile/";
@@ -192,7 +192,7 @@ async function fetchProfile() {
 
   try {
     const res = await api.get(GET_PROFILE_API, {
-      params: { user: userId },
+      params: { user: userId, target: dynamicTarget },
     });
 
     fields.value = res.data.fields || [];

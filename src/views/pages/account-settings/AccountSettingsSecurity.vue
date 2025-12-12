@@ -1,18 +1,58 @@
 <script setup>
 import laptopGirl from '@images/illustrations/laptop-girl.png'
 
-const isCurrentPasswordVisible = ref(false)
-const isNewPasswordVisible = ref(false)
-const isConfirmPasswordVisible = ref(false)
-const currentPassword = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
+import { useApi } from '@/composables/useApi'
 
-const passwordRequirements = [
-  'Minimum 8 characters long - the more, the better',
-  'At least one lowercase character',
-  'At least one number, symbol, or whitespace character',
-]
+const isOldPinVisible = ref(false)
+const isNewPinVisible = ref(false)
+const isConfirmPinVisible = ref(false)
+
+const oldPin = ref('')
+const newPin = ref('')
+const confirmPin = ref('')
+const loading = ref(false)
+
+const changePin = async () => {
+  if (!oldPin.value || !newPin.value || !confirmPin.value) {
+    alert("Please fill all fields")
+    return
+  }
+
+  if (newPin.value !== confirmPin.value) {
+    alert("New PINs do not match")
+    return
+  }
+
+  loading.value = true
+  try {
+    const { data, error } = await useApi('http://127.0.0.1:8000/auth/change-pin/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: {
+        old_pin: oldPin.value,
+        new_pin: newPin.value,
+        confirm_new_pin: confirmPin.value
+      }
+    })
+
+    if (error.value) {
+      console.error("Change PIN Error:", error.value)
+      alert(error.value.detail || "Failed to change PIN")
+    } else {
+      alert("PIN changed successfully!")
+      oldPin.value = ''
+      newPin.value = ''
+      confirmPin.value = ''
+    }
+  } catch (err) {
+    console.error("Change PIN Exception:", err)
+    alert("An error occurred")
+  } finally {
+    loading.value = false
+  }
+}
 
 const serverKeys = [
   {
@@ -124,43 +164,39 @@ const isOneTimePasswordDialogVisible = ref(false)
   <VRow>
     <!-- SECTION: Change Password -->
     <VCol cols="12">
-      <VCard title="Change Password">
-        <VForm>
+      <VCard title="Change PIN">
+        <VForm @submit.prevent="changePin">
           <VCardText class="pt-0">
-            <!-- 👉 Current Password -->
+            <!-- 👉 Old PIN -->
             <VRow>
               <VCol
                 cols="12"
                 md="6"
               >
-                <!-- 👉 current password -->
                 <AppTextField
-                  v-model="currentPassword"
-                  :type="isCurrentPasswordVisible ? 'text' : 'password'"
-                  :append-inner-icon="isCurrentPasswordVisible ? 'tabler-eye-off' : 'tabler-eye'"
-                  label="Current Password"
-                  autocomplete="on"
-                  placeholder="············"
-                  @click:append-inner="isCurrentPasswordVisible = !isCurrentPasswordVisible"
+                  v-model="oldPin"
+                  :type="isOldPinVisible ? 'text' : 'password'"
+                  :append-inner-icon="isOldPinVisible ? 'tabler-eye-off' : 'tabler-eye'"
+                  label="Old PIN"
+                  placeholder="······"
+                  @click:append-inner="isOldPinVisible = !isOldPinVisible"
                 />
               </VCol>
             </VRow>
 
-            <!-- 👉 New Password -->
+            <!-- 👉 New PIN -->
             <VRow>
               <VCol
                 cols="12"
                 md="6"
               >
-                <!-- 👉 new password -->
                 <AppTextField
-                  v-model="newPassword"
-                  :type="isNewPasswordVisible ? 'text' : 'password'"
-                  :append-inner-icon="isNewPasswordVisible ? 'tabler-eye-off' : 'tabler-eye'"
-                  label="New Password"
-                  autocomplete="on"
-                  placeholder="············"
-                  @click:append-inner="isNewPasswordVisible = !isNewPasswordVisible"
+                  v-model="newPin"
+                  :type="isNewPinVisible ? 'text' : 'password'"
+                  :append-inner-icon="isNewPinVisible ? 'tabler-eye-off' : 'tabler-eye'"
+                  label="New PIN"
+                  placeholder="······"
+                  @click:append-inner="isNewPinVisible = !isNewPinVisible"
                 />
               </VCol>
 
@@ -168,31 +204,27 @@ const isOneTimePasswordDialogVisible = ref(false)
                 cols="12"
                 md="6"
               >
-                <!-- 👉 confirm password -->
                 <AppTextField
-                  v-model="confirmPassword"
-                  :type="isConfirmPasswordVisible ? 'text' : 'password'"
-                  :append-inner-icon="isConfirmPasswordVisible ? 'tabler-eye-off' : 'tabler-eye'"
-                  label="Confirm New Password"
-                  autocomplete="on"
-                  placeholder="············"
-                  @click:append-inner="isConfirmPasswordVisible = !isConfirmPasswordVisible"
+                  v-model="confirmPin"
+                  :type="isConfirmPinVisible ? 'text' : 'password'"
+                  :append-inner-icon="isConfirmPinVisible ? 'tabler-eye-off' : 'tabler-eye'"
+                  label="Confirm New PIN"
+                  placeholder="······"
+                  @click:append-inner="isConfirmPinVisible = !isConfirmPinVisible"
                 />
               </VCol>
             </VRow>
           </VCardText>
 
-          <!-- 👉 Password Requirements -->
+          <!-- 👉 PIN Requirements -->
           <VCardText>
             <h6 class="text-h6 text-medium-emphasis mb-4">
-              Password Requirements:
+              PIN Requirements:
             </h6>
 
             <VList class="card-list">
               <VListItem
-                v-for="item in passwordRequirements"
-                :key="item"
-                :title="item"
+                title="PIN must be 4-6 digits long"
                 class="text-medium-emphasis"
               >
                 <template #prepend>
@@ -207,12 +239,18 @@ const isOneTimePasswordDialogVisible = ref(false)
 
           <!-- 👉 Action Buttons -->
           <VCardText class="d-flex flex-wrap gap-4">
-            <VBtn>Save changes</VBtn>
+            <VBtn
+              type="submit"
+              :loading="loading"
+            >
+              Change PIN
+            </VBtn>
 
             <VBtn
               type="reset"
               color="secondary"
               variant="tonal"
+              @click="() => { oldPin = ''; newPin = ''; confirmPin = '' }"
             >
               Reset
             </VBtn>

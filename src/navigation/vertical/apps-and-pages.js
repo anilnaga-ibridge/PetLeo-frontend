@@ -100,7 +100,7 @@ export default [
     icon: { icon: 'tabler-user' },
     children: [
       { title: 'List', to: 'apps-user-list' },
-      { title: 'View', to: { name: 'apps-user-view-id', params: { id: 22 } } },
+      { title: 'View', to: { name: 'apps-user-view-id', params: { id: userData.value?.id } } },
     ],
   },
   {

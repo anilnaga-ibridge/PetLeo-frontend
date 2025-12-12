@@ -18,6 +18,11 @@ const configStore = useConfigStore()
 
 
 
+import AppLockScreen from '@/components/AppLockScreen.vue'
+import { useIdleTimer } from '@/composables/useIdleTimer'
+
+// Initialize idle timer
+useIdleTimer()
 </script>
 
 <template>
@@ -25,6 +30,7 @@ const configStore = useConfigStore()
     <!-- ℹ️ This is required to set the background color of active nav link based on currently active global theme's primary -->
     <VApp :style="`--v-global-theme-primary: ${hexToRgb(global.current.value.colors.primary)}`">
       <RouterView />
+      <AppLockScreen />
       <ScrollToTop />
     </VApp>
   </VLocaleProvider>

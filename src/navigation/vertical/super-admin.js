@@ -1,3 +1,5 @@
+import { icon } from "@/views/demos/components/badge/demoCodeBadge";
+
 export default [
   {
     heading: "Super Admin",
@@ -49,7 +51,7 @@ export default [
           { title: "Pet Breeds", to: "superadmin-pets-breeds" },
         ],
       },
-      
+
       {
         title: "Providers",
         icon: { icon: "tabler-users" },
@@ -59,8 +61,8 @@ export default [
             to: "superadmin-dynamic-providerfields-sprofile-form",
           },
           {
-            title:" Dynamic Doc Fields",
-            to:"superadmin-dynamic-providerfields-sdocuments-form"
+            title: " Dynamic Doc Fields",
+            to: "superadmin-dynamic-providerfields-sdocuments-form"
           }
           ,
           {
@@ -69,28 +71,42 @@ export default [
           },
           {
             title: "Provider Profile Crud",
-            to:"superadmin-dynamic-providerfields-docdynamic"
+            to: "superadmin-dynamic-providerfields-docdynamic"
           },
           {
-            title:"Profile",
-            to:"superadmin-dynamic-providerfields-profile-documets"
+            title: "Profile",
+            to: "superadmin-dynamic-providerfields-profile-documets"
           }
         ],
       },
       {
         title: "Roles & Permissions",
-        icon: { icon: "" },    
+        icon: { icon: "tabler-shield-lock" },
+        children: [
+          {
+            title: "Role",
+            iicon: { icon: "tabler-user-shield" },
+            to: "superadmin-roles-permissions-roles",
+          },
+          {
+            title: "Permissions",
+            iicon: { icon: "tabler-lock" },
+            to: "superadmin-roles-permissions-permissions",
+          }
+        ]
       },
       {
-        title: "Role ",
-        icon: { icon: "tabler-user-plus" },
-        to: "superadmin-roles-permissions-roles",
+        title: "Document & Verification",
+        icon: { icon: "tabler-file-check" },
+        children: [
+          {
+            title: "Documents Verification",
+            iicon: { icon: "tabler-user-shield" },
+            to: "superadmin-documents-verification-provider-docverification",
+          },
+        ]
       },
-      {
-        title: "Permission ",
-        icon: { icon: "tabler-settings" },
-        to: "superadmin-roles-permissions-permissions",
-      },
+
     ],
   },
 

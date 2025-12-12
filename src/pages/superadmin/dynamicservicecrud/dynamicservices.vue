@@ -251,8 +251,13 @@ const addService = async () => {
       >
         <!-- NAME -->
         <template #item.name="{ item }">
-          <div class="font-weight-medium text-high-emphasis">
-            {{ item.name }}
+          <div class="d-flex align-center">
+            <VAvatar size="32" color="primary" variant="tonal" class="me-2" v-if="item.icon">
+              <VIcon :icon="item.icon" size="18" />
+            </VAvatar>
+            <div class="font-weight-medium text-high-emphasis">
+              {{ item.name }}
+            </div>
           </div>
         </template>
 
@@ -335,6 +340,28 @@ const addService = async () => {
               label="Display Name *"
               placeholder="e.g., Pet Care Service"
             />
+          </VCol>
+
+          <VCol cols="12">
+            <VSelect
+              v-model="form.icon"
+              :items="iconList"
+              item-title="title"
+              item-value="value"
+              label="Service Icon"
+              placeholder="Select an icon"
+              prepend-inner-icon="tabler-icons"
+            >
+              <template #selection="{ item }">
+                <div class="d-flex align-center">
+                  <VIcon :icon="item.raw.value" class="me-2" />
+                  {{ item.raw.title }}
+                </div>
+              </template>
+              <template #item="{ props, item }">
+                <VListItem v-bind="props" :prepend-icon="item.raw.value" :title="item.raw.title" />
+              </template>
+            </VSelect>
           </VCol>
 
           <VCol cols="12">
@@ -460,10 +487,38 @@ export default {
     const deleteDialog = ref(false);
     const deleteItem = ref(null);
 
+    // Static Icon List
+    const iconList = [
+      { title: 'Pet Care', value: 'tabler-heart-handshake' },
+      { title: 'Pet Grooming', value: 'tabler-scissors' },
+      { title: 'Pet Health', value: 'tabler-stethoscope' },
+      { title: 'Veterinary', value: 'tabler-first-aid-kit' },
+      { title: 'Pet Training', value: 'tabler-school' },
+      { title: 'Pet Behavior', value: 'tabler-brain' },
+      { title: 'Pet Adoption', value: 'tabler-home-heart' },
+      { title: 'Pet Store', value: 'tabler-shopping-cart' },
+      { title: 'Pet Transport', value: 'tabler-car' },
+      { title: 'Pet Relocation', value: 'tabler-truck-delivery' },
+      { title: 'Special Services', value: 'tabler-sparkles' },
+      { title: 'Fish & Aquarium', value: 'tabler-fish' },
+      { title: 'Exotic Pets', value: 'tabler-bug' },
+      { title: 'General Pet', value: 'tabler-paw' },
+      { title: 'Dog', value: 'tabler-dog' },
+      { title: 'Cat', value: 'tabler-cat' },
+      { title: 'Bone', value: 'tabler-bone' },
+      { title: 'Vaccine', value: 'tabler-vaccine' },
+      { title: 'Bath', value: 'tabler-bath' },
+      { title: 'Walking', value: 'tabler-walk' },
+      { title: 'Home', value: 'tabler-home' },
+      { title: 'Location', value: 'tabler-map-pin' },
+      { title: 'Schedule', value: 'tabler-calendar-time' },
+    ];
+
     const form = ref({
       name: "",
       display_name: "",
       description: "",
+      icon: "",
       is_active: true,
       blocked: false,
     });
@@ -493,6 +548,7 @@ export default {
         name: "",
         display_name: "",
         description: "",
+        icon: "",
         is_active: true,
         blocked: false,
       };
@@ -560,6 +616,7 @@ export default {
       deleteService,
       openDeleteDialog,
       submit,
+      iconList,
     };
   },
 };

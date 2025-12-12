@@ -239,7 +239,7 @@ const addPricing = async () => {
             <AppSelect
               v-model="form.category"
               :items="filteredCategories"
-              item-title="display_name"
+              :item-title="item => item.name || item.display_name || 'Unknown'"
               item-value="id"
               label="Category (optional)"
               placeholder="Select category"

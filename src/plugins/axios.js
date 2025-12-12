@@ -178,4 +178,8 @@ api.interceptors.response.use(
   }
 );
 
-export default api;
+export { api };
+export default function (app) {
+  app.config.globalProperties.$axios = api;
+  app.provide('axios', api);
+}

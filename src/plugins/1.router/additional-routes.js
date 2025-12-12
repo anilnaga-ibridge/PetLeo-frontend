@@ -13,9 +13,10 @@ export const redirects = [
       console.log("userData", userData.value);
 
       const userRole = userData.value?.role;
-      if (userRole != null) return { name: "dashboards-crm" };
       if (userRole === "SuperAdmin") return { name: "dashboards-crm" };
+      if (userRole === "individual" || userRole === "organization") return { name: "provider-providerhome" };
       if (userRole === "client") return { name: "access-control" };
+      if (userRole != null) return { name: "dashboards-crm" };
 
       return { name: "login", query: to.query };
     },
@@ -75,6 +76,58 @@ export const routes = [
     name: "apps-ecommerce-dashboard",
     component: () => import("@/pages/dashboards/ecommerce.vue"),
   },
-
-
+  {
+    path: '/provider/settings/:tab',
+    name: 'provider-settings-tab',
+    component: () => import('@/pages/provider/settings.vue'),
+    meta: { layout: 'blank' },
+  },
+  {
+    path: '/provider/profile',
+    name: 'provider-profile',
+    component: () => import('@/pages/provider/profile.vue'),
+    meta: { layout: 'blank' },
+  },
+  {
+    path: '/provider/dashboard',
+    name: 'provider-dashboard',
+    component: () => import('@/pages/provider/dashboard.vue'),
+    meta: { layout: 'blank' },
+  },
+  {
+    path: '/provider/bookings',
+    name: 'provider-bookings',
+    component: () => import('@/pages/provider/bookings.vue'),
+    meta: { layout: 'blank' },
+  },
+  {
+    path: '/provider/services',
+    name: 'provider-services',
+    component: () => import('@/pages/provider/services.vue'),
+    meta: { layout: 'blank' },
+  },
+  {
+    path: '/provider/pricing',
+    name: 'provider-pricing',
+    component: () => import('@/pages/provider/pricing.vue'),
+    meta: { layout: 'blank' },
+  },
+  {
+    path: '/provider/faq',
+    name: 'provider-faq',
+    component: () => import('@/pages/provider/faq.vue'),
+    meta: { layout: 'blank' },
+  },
+  {
+    path: '/provider/service/:serviceId',
+    name: 'provider-service-details',
+    component: () => import('@/pages/provider/service-details.vue'),
+    meta: { layout: 'blank' },
+  },
+  {
+    path: '/provider/providerhome',
+    name: 'provider-providerhome',
+    component: () => import('@/pages/provider/providerhome.vue'),
+    meta: { layout: 'blank' },
+  },
 ];

@@ -11,7 +11,7 @@
  */
 
 import { ref, reactive, computed, onMounted, watch } from "vue";
-import axios from "@/plugins/axios";
+import { api as axios } from "@/plugins/axios";
 import { useRouter } from "vue-router";
 /* ------------------ Config ------------------ */
 const ROLES_API = "http://127.0.0.1:8000/auth/roles/public";

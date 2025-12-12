@@ -272,7 +272,7 @@ onMounted(() => {
         <VSelect
           v-model="form.plan_id"
           :items="plans"
-          item-title="title"
+          :item-title="item => item.title || item.name || 'Unknown Plan'"
           item-value="id"
           label="Plan *"
         />
@@ -281,7 +281,7 @@ onMounted(() => {
         <VSelect
           v-model="form.billing_cycle_id"
           :items="billingCycles"
-          item-title="name"
+          :item-title="item => item.name || item.title || 'Unknown Cycle'"
           item-value="id"
           label="Billing Cycle *"
         />

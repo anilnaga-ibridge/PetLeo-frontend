@@ -32,7 +32,12 @@ const tabs = [
   },
 ]
 
-const { data: userData } = await useApi(`/apps/users/${ route.params.id }`)
+const { data: userData, error } = await useApi(`http://127.00.1:8000/auth/users/${ route.params.id }/`)
+
+if (error.value) {
+  console.error("User Profile API Error:", error.value)
+}
+console.log("User Profile Data:", userData.value)
 </script>
 
 <template>

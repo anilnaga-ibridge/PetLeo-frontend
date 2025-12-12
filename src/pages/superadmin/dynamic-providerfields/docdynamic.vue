@@ -84,6 +84,18 @@
               </v-card-title>
 
               <v-card-text>
+                <!-- Dropzone Area -->
+                <div
+                  class="dropzone-area mb-4"
+                  @click="onUploadClick(def)"
+                  @dragover.prevent
+                  @drop.prevent="(e) => onDrop(def, e)"
+                >
+                  <v-icon size="40" color="#6C27FF">mdi-cloud-upload-outline</v-icon>
+                  <div class="dz-text mt-2">
+                    Click or drag to {{ getUploadedForDef(def.id) ? 'replace' : 'upload' }}
+                  </div>
+                </div>
                 <transition name="fade">
                   <div v-if="uploading[def.id]" class="upload-progress">
                     <div class="d-flex justify-space-between mb-2 small muted">
@@ -178,7 +190,7 @@
 */
 
 import { ref, reactive, computed, onMounted } from 'vue';
-import api from '@/plugins/axios';
+import { api } from '@/plugins/axios';
 import { useCookie } from '@/@core/composable/useCookie';
 
 const DEFS_API = 'http://127.0.0.1:8002/api/provider/documents/definitions/';
@@ -186,7 +198,7 @@ const UPLOAD_API = 'http://127.0.0.1:8002/api/provider/documents/upload/';
 const LIST_API = 'http://127.0.0.1:8002/api/provider/documents/';
 const ITEM_API = (id) => `http://127.0.0.1:8002/api/provider/documents/${id}/`;
 
-const selectedTarget = ref('individual');
+
 const docDefinitions = ref([]);
 const docLoading = ref(false);
 
@@ -199,6 +211,10 @@ const fileInputs = reactive({});        // references to inputs
 const snackbar = reactive({ open: false, message: '', color: 'success', timer: null });
 
 const userData = useCookie('userData').value || {};
+
+const rawRole = userData.provider_type || 'individual';
+const normalizedRole = rawRole.toLowerCase().trim();
+const selectedTarget = ref(normalizedRole);
 const authUserId = ref(userData.id || '');
 const displayRole = userData.provider_type || 'unknown';
 
@@ -285,6 +301,12 @@ function onFileSelectedSingle(def, evt) {
   const file = files[0]; // ALWAYS single
   evt.target.value = ''; // reset for future picks
   uploadFileForDefinition(def, file);
+}
+
+function onDrop(def, evt) {
+  const files = evt.dataTransfer.files ? Array.from(evt.dataTransfer.files) : [];
+  if (!files.length) return;
+  uploadFileForDefinition(def, files[0]);
 }
 
 // Basic allowed check (uses allowed_types list if present)
@@ -409,4 +431,23 @@ onMounted(async () => {
 .fade-enter-active, .fade-leave-active { transition: all .18s ease; }
 .fade-enter-from { opacity: 0; transform: translateY(-6px); }
 .fade-enter-to { opacity: 1; transform: translateY(0); }
+
+/* Dropzone */
+.dropzone-area {
+  border: 2px dashed rgba(108, 39, 255, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  background: #fafaff;
+  transition: all 0.2s ease;
+}
+.dropzone-area:hover {
+  border-color: #6C27FF;
+  background: #f0ebff;
+}
+.dz-text {
+  font-weight: 600;
+  color: #6C27FF;
+}
 </style>

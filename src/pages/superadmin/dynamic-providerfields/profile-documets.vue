@@ -141,7 +141,7 @@
                       <v-btn
                         depressed
                         class="picker-btn"
-                        @click="$refs['picker-' + field.id][0].click()"
+                        @click="$refs['picker-' + field.id].click()"
                       >
                         <v-icon left>mdi-paperclip</v-icon>
                         Choose file
@@ -179,14 +179,14 @@
                   <div class="doc-actions">
                     <!-- If single and existing file -> show Update (premium purple) -->
                     <template v-if="existingRequestedByDefinition[doc.id] && existingRequestedByDefinition[doc.id].length">
-                      <v-btn small class="update-btn" @click="$refs['docInput-' + doc.id][0].click()">
+                      <v-btn small class="update-btn" @click="$refs['docInput-' + doc.id].click()">
                         Update
                       </v-btn>
                     </template>
 
                     <!-- Choose -->
                     <template v-else>
-                      <v-btn small text @click="$refs['docInput-' + doc.id][0].click()">Choose</v-btn>
+                      <v-btn small text @click="$refs['docInput-' + doc.id].click()">Choose</v-btn>
                     </template>
 
                     <!-- Hidden file input (SINGLE file always) -->
@@ -202,6 +202,7 @@
                 <!-- Dropzone area -->
                 <div
                   class="dropzone"
+                  @click="$refs['docInput-' + doc.id].click()"
                   @dragover.prevent="onDropZoneDrag($event, doc.id)"
                   @dragenter.prevent="onDropZoneEnter($event, doc.id)"
                   @dragleave.prevent="onDropZoneLeave($event, doc.id)"
@@ -326,7 +327,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue';
-import api from '@/plugins/axios';
+import { api } from '@/plugins/axios';
 import { useCookie } from '@/@core/composable/useCookie';
 
 const GET_PROFILE_API = "http://127.0.0.1:8002/api/provider/profile/";
@@ -603,7 +604,7 @@ async function fetchProfile(){
   successMessage.value = '';
   errorMessage.value = '';
   try{
-    const res = await api.get(GET_PROFILE_API, { params: { user: userId } });
+    const res = await api.get(GET_PROFILE_API, { params: { user: userId, target: dynamicTarget } });
     fields.value = res.data.fields || [];
     uploadedDocuments.value = res.data.uploaded_documents || res.data.uploaded_files || [];
     requestedDocuments.value = res.data.requested_documents || [];

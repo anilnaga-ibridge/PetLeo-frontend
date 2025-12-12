@@ -893,7 +893,7 @@ const useOtpInstead = () => {
 
 <script setup>
 import axios from 'axios'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAbility } from '@casl/vue'
 import { useCookie } from '@/@core/composable/useCookie'
@@ -1110,6 +1110,21 @@ const useOtpInstead = () => {
   showPinLogin.value = false
   errorMessage.value = ''
 }
+
+onMounted(() => {
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('userData')
+  localStorage.removeItem('userAbilityRules')
+  sessionStorage.removeItem('accessToken')
+  sessionStorage.removeItem('userData')
+  
+  useCookie('accessToken').value = null
+  useCookie('userData').value = null
+  useCookie('userAbilityRules').value = null
+  
+  // Clear global axios header to prevent sending old token
+  delete axios.defaults.headers.common["Authorization"]
+})
 </script>
 <template>
   <VRow no-gutters class="auth-wrapper bg-surface h-screen">
@@ -1142,7 +1157,7 @@ const useOtpInstead = () => {
             {{ errorMessage }}
           </VAlert>
 
-          <AppTextField v-model="form.phone_number" label="Phone Number" prepend-inner-icon="tabler-phone" />
+          <AppTextField v-model.trim="form.phone_number" label="Phone Number" prepend-inner-icon="tabler-phone" />
 
           <VCheckbox v-model="rememberMe" label="Remember me" />
 
@@ -1177,8 +1192,8 @@ const useOtpInstead = () => {
             {{ errorMessage }}
           </VAlert>
 
-          <AppTextField v-model="pinPhone" label="Phone Number" />
-          <AppTextField v-model="pin" label="PIN" type="password" maxlength="6" />
+          <AppTextField v-model.trim="pinPhone" label="Phone Number" />
+          <AppTextField v-model.trim="pin" label="PIN" type="password" maxlength="6" />
 
           <VCheckbox v-model="rememberMe" label="Remember me" />
 

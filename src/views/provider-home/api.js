@@ -1,5 +1,5 @@
 // provider-home/api.js
-import axios from "@/plugins/axios";
+import { api as axios } from "@/plugins/axios";
 
 const BASE = "/api/superadmin/provider-home";
 

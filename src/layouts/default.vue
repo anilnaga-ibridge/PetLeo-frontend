@@ -45,7 +45,9 @@ watch([
         @fallback="isFallbackStateActive = true"
         @resolve="isFallbackStateActive = false"
       >
-        <Component :is="Component" />
+        <div class="h-100">
+          <Component :is="Component" />
+        </div>
       </Suspense>
     </RouterView>
   </Component>

@@ -7,4 +7,4 @@ import uiElements from './ui-elements'
 
 import superadmin from './super-admin'
 
-export default [...superadmin,...dashboard, ...appsAndPages, ...uiElements, ...forms, ...charts, ...others,  ]
+export default [...superadmin, ...dashboard, ...appsAndPages, ...uiElements, ...forms, ...charts, ...others,]
