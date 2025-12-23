@@ -35,9 +35,12 @@ const removeFromCart = async (itemId) => {
 const router = useRouter()
 
 const checkout = async () => {
+  console.log('DEBUG: Checkout button clicked')
   processing.value = true
   try {
+    console.log('DEBUG: Sending checkout request...')
     await api.post('http://127.0.0.1:8002/api/provider/cart/checkout/')
+    console.log('DEBUG: Checkout request successful')
     snackbar.value = { show: true, text: 'Checkout successful! Plans activated.', color: 'success' }
     cart.value = null // Clear cart locally
     

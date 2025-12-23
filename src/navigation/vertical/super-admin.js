@@ -40,7 +40,10 @@ export default [
           { title: "Plan Prices", to: "superadmin-plans-plan-prices" },
 
           { title: "Coupons", to: "superadmin-plans-coupon" },
-          { title: "Plan Items", to: "superadmin-plans-plan-items" },
+          {
+            title: 'Plan Capabilities',
+            to: 'superadmin-plans-plan-capabilities',
+          },
         ],
       },
       {
@@ -61,7 +64,7 @@ export default [
             to: "superadmin-dynamic-providerfields-sprofile-form",
           },
           {
-            title: " Dynamic Doc Fields",
+            title: "Dynamic Doc Fields",
             to: "superadmin-dynamic-providerfields-sdocuments-form"
           }
           ,

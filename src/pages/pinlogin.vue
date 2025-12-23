@@ -84,6 +84,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAbility } from '@casl/vue'
 import { useCookie } from '@/@core/composable/useCookie'
+import MultiBoxPinInput from '@/components/MultiBoxPinInput.vue'
 
 const router = useRouter()
 const ability = useAbility()
@@ -94,6 +95,7 @@ const LOGIN_PIN_URL = `${API_BASE}/auth/login-with-pin/`
 
 const phone = ref('')
 const pin = ref('')
+const pinLength = ref(4)
 const rememberMe = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
@@ -146,7 +148,15 @@ const loginWithPin = async () => {
         <h3>Login with PIN</h3>
 
         <VTextField v-model="phone" label="Phone Number" placeholder="+91 9876543210" />
-        <VTextField v-model="pin" label="PIN" type="password" maxlength="6" />
+        <div class="mb-4">
+          <label class="v-label mb-1" for="pin-input">PIN</label>
+          <MultiBoxPinInput
+            id="pin-input"
+            v-model="pin"
+            :length="pinLength"
+            :error="!!errorMessage"
+          />
+        </div>
         <VCheckbox v-model="rememberMe" label="Remember me" />
         <VBtn block @click="loginWithPin" :loading="loading">Login</VBtn>
 

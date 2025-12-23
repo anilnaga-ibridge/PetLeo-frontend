@@ -241,10 +241,13 @@ const addPricing = async () => {
               :items="filteredCategories"
               :item-title="item => item.name || item.display_name || 'Unknown'"
               item-value="id"
-              label="Category (optional)"
+              :label="isEdit ? 'Category (optional)' : 'Category (Select multiple optional)'"
               placeholder="Select category"
               :disabled="!form.service || filteredCategories.length === 0"
               clearable
+              :multiple="!isEdit"
+              :chips="!isEdit"
+              closable-chips
             />
           </VCol>
 
@@ -255,10 +258,13 @@ const addPricing = async () => {
               :items="filteredFacilities"
               item-title="name"
               item-value="id"
-              label="Facility (optional)"
+              :label="isEdit ? 'Facility (optional)' : 'Facility (Select multiple optional)'"
               placeholder="Select facility"
               :disabled="!form.service || filteredFacilities.length === 0"
               clearable
+              :multiple="!isEdit"
+              :chips="!isEdit"
+              closable-chips
             />
           </VCol>
 
@@ -403,15 +409,16 @@ export default {
     const filteredCategories = computed(() => {
       if (!form.value.service) return categoryStore.categories || []
       return (categoryStore.categories || []).filter(c => {
-        // backend might return c.service as number or {id:..}
-        return c.service === form.value.service || (c.service?.id && c.service.id === form.value.service)
+        const sId = c.service?.id || c.service
+        return sId === form.value.service
       })
     })
 
     const filteredFacilities = computed(() => {
       if (!form.value.service) return []
       return (facilityStore.facilities || []).filter(f => {
-        return f.service === form.value.service || (f.service?.id && f.service.id === form.value.service)
+        const sId = f.service?.id || f.service
+        return sId === form.value.service
       })
     })
 
@@ -503,7 +510,7 @@ export default {
     const openAddDrawer = () => {
       isEdit.value = false
       editId.value = null
-      form.value = { service: null, category: null, facility: null, price: 0, duration: 'per_day', discount: null, is_active: true }
+      form.value = { service: null, category: [], facility: [], price: 0, duration: 'per_day', discount: null, is_active: true }
       drawerOpen.value = true
     }
 
@@ -527,20 +534,39 @@ export default {
     const submit = async () => {
       loading.value = true
       try {
-        const payload = {
-          service: form.value.service,
-          category: form.value.category || null,
-          facility: form.value.facility || null,
-          price: Number(form.value.price) || 0,
-          duration: form.value.duration,
-          discount: form.value.discount !== null ? Number(form.value.discount) : null,
-          is_active: form.value.is_active
-        }
-
         if (isEdit.value && editId.value) {
+          // Edit Mode: Single Update
+          const payload = {
+            service: form.value.service,
+            category: form.value.category || null,
+            facility: form.value.facility || null,
+            price: Number(form.value.price) || 0,
+            duration: form.value.duration,
+            discount: form.value.discount !== null ? Number(form.value.discount) : null,
+            is_active: form.value.is_active
+          }
           await axios.put(BASE_URL + 'pricing/' + editId.value + '/', payload)
         } else {
-          await axios.post(BASE_URL + 'pricing/', payload)
+          // Create Mode: Multi-Select Combinations
+          const categories = (Array.isArray(form.value.category) && form.value.category.length > 0) ? form.value.category : [null]
+          const facilities = (Array.isArray(form.value.facility) && form.value.facility.length > 0) ? form.value.facility : [null]
+
+          const promises = []
+          for (const cat of categories) {
+            for (const fac of facilities) {
+              const payload = {
+                service: form.value.service,
+                category: cat,
+                facility: fac,
+                price: Number(form.value.price) || 0,
+                duration: form.value.duration,
+                discount: form.value.discount !== null ? Number(form.value.discount) : null,
+                is_active: form.value.is_active
+              }
+              promises.push(axios.post(BASE_URL + 'pricing/', payload))
+            }
+          }
+          await Promise.all(promises)
         }
 
         drawerOpen.value = false
@@ -573,8 +599,13 @@ export default {
 
     const onServiceChange = () => {
       // clear dependent fields when service changes
-      if (form.value.category && !filteredCategories.value.find(c => c.id === form.value.category)) form.value.category = null
-      if (form.value.facility && !filteredFacilities.value.find(f => f.id === form.value.facility)) form.value.facility = null
+      if (isEdit.value) {
+        if (form.value.category && !filteredCategories.value.find(c => c.id === form.value.category)) form.value.category = null
+        if (form.value.facility && !filteredFacilities.value.find(f => f.id === form.value.facility)) form.value.facility = null
+      } else {
+        form.value.category = []
+        form.value.facility = []
+      }
     }
 
     const drawerHeaderStyle = { background: 'linear-gradient(135deg,#42a5f5,#1e88e5)', color: 'white' }

@@ -32,23 +32,8 @@ onMounted(async () => {
 })
 
 const filteredNavItems = computed(() => {
-  // Deep copy to avoid mutating original
-  const items = JSON.parse(JSON.stringify(providerNavItems))
-  
-  return items.map(item => {
-    // Inject children into 'Services' item
-    if (item.title === 'Services' && allowedServices.value.length > 0) {
-      item.children = allowedServices.value.map(svc => ({
-        title: svc.name,
-        to: { name: 'provider-service-details', params: { serviceId: svc.service_id } },
-        icon: { icon: svc.icon || 'tabler-circle' },
-      }))
-    }
-    return item
-  }).filter(item => {
-    if (!item.permission) return true
-    return permissionStore.hasPermission(item.permission)
-  })
+  // providerNavItems is now a function that returns the dynamic navigation array
+  return providerNavItems()
 })
 
 console.log('ProviderLayout: themeConfig', themeConfig)

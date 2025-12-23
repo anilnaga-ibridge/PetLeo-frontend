@@ -328,7 +328,7 @@ export default {
           </VCol>
 
           <VCol cols="12" sm="8" class="d-flex justify-end">
-            <VBtn color="primary" prepend-icon="tabler-plus" @click="goToAddPlan">
+            <VBtn color="primary" prepend-icon="tabler-plus" class="px-6" @click="goToAddPlan">
               Add Plan
             </VBtn>
           </VCol>
@@ -349,17 +349,51 @@ export default {
         density="comfortable"
         @update:options="updateOptions"
       >
+        <!-- Title -->
+        <template #item.title="{ item }">
+          <div class="d-flex align-center">
+            <VAvatar size="32" color="primary" variant="tonal" class="me-2">
+              <VIcon icon="tabler-file-certificate" size="18" />
+            </VAvatar>
+            <div>
+              <div class="font-weight-medium">{{ item.title }}</div>
+              <div class="text-caption text-medium-emphasis">{{ item.subtitle }}</div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Role -->
+        <template #item.role="{ item }">
+          <VChip size="small" label color="info" variant="tonal" class="text-capitalize">
+            {{ item.role }}
+          </VChip>
+        </template>
+
         <!-- Billing Cycle -->
         <template #item.default_billing_cycle="{ item }">
-          {{ item.default_billing_cycle?.name || "-" }}
+          <div v-if="item.default_billing_cycle" class="d-flex align-center gap-1">
+            <VIcon icon="tabler-calendar-repeat" size="14" class="text-medium-emphasis" />
+            <span>{{ item.default_billing_cycle.name }}</span>
+          </div>
+          <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- Features -->
         <template #item.features="{ item }">
-          <div class="d-flex flex-wrap gap-1">
-            <VChip v-for="(f, i) in item.features" :key="i" size="x-small" color="indigo">
+          <div class="d-flex flex-wrap gap-1" style="max-width: 250px;">
+            <VChip v-for="(f, i) in item.features.slice(0, 3)" :key="i" size="x-small" color="primary" variant="tonal">
               {{ f }}
             </VChip>
+            <VChip v-if="item.features.length > 3" size="x-small" color="grey" variant="tonal">
+              +{{ item.features.length - 3 }} more
+            </VChip>
+          </div>
+        </template>
+
+        <!-- Description -->
+        <template #item.description="{ item }">
+          <div class="text-truncate" style="max-width: 200px;" :title="item.description">
+            {{ item.description }}
           </div>
         </template>
 
@@ -368,7 +402,7 @@ export default {
           <VChip
             size="small"
             :color="item.is_active ? 'success' : 'error'"
-            class="text-white"
+            variant="tonal"
           >
             {{ item.is_active ? "Active" : "Inactive" }}
           </VChip>
@@ -376,13 +410,15 @@ export default {
 
         <!-- Actions -->
         <template #item.actions="{ item }">
-          <IconBtn @click="goToEditPlan(item.id)">
-            <VIcon icon="tabler-edit" />
-          </IconBtn>
+          <div class="d-flex gap-1">
+            <IconBtn @click="goToEditPlan(item.id)">
+              <VIcon icon="tabler-edit" />
+            </IconBtn>
 
-          <IconBtn color="red" @click="openDeleteDialog(item)">
-            <VIcon icon="tabler-trash" />
-          </IconBtn>
+            <IconBtn color="error" @click="openDeleteDialog(item)">
+              <VIcon icon="tabler-trash" />
+            </IconBtn>
+          </div>
         </template>
 
         <!-- Pagination -->
@@ -397,22 +433,25 @@ export default {
     </VCard>
 
     <!-- DELETE CONFIRMATION -->
-    <VDialog v-model="deleteDialog" width="420" persistent>
-      <VCard class="pa-4 rounded-xl">
+    <VDialog v-model="deleteDialog" width="420" transition="dialog-bottom-transition">
+      <VCard class="pa-4 rounded-xl" elevation="10">
         <div class="text-center mb-3">
-          <VAvatar size="60" color="red" variant="tonal">
+          <VAvatar size="60" color="error" variant="tonal" class="mb-3">
             <VIcon icon="tabler-alert-triangle" size="32" />
           </VAvatar>
 
-          <h2 class="text-h6 font-weight-bold">Delete Plan?</h2>
-          <p>You are about to delete <strong>{{ deleteItem?.title }}</strong>.</p>
+          <h3 class="text-h6 font-weight-bold">Delete Plan?</h3>
+          <p class="text-body-2 mt-1 text-medium-emphasis">
+            Are you sure you want to delete <br>
+            <strong class="text-primary">{{ deleteItem?.title }}</strong>?
+          </p>
         </div>
 
         <VDivider class="my-3" />
 
         <div class="d-flex justify-end gap-2">
           <VBtn variant="text" @click="deleteDialog = false">Cancel</VBtn>
-          <VBtn color="error" @click="deletePlan">Delete</VBtn>
+          <VBtn color="error" @click="deletePlan" prepend-icon="tabler-trash">Delete</VBtn>
         </div>
       </VCard>
     </VDialog>

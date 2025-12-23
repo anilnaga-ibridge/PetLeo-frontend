@@ -207,10 +207,9 @@ onMounted(() => {
 <template>
   <section>
     <VCard class="mb-6">
-      <VCardTitle class="d-flex justify-space-between align-center py-4 px-6">
-        <span class="text-h6 font-weight-bold">Plan Prices</span>
-        <VBtn color="primary" prepend-icon="tabler-plus" @click="openAddDrawer">Add Price</VBtn>
-      </VCardTitle>
+      <VCardItem class="pb-2">
+        <VCardTitle class="text-h5 font-weight-bold">Plan Prices</VCardTitle>
+      </VCardItem>
 
       <VCardText>
         <VRow>
@@ -220,6 +219,11 @@ onMounted(() => {
               placeholder="Search prices..."
               prepend-inner-icon="tabler-search"
             />
+          </VCol>
+          <VCol cols="12" sm="8" class="d-flex justify-end">
+            <VBtn color="primary" prepend-icon="tabler-plus" class="px-6" @click="openAddDrawer">
+              Add Price
+            </VBtn>
           </VCol>
         </VRow>
       </VCardText>
@@ -233,84 +237,159 @@ onMounted(() => {
         v-model:page="page"
         v-model:items-per-page="itemsPerPage"
         hover
-        dense
+        density="comfortable"
         class="text-no-wrap"
       >
         <template #item.plan_title="{ item }">
-          <strong>{{ item.plan_title }}</strong>
+          <div class="d-flex align-center">
+            <VAvatar size="32" color="primary" variant="tonal" class="me-2">
+              <VIcon icon="tabler-box" size="18" />
+            </VAvatar>
+            <span class="font-weight-medium">{{ item.plan_title }}</span>
+          </div>
         </template>
 
         <template #item.billing_cycle_name="{ item }">
-          {{ item.billing_cycle_name }}
+          <VChip size="small" label color="info" variant="tonal">
+            {{ item.billing_cycle_name }}
+          </VChip>
+        </template>
+
+        <template #item.amount="{ item }">
+          <span class="font-weight-bold text-high-emphasis">
+            {{ item.amount }} {{ item.currency }}
+          </span>
         </template>
 
         <template #item.is_active="{ item }">
-          <VChip size="small" :color="item.is_active ? 'success' : 'red'">
+          <VChip size="small" :color="item.is_active ? 'success' : 'error'" variant="tonal">
             {{ item.is_active ? "Active" : "Inactive" }}
           </VChip>
         </template>
 
         <template #item.actions="{ item }">
-          <IconBtn @click="openEditDrawer(item)">
-            <VIcon icon="tabler-edit" />
-          </IconBtn>
-
-          <IconBtn color="red" @click="openDeleteDialog(item)">
-            <VIcon icon="tabler-trash" />
-          </IconBtn>
+          <div class="d-flex gap-1">
+            <IconBtn @click="openEditDrawer(item)">
+              <VIcon icon="tabler-edit" />
+            </IconBtn>
+            <IconBtn color="error" @click="openDeleteDialog(item)">
+              <VIcon icon="tabler-trash" />
+            </IconBtn>
+          </div>
+        </template>
+        
+        <template #bottom>
+          <TablePagination v-model:page="page" :items-per-page="itemsPerPage" :total-items="totalItems" />
         </template>
       </VDataTableServer>
     </VCard>
 
     <!-- DRAWER -->
-    <VNavigationDrawer v-model="drawerOpen" location="end" temporary width="420" class="pa-4">
-      <h3 class="text-h6 font-weight-bold mb-3">{{ isEdit ? "Update Price" : "Create Price" }}</h3>
-      <VDivider class="mb-4" />
-
-      <VForm>
-        <!-- PLAN -->
-        <VSelect
-          v-model="form.plan_id"
-          :items="plans"
-          :item-title="item => item.title || item.name || 'Unknown Plan'"
-          item-value="id"
-          label="Plan *"
-        />
-
-        <!-- BILLING CYCLE -->
-        <VSelect
-          v-model="form.billing_cycle_id"
-          :items="billingCycles"
-          :item-title="item => item.name || item.title || 'Unknown Cycle'"
-          item-value="id"
-          label="Billing Cycle *"
-        />
-
-        <AppTextField v-model="form.amount" type="number" label="Amount *" />
-        <AppTextField v-model="form.currency" label="Currency" />
-        <VSwitch v-model="form.is_active" label="Active" />
-      </VForm>
-
-      <div class="d-flex justify-end mt-4">
-        <VBtn variant="text" class="mr-2" @click="closeDrawer">Cancel</VBtn>
-        <VBtn color="primary" :loading="loading" @click="submit">
-          {{ isEdit ? "Update" : "Create" }}
-        </VBtn>
+    <VNavigationDrawer v-model="drawerOpen" location="end" temporary width="420" class="pa-4" style="border-left: 2px solid #E2E8F0;">
+      <div class="pa-3 mb-4 rounded-lg" style="background: linear-gradient(135deg, #42a5f5, #1e88e5); color: white;">
+        <div class="d-flex justify-space-between align-center">
+          <div>
+            <h3 class="text-h6 font-weight-bold mb-1">{{ isEdit ? "Update Price" : "Create Price" }}</h3>
+            <div class="text-caption opacity-90">Configure plan pricing details</div>
+          </div>
+          <IconBtn @click="closeDrawer" color="white" variant="text"><VIcon icon="tabler-x" /></IconBtn>
+        </div>
       </div>
+
+      <VForm @submit.prevent="submit">
+        <VRow>
+          <!-- PLAN -->
+          <VCol cols="12">
+            <AppSelect
+              v-model="form.plan_id"
+              :items="plans"
+              :item-title="item => item.title || item.name || 'Unknown Plan'"
+              item-value="id"
+              label="Plan *"
+              placeholder="Select a plan"
+              prepend-inner-icon="tabler-box"
+              clearable
+            />
+          </VCol>
+
+          <!-- BILLING CYCLE -->
+          <VCol cols="12">
+            <AppSelect
+              v-model="form.billing_cycle_id"
+              :items="billingCycles"
+              :item-title="item => item.name || item.title || 'Unknown Cycle'"
+              item-value="id"
+              label="Billing Cycle *"
+              placeholder="Select billing cycle"
+              prepend-inner-icon="tabler-calendar-repeat"
+              clearable
+            />
+          </VCol>
+
+          <!-- AMOUNT -->
+          <VCol cols="12">
+            <AppTextField 
+              v-model="form.amount" 
+              type="number" 
+              label="Amount *" 
+              placeholder="0.00"
+              prepend-inner-icon="tabler-currency-dollar"
+            />
+          </VCol>
+
+          <!-- CURRENCY -->
+          <VCol cols="12">
+            <AppSelect
+              v-model="form.currency"
+              :items="['USD', 'EUR', 'INR', 'GBP', 'CAD', 'AUD']"
+              label="Currency"
+              placeholder="Select currency"
+              prepend-inner-icon="tabler-coin"
+            />
+          </VCol>
+
+          <!-- ACTIVE -->
+          <VCol cols="12">
+            <VCard class="pa-3 border" variant="flat">
+              <div class="d-flex justify-space-between align-center">
+                <div>
+                  <div class="font-weight-medium">Status</div>
+                  <div class="text-caption text-medium-emphasis">Enable or disable this price</div>
+                </div>
+                <VSwitch v-model="form.is_active" color="success" hide-details />
+              </div>
+            </VCard>
+          </VCol>
+        </VRow>
+
+        <div class="d-flex justify-end mt-6 gap-2">
+          <VBtn variant="text" @click="closeDrawer">Cancel</VBtn>
+          <VBtn color="primary" :loading="loading" type="submit" style="background: linear-gradient(135deg, #42a5f5, #1e88e5);">
+            {{ isEdit ? "Update" : "Create" }}
+          </VBtn>
+        </div>
+      </VForm>
     </VNavigationDrawer>
 
     <!-- DELETE DIALOG -->
-    <VDialog v-model="deleteDialog" width="420">
-      <VCard class="pa-4">
-        <h3 class="text-h6 font-weight-bold">Delete Price?</h3>
-        <p class="text-body-2 mt-2">
-          This will permanently delete price for:
-          <strong>{{ deleteItem?.plan_title }}</strong>
-        </p>
+    <VDialog v-model="deleteDialog" width="420" transition="dialog-bottom-transition">
+      <VCard class="pa-4 rounded-xl" elevation="10">
+        <div class="text-center mb-3">
+          <VAvatar size="60" color="error" variant="tonal" class="mb-3">
+            <VIcon icon="tabler-alert-triangle" size="32" />
+          </VAvatar>
+          <h3 class="text-h6 font-weight-bold">Delete Price?</h3>
+          <p class="text-body-2 mt-1 text-medium-emphasis">
+            Are you sure you want to delete the price for <br>
+            <strong class="text-primary">{{ deleteItem?.plan_title }}</strong>?
+          </p>
+        </div>
 
-        <div class="d-flex justify-end mt-4">
+        <VDivider class="my-3" />
+
+        <div class="d-flex justify-end gap-2">
           <VBtn variant="text" @click="deleteDialog = false">Cancel</VBtn>
-          <VBtn color="red" @click="deletePrice">Delete</VBtn>
+          <VBtn color="error" @click="deletePrice" prepend-icon="tabler-trash">Delete</VBtn>
         </div>
       </VCard>
     </VDialog>

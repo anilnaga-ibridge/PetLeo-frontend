@@ -46,7 +46,12 @@ const plans = ref([])
 
 const fetchPlans = async () => {
   try {
-    const res = await api.get('/api/superadmin/provider/plans/')
+    const userData = useCookie('userData').value
+    const role = userData?.provider_type || 'individual' // Default to individual if not logged in or missing
+    
+    const res = await api.get('/api/superadmin/provider/plans/', {
+      params: { role }
+    })
     plans.value = res.data.results || res.data
   } catch (err) {
     console.error('Failed to fetch plans:', err)
@@ -196,7 +201,8 @@ const addToCart = async (plan) => {
     fetchCart() // Refresh cart to update UI
   } catch (err) {
     console.error('Add to cart failed:', err)
-    snackbar.value = { show: true, text: 'Failed to add to cart.', color: 'error' }
+    const errorMsg = err.response?.data?.error || err.response?.data?.detail || 'Failed to add to cart.'
+    snackbar.value = { show: true, text: errorMsg, color: 'error' }
   } finally {
     loadingCart.value = null
   }
@@ -321,92 +327,144 @@ const addToCart = async (plan) => {
     </section>
 
     <!-- 2.5 PLANS SECTION -->
-    <section id="plans" class="plans-section py-16 bg-surface">
+    <section id="plans" class="plans-section py-16 bg-surface position-relative">
+      <!-- Background decoration -->
+      <div class="position-absolute top-0 left-0 w-100 h-100" style="background: radial-gradient(circle at 50% 50%, rgba(var(--v-theme-primary), 0.05) 0%, transparent 70%); pointer-events: none;"></div>
+
       <VContainer>
-        <div class="text-center mb-12">
-          <h2 class="text-h3 font-weight-bold mb-2">Choose Your Plan</h2>
-          <p class="text-body-1 text-medium-emphasis">Select a plan that fits your business needs</p>
+        <div class="text-center mb-16">
+          <VChip color="primary" variant="tonal" class="mb-4 font-weight-bold" size="small">PRICING PLANS</VChip>
+          <h2 class="text-h3 font-weight-bold mb-4">Choose the Perfect Plan</h2>
+          <p class="text-h6 text-medium-emphasis font-weight-regular" style="max-width: 600px; margin: 0 auto;">
+            Transparent pricing. No hidden fees. Cancel anytime.
+          </p>
         </div>
-        <VRow justify="center">
-          <VCol v-for="plan in plans" :key="plan.id" cols="12" md="4">
-            <VCard class="h-100 pa-6 text-center border d-flex flex-column" elevation="2">
-              <h3 class="text-h4 font-weight-bold mb-2">{{ plan.title }}</h3>
-              <p class="text-body-2 text-medium-emphasis mb-4">{{ plan.subtitle }}</p>
-              
-              <!-- Price Display -->
-              <div class="text-h3 font-weight-bold text-primary mb-2" v-if="plan.price">
-                {{ plan.price.currency }} {{ plan.price.amount }}
-                <span class="text-body-1 text-medium-emphasis" v-if="plan.billing_cycle">
-                  / {{ plan.billing_cycle.name }}
-                </span>
+
+        <VRow justify="center" align="stretch">
+          <VCol v-for="plan in plans" :key="plan.id" cols="12" md="4" lg="4">
+            <VCard 
+              class="h-100 d-flex flex-column plan-card rounded-xl overflow-visible" 
+              elevation="0"
+              border
+              :class="{ 'border-primary ring-primary': isPlanInCart(plan.id) }"
+              style="transition: all 0.3s ease;"
+            >
+              <!-- Header -->
+              <div class="pa-8 text-center bg-surface rounded-t-xl">
+                <h3 class="text-h4 font-weight-bold mb-2 text-high-emphasis">{{ plan.title }}</h3>
+                <p class="text-body-1 text-medium-emphasis mb-6">{{ plan.subtitle }}</p>
+                
+                <!-- Price -->
+                <div class="d-flex align-center justify-center gap-1 mb-2" v-if="plan.price">
+                  <span class="text-h5 font-weight-bold text-medium-emphasis mt-2">{{ plan.price.currency }}</span>
+                  <span class="text-h2 font-weight-bolder text-primary">{{ plan.price.amount }}</span>
+                  <span class="text-body-1 text-medium-emphasis align-self-end mb-2" v-if="plan.billing_cycle">
+                    /{{ plan.billing_cycle.name.toLowerCase() }}
+                  </span>
+                </div>
+                <div v-else class="text-h2 font-weight-bolder text-primary mb-2">
+                  Free
+                </div>
               </div>
-              <div v-else class="text-h3 font-weight-bold text-primary mb-2">
-                Free
-              </div>
+
+              <VDivider class="mx-8 border-dashed" />
               
-              <VDivider class="my-4" />
-              
-              <!-- Features -->
-              <div class="text-start mb-6 flex-grow-1">
-                <div v-if="plan.features && plan.features.length" class="mb-4">
-                  <div class="text-subtitle-2 font-weight-bold mb-2">Features:</div>
-                  <div v-for="(feature, index) in plan.features" :key="index" class="d-flex align-center mb-2">
-                    <VIcon icon="tabler-check" color="success" size="18" class="me-2" />
-                    <span class="text-body-2">{{ feature }}</span>
-                  </div>
+              <!-- Body -->
+              <div class="pa-8 flex-grow-1 bg-surface">
+                <!-- Features List -->
+                <div v-if="plan.features && plan.features.length" class="mb-8">
+                  <div class="text-overline font-weight-bold text-medium-emphasis mb-4">WHAT'S INCLUDED</div>
+                  <ul class="list-none pa-0 ma-0 d-flex flex-column gap-3">
+                    <li v-for="(feature, index) in plan.features" :key="index" class="d-flex align-start">
+                      <VIcon icon="tabler-circle-check-filled" color="primary" size="20" class="me-3 mt-1" />
+                      <span class="text-body-1 text-high-emphasis">{{ feature }}</span>
+                    </li>
+                  </ul>
                 </div>
 
-                <!-- Access / Permissions -->
+                <!-- Access / Capabilities -->
                 <div v-if="plan.access && plan.access.length">
-                  <div class="text-subtitle-2 font-weight-bold mb-2">Includes Access To:</div>
-                  <VExpansionPanels variant="accordion" class="mb-4">
-                    <VExpansionPanel v-for="(serviceItem, idx) in plan.access" :key="idx">
-                      <VExpansionPanelTitle class="font-weight-bold">
-                        {{ serviceItem.service.name }}
-                      </VExpansionPanelTitle>
-                      <VExpansionPanelText class="text-start">
-                        <div v-for="(cat, cIdx) in serviceItem.categories" :key="cIdx" class="mb-4 border rounded pa-3 bg-grey-lighten-5">
-                          <div class="d-flex align-center mb-2">
-                            <VIcon icon="tabler-category" size="16" class="me-2 text-medium-emphasis" />
-                            <span class="text-subtitle-2 font-weight-bold">Category: {{ cat.name }}</span>
-                          </div>
-                          
-                          <div class="d-flex gap-2 flex-wrap mb-3">
-                            <VChip size="x-small" :color="cat.permissions.can_view ? 'success' : 'default'" variant="flat">View</VChip>
-                            <VChip size="x-small" :color="cat.permissions.can_create ? 'primary' : 'default'" variant="flat">Create</VChip>
-                            <VChip size="x-small" :color="cat.permissions.can_edit ? 'warning' : 'default'" variant="flat">Edit</VChip>
-                            <VChip size="x-small" :color="cat.permissions.can_delete ? 'error' : 'default'" variant="flat">Delete</VChip>
-                          </div>
-                          
-                          <div v-if="cat.facilities && cat.facilities.length" class="mt-2 pt-2 border-t">
-                            <div class="text-caption font-weight-bold mb-1 text-medium-emphasis">Facilities:</div>
-                            <div class="d-flex flex-wrap gap-1">
-                              <VChip v-for="fac in cat.facilities" :key="fac.id" size="x-small" variant="outlined" color="secondary">
-                                {{ fac.name }}
-                              </VChip>
+                  <div class="text-overline font-weight-bold text-medium-emphasis mb-4">CAPABILITIES</div>
+                  
+                  <div class="d-flex flex-column gap-3">
+                    <div v-for="(serviceItem, idx) in plan.access" :key="idx" class="capability-item">
+                      <!-- Service Header -->
+                      <div class="d-flex align-center mb-2">
+                        <VAvatar color="primary" variant="tonal" size="32" class="me-3">
+                          <VIcon :icon="serviceItem.service.icon || 'tabler-box'" size="18" />
+                        </VAvatar>
+                        <span class="text-subtitle-1 font-weight-bold">{{ serviceItem.service.name }}</span>
+                      </div>
+
+                      <!-- Categories (Clean List) -->
+                      <div class="ps-11">
+                        <div v-for="(cat, cIdx) in serviceItem.categories" :key="cIdx" class="mb-3">
+                          <div class="d-flex align-center justify-space-between mb-1">
+                            <span class="text-body-2 font-weight-medium text-high-emphasis">{{ cat.name }}</span>
+                            <!-- Mini Permissions Indicators -->
+                            <div class="d-flex gap-1">
+                              <VTooltip location="top" text="View">
+                                <template #activator="{ props }">
+                                  <div v-bind="props" class="perm-dot" :class="{ 'active': cat.permissions.can_view }">V</div>
+                                </template>
+                              </VTooltip>
+                              <VTooltip location="top" text="Create">
+                                <template #activator="{ props }">
+                                  <div v-bind="props" class="perm-dot" :class="{ 'active': cat.permissions.can_create }">C</div>
+                                </template>
+                              </VTooltip>
+                              <VTooltip location="top" text="Edit">
+                                <template #activator="{ props }">
+                                  <div v-bind="props" class="perm-dot" :class="{ 'active': cat.permissions.can_edit }">E</div>
+                                </template>
+                              </VTooltip>
+                              <VTooltip location="top" text="Delete">
+                                <template #activator="{ props }">
+                                  <div v-bind="props" class="perm-dot" :class="{ 'active': cat.permissions.can_delete }">D</div>
+                                </template>
+                              </VTooltip>
                             </div>
                           </div>
+                          
+                          <!-- Facilities (Subtle) -->
+                          <div v-if="cat.facilities && cat.facilities.length" class="text-caption text-medium-emphasis">
+                            <VIcon icon="tabler-building-store" size="12" class="me-1" />
+                            {{ cat.facilities.map(f => f.name).join(', ') }}
+                          </div>
                         </div>
-                      </VExpansionPanelText>
-                    </VExpansionPanel>
-                  </VExpansionPanels>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div v-if="isLoggedIn">
+              <!-- Footer / Action -->
+              <div class="pa-8 pt-0 bg-surface rounded-b-xl">
                 <VBtn 
+                  v-if="isLoggedIn"
                   block 
+                  size="x-large"
                   :color="isPlanInCart(plan.id) ? 'success' : 'primary'"
                   variant="flat" 
+                  class="rounded-lg font-weight-bold"
                   :loading="loadingCart === plan.id"
                   :disabled="isPlanInCart(plan.id)"
                   @click="addToCart(plan)"
+                  elevation="0"
                 >
-                  {{ isPlanInCart(plan.id) ? 'Added to Cart' : 'Add to Cart' }}
+                  {{ isPlanInCart(plan.id) ? 'Added to Cart' : 'Select Plan' }}
                 </VBtn>
-              </div>
-              <div v-else>
-                <VBtn block color="primary" variant="flat" :to="{ name: 'register', query: { plan: plan.id } }">
+                
+                <VBtn 
+                  v-else
+                  block 
+                  size="x-large" 
+                  color="primary" 
+                  variant="flat" 
+                  class="rounded-lg font-weight-bold"
+                  :to="{ name: 'register', query: { plan: plan.id } }"
+                  elevation="0"
+                >
                   Get Started
                 </VBtn>
               </div>
@@ -570,3 +628,40 @@ const addToCart = async (plan) => {
 
   </div>
 </template>
+
+<style scoped>
+.ls-1 {
+  letter-spacing: 1px !important;
+}
+.plan-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.plan-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px -4px rgba(var(--v-shadow-key-umbra-opacity, 0, 0, 0), 0.12) !important;
+}
+
+.ring-primary {
+  box-shadow: 0 0 0 2px rgb(var(--v-theme-primary)) !important;
+}
+
+.perm-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgba(var(--v-theme-on-surface), 0.38);
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.perm-dot.active {
+  background-color: rgb(var(--v-theme-primary));
+  color: white;
+}
+</style>

@@ -5,20 +5,6 @@ import { api } from '@/plugins/axios';
 
 const userData = useCookie('userData');
 
-// Local form data
-const firstName = ref('');
-const lastName = ref('');
-const email = ref('');
-const organization = ref('');
-const phoneNumber = ref('');
-const address = ref('');
-const state = ref('');
-const zipCode = ref('');
-const country = ref('');
-const language = ref('');
-const timezone = ref('');
-const currency = ref('');
-
 // Avatar
 const avatarFile = ref(null);
 const accountDataLocal = ref({
@@ -51,8 +37,20 @@ const loading = ref(false);
 const fetchProfile = async () => {
   loading.value = true;
   try {
-    const res = await api.get(`/api/provider/profile/?user=${userData.value.id}`);
-    fields.value = res.data.fields || [];
+    const target = userData.value?.provider_type || 'individual';
+    const res = await api.get(`/api/provider/profile/`, {
+      params: { 
+        user: userData.value.id,
+        target: target
+      }
+    });
+    
+    // The API returns fields with their definitions and values
+    // We map them to ensure reactivity
+    fields.value = (res.data.fields || []).map(f => ({
+      ...f,
+      value: f.value || '' // Ensure value is not null for v-model
+    }));
     
     // Update avatar if provided
     if (res.data.avatar) {
@@ -61,9 +59,6 @@ const fetchProfile = async () => {
       userData.value.avatar = res.data.avatar;
     }
 
-    // Map fields to local refs if needed, or use a dynamic object
-    // For now, we are keeping the static fields as per user request, 
-    // but we can populate them if the backend returns them.
   } catch (err) {
     console.error('Failed to fetch profile', err);
   } finally {
@@ -79,8 +74,15 @@ const submitForm = async () => {
     fd.append('avatar', avatarFile.value);
   }
 
-  // Append other fields...
-  // For now, just avatar is critical based on recent tasks.
+  // Construct fields JSON
+  // We send back exactly what the backend expects: field_id, value, metadata
+  const fieldsData = fields.value.map(field => ({
+    field_id: field.id,
+    value: field.value,
+    metadata: field.metadata || {}
+  }));
+
+  fd.append('fields', JSON.stringify(fieldsData));
   
   try {
     const res = await api.post(`/api/provider/profile/?user=${userData.value.id}`, fd);
@@ -89,34 +91,19 @@ const submitForm = async () => {
       userData.value.avatar = res.data.avatar;
       accountDataLocal.value.avatarImg = res.data.avatar;
     }
+    // Refresh profile to show saved data
+    fetchProfile();
   } catch (err) {
     console.error('Failed to save profile', err);
   }
 };
 
 const resetForm = () => {
-  if (userData.value) {
-    firstName.value = userData.value.fullName?.split(' ')[0] || '';
-    lastName.value = userData.value.fullName?.split(' ')[1] || '';
-    email.value = userData.value.email || '';
-    organization.value = '';
-    phoneNumber.value = '';
-    address.value = '';
-    state.value = '';
-    zipCode.value = '';
-    country.value = '';
-    language.value = '';
-    timezone.value = '';
-    currency.value = '';
-  }
+  fetchProfile();
 };
 
 onMounted(() => {
   if (userData.value) {
-    firstName.value = userData.value.fullName?.split(' ')[0] || '';
-    lastName.value = userData.value.fullName?.split(' ')[1] || '';
-    email.value = userData.value.email || '';
-    // ... init other fields
     fetchProfile();
   }
 });
@@ -184,139 +171,70 @@ onMounted(() => {
           <!-- 👉 Form -->
           <VForm class="mt-6" @submit.prevent="submitForm">
             <VRow>
-              <!-- 👉 First Name -->
+              
+              <!-- 👉 Dynamic Fields Loop -->
               <VCol
-                md="6"
+                v-for="field in fields"
+                :key="field.id"
                 cols="12"
+                md="6"
               >
+                <!-- Text / Number / Email / Phone -->
                 <AppTextField
-                  v-model="firstName"
-                  label="First Name"
+                  v-if="['text', 'number', 'email', 'phone'].includes(field.field_type)"
+                  v-model="field.value"
+                  :label="field.label"
+                  :placeholder="field.placeholder || ''"
+                  :type="field.field_type === 'number' ? 'number' : 'text'"
+                  :rules="field.is_required ? [v => !!v || `${field.label} is required`] : []"
                 />
-              </VCol>
 
-              <!-- 👉 Last Name -->
-              <VCol
-                md="6"
-                cols="12"
-              >
-                <AppTextField
-                  v-model="lastName"
-                  label="Last Name"
+                <!-- Textarea -->
+                <AppTextarea
+                  v-else-if="field.field_type === 'textarea'"
+                  v-model="field.value"
+                  :label="field.label"
+                  :placeholder="field.placeholder || ''"
+                  :rules="field.is_required ? [v => !!v || `${field.label} is required`] : []"
+                  rows="3"
                 />
-              </VCol>
 
-              <!-- 👉 Email -->
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppTextField
-                  v-model="email"
-                  label="E-mail"
-                />
-              </VCol>
-
-              <!-- 👉 Organization -->
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppTextField
-                  v-model="organization"
-                  label="Organization"
-                />
-              </VCol>
-
-              <!-- 👉 Phone -->
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppTextField
-                  v-model="phoneNumber"
-                  label="Phone Number"
-                />
-              </VCol>
-
-              <!-- 👉 Address -->
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppTextField
-                  v-model="address"
-                  label="Address"
-                />
-              </VCol>
-
-              <!-- 👉 State -->
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppTextField
-                  v-model="state"
-                  label="State"
-                />
-              </VCol>
-
-              <!-- 👉 Zip Code -->
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppTextField
-                  v-model="zipCode"
-                  label="Zip Code"
-                />
-              </VCol>
-
-              <!-- 👉 Country -->
-              <VCol
-                cols="12"
-                md="6"
-              >
+                <!-- Dropdown / Select -->
                 <AppSelect
-                  v-model="country"
-                  label="Country"
-                  :items="['USA', 'Canada', 'UK', 'India', 'Australia']"
+                  v-else-if="field.field_type === 'dropdown' || field.field_type === 'select'"
+                  v-model="field.value"
+                  :label="field.label"
+                  :items="field.options || []"
+                  :rules="field.is_required ? [v => !!v || `${field.label} is required`] : []"
                 />
-              </VCol>
 
-              <!-- 👉 Language -->
-              <VCol
-                cols="12"
-                md="6"
-              >
+                <!-- Multiselect -->
                 <AppSelect
-                  v-model="language"
-                  label="Language"
-                  :items="['English', 'Spanish', 'French', 'German', 'Hindi']"
+                  v-else-if="field.field_type === 'multiselect'"
+                  v-model="field.value"
+                  :label="field.label"
+                  :items="field.options || []"
+                  multiple
+                  chips
+                  closable-chips
+                  :rules="field.is_required ? [v => !!v && v.length > 0 || `${field.label} is required`] : []"
                 />
-              </VCol>
 
-              <!-- 👉 Timezone -->
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppSelect
-                  v-model="timezone"
-                  label="Timezone"
-                  :items="['(GMT-11:00) International Date Line West', '(GMT-11:00) Midway Island', '(GMT-10:00) Hawaii']"
+                <!-- Date -->
+                <AppDateTimePicker
+                  v-else-if="field.field_type === 'date'"
+                  v-model="field.value"
+                  :label="field.label"
+                  :rules="field.is_required ? [v => !!v || `${field.label} is required`] : []"
                 />
-              </VCol>
 
-              <!-- 👉 Currency -->
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppSelect
-                  v-model="currency"
-                  label="Currency"
-                  :items="['USD', 'EUR', 'GBP', 'INR', 'AUD']"
+                <!-- Fallback for unknown types -->
+                <AppTextField
+                  v-else
+                  v-model="field.value"
+                  :label="field.label"
+                  :hint="`Unknown type: ${field.field_type}`"
+                  persistent-hint
                 />
               </VCol>
 
@@ -325,7 +243,7 @@ onMounted(() => {
                 cols="12"
                 class="d-flex flex-wrap gap-4"
               >
-                <VBtn type="submit">
+                <VBtn type="submit" :loading="loading">
                   Save changes
                 </VBtn>
 

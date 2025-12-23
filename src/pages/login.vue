@@ -484,7 +484,11 @@ const sendOtp = async () => {
       purpose: 'login',
     })
 
-    if (r.data?.session_id) localStorage.setItem('session_id', r.data.session_id)
+    if (r.data?.session_id) {
+      localStorage.setItem('session_id', r.data.session_id)
+      localStorage.setItem('auth_phone', form.value.phone_number)
+      localStorage.setItem('auth_purpose', 'login')
+    }
 
     successMessage.value = 'OTP sent successfully!'
     setTimeout(() => router.replace('/verifyotp'), 600)
@@ -899,6 +903,7 @@ import { useAbility } from '@casl/vue'
 import { useCookie } from '@/@core/composable/useCookie'
 import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
 import { themeConfig } from '@themeConfig'
+import MultiBoxPinInput from '@/components/MultiBoxPinInput.vue'
 
 // Images
 import authV2LoginIllustrationLight from '@images/pages/auth-v2-login-illustration-light.png'
@@ -945,6 +950,7 @@ const successMessage = ref('')
 const showPinLogin = ref(false)
 const pinPhone = ref('')
 const pin = ref('')
+const pinLength = ref(4)
 const pinLoading = ref(false)
 
 /* ============================
@@ -979,8 +985,11 @@ const sendOtp = async () => {
 
     console.log("OTP sent:", r.data)
 
-    if (r.data?.session_id)
+    if (r.data?.session_id) {
       localStorage.setItem('session_id', r.data.session_id)
+      localStorage.setItem('auth_phone', form.value.phone_number)
+      localStorage.setItem('auth_purpose', 'login')
+    }
 
     router.replace('/verifyotp')
 
@@ -1084,10 +1093,22 @@ const loginWithPin = async () => {
     errorMessage.value = res.data?.message || 'Login failed.'
 
   } catch (err) {
-    errorMessage.value =
-      err.response?.data?.detail ||
-      err.response?.data?.message ||
-      'PIN login failed.'
+    console.error(err)
+    const data = err.response?.data
+    
+    if (data?.code === 'PIN_EXPIRED') {
+      errorMessage.value = "PIN expired. Please login via OTP to set a new PIN."
+      showPinLogin.value = false // Switch to OTP view
+      // Ensure phone is set in OTP form
+      if (pinPhone.value) {
+        form.value.phone_number = pinPhone.value
+      }
+    } else {
+      errorMessage.value =
+        data?.detail ||
+        data?.message ||
+        'PIN login failed.'
+    }
   } finally {
     pinLoading.value = false
   }
@@ -1139,42 +1160,56 @@ onMounted(() => {
 
     <!-- RIGHT PANEL -->
     <VCol cols="12" md="6" class="d-flex justify-center align-start pt-12">
-      <VCard flat class="pa-8 w-100 rounded-xl" style="max-width:420px;">
-
+      <VCard flat class="pa-8 w-100 rounded-xl glass-login-card" style="max-width:450px;">
 
         <!-- ======================
              OTP LOGIN
         ======================= -->
         <template v-if="!showPinLogin">
-          <VCardTitle class="text-h5 text-primary text-center">
-            Login via OTP 🔐
-          </VCardTitle>
-          <VCardSubtitle class="mb-4 text-center">
-            Enter your phone number to get OTP
-          </VCardSubtitle>
+          <div class="text-center mb-6">
+            <VAvatar color="primary" variant="tonal" size="64" class="mb-4">
+              <VIcon icon="tabler-login" size="32" />
+            </VAvatar>
+            <h4 class="text-h4 font-weight-bold text-primary mb-2">
+              Welcome Back! 👋
+            </h4>
+            <p class="text-body-1 text-medium-emphasis">
+              Please sign-in to your account
+            </p>
+          </div>
 
-          <VAlert v-if="errorMessage" type="error" variant="tonal" class="mb-3 text-center">
+          <VAlert v-if="errorMessage" type="error" variant="tonal" density="comfortable" class="mb-6">
             {{ errorMessage }}
           </VAlert>
 
-          <AppTextField v-model.trim="form.phone_number" label="Phone Number" prepend-inner-icon="tabler-phone" />
+          <AppTextField 
+            v-model.trim="form.phone_number" 
+            label="Phone Number" 
+            placeholder="Enter your mobile number"
+            prepend-inner-icon="tabler-phone" 
+            class="mb-4"
+          />
 
-          <VCheckbox v-model="rememberMe" label="Remember me" />
+          <div class="d-flex align-center justify-space-between mb-6">
+            <VCheckbox v-model="rememberMe" label="Remember me" density="compact" hide-details />
+          </div>
 
-          <VBtn block :loading="isLoading" class="mt-3" @click="sendOtp">
+          <VBtn block size="large" :loading="isLoading" class="mb-6 btn-gradient font-weight-bold" @click="sendOtp">
             Send OTP
           </VBtn>
 
-          <div class="mt-4 text-center">
-            <span @click="openPinLogin" class="text-primary" style="cursor:pointer;">
-              Sign in with PIN
-            </span>
-
-            <span class="mx-2">·</span>
-
-            <span @click="showResetPinDialog = true" class="text-primary" style="cursor:pointer;">
-              Forgot PIN?
-            </span>
+          <div class="text-center">
+            <span class="text-body-2 text-medium-emphasis">Or sign in with</span>
+            <div class="mt-3 d-flex justify-center gap-4 align-center">
+              <VBtn variant="text" color="primary" @click="openPinLogin" class="font-weight-bold">
+                <VIcon start icon="tabler-lock" />
+                PIN Code
+              </VBtn>
+              <span class="text-disabled">|</span>
+              <VBtn variant="text" color="secondary" @click="showResetPinDialog = true" class="font-weight-bold">
+                Forgot PIN?
+              </VBtn>
+            </div>
           </div>
         </template>
 
@@ -1183,37 +1218,71 @@ onMounted(() => {
              PIN LOGIN
         ======================= -->
         <template v-else>
-          <VCardTitle class="text-h5 text-primary text-center">
-            Login with PIN 🔒
-          </VCardTitle>
-          <VCardSubtitle class="mb-4 text-center">Enter your phone number & PIN</VCardSubtitle>
+          <div class="text-center mb-6">
+            <VAvatar color="primary" variant="tonal" size="64" class="mb-4">
+              <VIcon icon="tabler-lock-open" size="32" />
+            </VAvatar>
+            <h4 class="text-h4 font-weight-bold text-primary mb-2">
+              Login with PIN
+            </h4>
+            <p class="text-body-1 text-medium-emphasis">
+              Enter your credentials to access
+            </p>
+          </div>
 
-          <VAlert v-if="errorMessage" type="error" variant="tonal" class="mb-3 text-center">
+          <VAlert v-if="errorMessage" type="error" variant="tonal" density="comfortable" class="mb-6">
             {{ errorMessage }}
           </VAlert>
 
-          <AppTextField v-model.trim="pinPhone" label="Phone Number" />
-          <AppTextField v-model.trim="pin" label="PIN" type="password" maxlength="6" />
+          <AppTextField 
+            v-model.trim="pinPhone" 
+            label="Phone Number" 
+            placeholder="Enter your mobile number"
+            prepend-inner-icon="tabler-phone"
+            class="mb-6"
+          />
+          
+          <div class="mb-6">
+            <div class="d-flex justify-space-between align-center mb-2">
+              <label class="v-label text-body-2 font-weight-medium text-high-emphasis">Enter PIN</label>
+            </div>
+            <div class="d-flex justify-center">
+              <MultiBoxPinInput
+                id="pin-input"
+                v-model="pin"
+                :length="pinLength"
+                :error="!!errorMessage"
+              />
+            </div>
+          </div>
 
-          <VCheckbox v-model="rememberMe" label="Remember me" />
+          <div class="d-flex align-center justify-space-between mb-6">
+            <VCheckbox v-model="rememberMe" label="Remember me" density="compact" hide-details />
+            <a href="#" @click.prevent="showResetPinDialog = true" class="text-caption text-primary font-weight-bold">
+              Forgot PIN?
+            </a>
+          </div>
 
-          <VBtn block :loading="pinLoading" class="mt-3" @click="loginWithPin">
-            Login
+          <VBtn block size="large" :loading="pinLoading" class="mb-6 btn-gradient font-weight-bold" @click="loginWithPin">
+            Unlock & Login
           </VBtn>
 
-          <div class="mt-4 text-center">
-            <span @click="useOtpInstead" class="text-primary" style="cursor:pointer;">
-              Use OTP instead
-            </span>
+          <div class="text-center">
+            <VBtn variant="text" color="secondary" @click="useOtpInstead" class="font-weight-medium">
+              <VIcon start icon="tabler-arrow-left" />
+              Back to OTP Login
+            </VBtn>
           </div>
         </template>
 
 
         <VDivider class="my-6" />
 
-        <div class="text-center">
-          New here?
-          <RouterLink class="text-primary" :to="{ name: 'register' }">Create account</RouterLink>
+        <div class="text-center text-body-2">
+          New on our platform?
+          <RouterLink class="text-primary font-weight-bold ms-1 text-decoration-none" :to="{ name: 'register' }">
+            Create an account
+          </RouterLink>
         </div>
 
       </VCard>
@@ -1290,3 +1359,42 @@ onMounted(() => {
 
 
 </template>
+
+<style scoped>
+.glass-login-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.v-theme--dark .glass-login-card {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.glass-login-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Gradient Button */
+.btn-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  color: white !important;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.btn-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+  filter: brightness(1.1);
+}
+
+.gap-4 {
+  gap: 16px;
+}
+</style>

@@ -87,6 +87,7 @@ import axios from 'axios'
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCookie } from '@/@core/composable/useCookie'
+import MultiBoxPinInput from '@/components/MultiBoxPinInput.vue'
 
 definePage({
   meta: { layout: 'blank', unauthenticatedOnly: true }
@@ -104,14 +105,8 @@ const errorMessage = ref('')
 const successMessage = ref('')
 
 /* ---- UI logic ---- */
-const step = ref(1)        // Step 1: choose 4 or 6
-const pinLength = ref(null)
-
-const pinDigits = ref([])          // array storing pin
-const confirmDigits = ref([])      // array storing confirm pin
-
-const showPin = ref(false)
-const showConfirmPin = ref(false)
+const pin = ref('')
+const confirmPin = ref('')
 
 /* Keep your token logic same */
 const getAuthToken = () => {
@@ -123,49 +118,16 @@ const getAuthToken = () => {
   )
 }
 
-/* Step 1: User chooses 4 or 6 */
-const choosePinLength = length => {
-  pinLength.value = length
-  pinDigits.value = Array(length).fill('')
-  confirmDigits.value = Array(length).fill('')
-  step.value = 2
-
-  nextTick(() => {
-    document.getElementById('pin-0')?.focus()
-  })
-}
-
-/* Handle box auto-focus */
-const handleDigitInput = (event, index, isConfirm = false) => {
-  const value = event.target.value
-
-  if (!/^[0-9]$/.test(value)) {
-    event.target.value = ''
-    return
-  }
-
-  if (isConfirm) {
-    confirmDigits.value[index] = value
-  } else {
-    pinDigits.value[index] = value
-  }
-
-  if (index < pinLength.value - 1) {
-    const nextId = isConfirm ? `confirm-${index + 1}` : `pin-${index + 1}`
-    document.getElementById(nextId)?.focus()
-  }
-}
-
 /* Your submit API logic stays EXACTLY same */
 const submitPin = async () => {
-  const pin = pinDigits.value.join('')
-  const confirmPin = confirmDigits.value.join('')
+  const pinValue = pin.value
+  const confirmPinValue = confirmPin.value
 
-  if (!/^\d{4,6}$/.test(pin)) {
+  if (!/^\d{4,6}$/.test(pinValue)) {
     errorMessage.value = "PIN must be 4 or 6 digits."
     return
   }
-  if (pin !== confirmPin) {
+  if (pinValue !== confirmPinValue) {
     errorMessage.value = "PINs do not match."
     return
   }
@@ -183,7 +145,7 @@ const submitPin = async () => {
 
     const res = await axios.post(
       SET_PIN_URL,
-      { pin },
+      { pin: pinValue },
       { headers }
     )
 
@@ -212,43 +174,24 @@ const submitPin = async () => {
         <p class="text-center mb-4">Enter a 4–6 digit PIN</p>
 
         <!-- PIN  -->
-        <div class="pin-row">
-          <div class="pin-container">
-            <div class="pin-box" v-for="(_, index) in pinDigits" :key="index">
-              <input
-                class="pin-input"
-                maxlength="1"
-                :id="`pin-${index}`"
-                :type="showPin ? 'text' : 'password'"
-                @input="handleDigitInput($event, index, false)"
-              >
-            </div>
-          </div>
-
-          <VIcon class="eye-icon" @click="showPin = !showPin">
-            {{ showPin ? 'tabler-eye-off' : 'tabler-eye' }}
-          </VIcon>
+        <div class="mb-4">
+          <label class="v-label mb-1 d-block text-center">New PIN</label>
+          <MultiBoxPinInput
+            v-model="pin"
+            :length="4"
+            :error="!!errorMessage"
+          />
         </div>
 
         <p class="mt-4 mb-1 text-center">Confirm PIN</p>
 
         <!-- CONFIRM PIN -->
-        <div class="pin-row">
-          <div class="pin-container">
-            <div class="pin-box" v-for="(_, index) in confirmDigits" :key="'c'+index">
-              <input
-                class="pin-input"
-                maxlength="1"
-                :id="`confirm-${index}`"
-                :type="showConfirmPin ? 'text' : 'password'"
-                @input="handleDigitInput($event, index, true)"
-              >
-            </div>
-          </div>
-
-          <VIcon class="eye-icon" @click="showConfirmPin = !showConfirmPin">
-            {{ showConfirmPin ? 'tabler-eye-off' : 'tabler-eye' }}
-          </VIcon>
+        <div class="mb-4">
+          <MultiBoxPinInput
+            v-model="confirmPin"
+            :length="4"
+            :error="!!errorMessage"
+          />
         </div>
 
         <VBtn block class="mt-6" :loading="loading" color="primary" @click="submitPin">
