@@ -22,6 +22,16 @@ export function defineAbilitiesFor(user) {
         { action: 'access', subject: 'logistics' },
         { action: 'manage', subject: 'all' },
       ]
+    case 'organization':
+    case 'individual':
+      return [
+        { action: 'manage', subject: 'all' }, // Grant full access for now
+      ]
+    case 'employee':
+      return [
+        { action: 'read', subject: 'dashboard' },
+        { action: 'manage', subject: 'all' }, // Grant full access for now
+      ]
     case 'client':
       return [
         { action: 'read', subject: 'public' },

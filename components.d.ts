@@ -370,6 +370,7 @@ declare module 'vue' {
     DemoTooltipVModelSupport: typeof import('./src/views/demos/components/tooltip/DemoTooltipVModelSupport.vue')['default']
     DialogCloseBtn: typeof import('./src/@core/components/DialogCloseBtn.vue')['default']
     DropZone: typeof import('./src/@core/components/DropZone.vue')['default']
+    EmployeePermissionTree: typeof import('./src/components/provider/EmployeePermissionTree.vue')['default']
     EnableOneTimePasswordDialog: typeof import('./src/components/dialogs/EnableOneTimePasswordDialog.vue')['default']
     ErrorHeader: typeof import('./src/components/ErrorHeader.vue')['default']
     I18n: typeof import('./src/@core/components/I18n.vue')['default']

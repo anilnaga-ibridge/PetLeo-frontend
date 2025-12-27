@@ -35,28 +35,7 @@ export const usePermissionStore = defineStore('permission', {
             return !!service?.can_view
         },
 
-        // Check specific action on a service (create, edit, delete)
-        canPerformAction: (state) => (serviceName, action) => {
-            // action: 'create', 'edit', 'delete'
-            if (!serviceName || !action) return false
-
-            const service = state.permissions.find(
-                p => p.service_name?.toLowerCase() === serviceName.toLowerCase()
-            )
-
-            if (!service) return false
-
-            // Map action to property name
-            const propMap = {
-                'create': 'can_create',
-                'edit': 'can_edit',
-                'delete': 'can_delete',
-                'view': 'can_view'
-            }
-
-            const prop = propMap[action]
-            return !!service[prop]
-        },
+        // Get permissions for a specific category within a service
 
         // Get permissions for a specific category within a service
         getCategoryPermissions: (state) => (serviceName, categoryName) => {
@@ -97,6 +76,62 @@ export const usePermissionStore = defineStore('permission', {
             this.planDetails = null
             localStorage.removeItem('provider_permissions')
             localStorage.removeItem('provider_plan_details')
+        },
+
+        // Check if user has a specific permission (simple check for now)
+        hasPermission(permissionName) {
+            // 1. Get user role from localStorage
+            let role = ''
+            try {
+                const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+                role = (userData.role?.name || userData.role || '').toLowerCase()
+            } catch (e) {
+                console.warn('Error parsing userData for permissions', e)
+            }
+
+            // 2. If Organization, GRANT ALL
+            if (role === 'organization') return true
+
+            // 3. Normal checks
+            if (!permissionName) return true
+            if (permissionName === 'manage_employees') return true // Default for now
+
+            return this.canViewService(permissionName)
+        },
+
+        // Check specific action on a service (create, edit, delete)
+        canPerformAction(serviceName, action) {
+            // 1. Get user role
+            let role = ''
+            try {
+                const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+                role = (userData.role?.name || userData.role || '').toLowerCase()
+            } catch (e) {
+                console.warn('Error parsing userData for permissions', e)
+            }
+
+            // 2. If Organization, GRANT ALL
+            if (role === 'organization') return true
+
+            // 3. Normal checks
+            if (!serviceName || !action) return false
+
+            const service = this.permissions.find(
+                p => p.service_name?.toLowerCase() === serviceName.toLowerCase()
+            )
+
+            if (!service) return false
+
+            // Map action to property name
+            const propMap = {
+                'create': 'can_create',
+                'edit': 'can_edit',
+                'delete': 'can_delete',
+                'view': 'can_view'
+            }
+
+            const prop = propMap[action]
+            return !!service[prop]
         }
     }
 })

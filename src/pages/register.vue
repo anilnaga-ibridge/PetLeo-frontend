@@ -316,8 +316,8 @@ const registerUser = async () => {
 
     if (r.data?.session_id) {
       localStorage.setItem('session_id', r.data.session_id)
-      successMessage.value = 'OTP sent successfully!'
-      setTimeout(() => router.replace('/verifyotp'), 800)
+      successMessage.value = 'Registration successful! Please login.'
+      setTimeout(() => router.replace('/login'), 3000)
     } else {
       errorMessage.value = 'Registration failed.'
     }

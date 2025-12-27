@@ -1086,7 +1086,16 @@ const loginWithPin = async () => {
       }
 
       await new Promise(resolve => setTimeout(resolve, 50))
-      router.replace('/')
+      
+      // Explicit redirection based on role
+      const role = (userData.role?.name || userData.role || '').toLowerCase()
+      if (role === 'employee') {
+        router.replace('/employee/dashboard')
+      } else if (role === 'organization' || role === 'individual') {
+        router.replace('/provider/providerhome')
+      } else {
+        router.replace('/')
+      }
       return
     }
 

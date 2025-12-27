@@ -15,6 +15,7 @@ export const redirects = [
       const userRole = userData.value?.role;
       if (userRole === "SuperAdmin") return { name: "dashboards-crm" };
       if (userRole === "individual" || userRole === "organization") return { name: "provider-providerhome" };
+      if (userRole === "employee") return { name: "employee-dashboard" };
       if (userRole === "client") return { name: "access-control" };
       if (userRole != null) return { name: "dashboards-crm" };
 

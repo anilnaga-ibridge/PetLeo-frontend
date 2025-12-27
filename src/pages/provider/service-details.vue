@@ -1,13 +1,15 @@
 <script setup>
 import ProviderLayout from '@/components/ProviderLayout.vue'
+import EmployeeLayout from '@/layouts/EmployeeLayout.vue'
 import LockedFeature from '@/components/LockedFeature.vue'
 import AddCategoryDialog from '@/components/AddCategoryDialog.vue'
 import AddFacilityDialog from '@/components/AddFacilityDialog.vue'
 import AddPricingDialog from '@/components/AddPricingDialog.vue'
 import { usePermissionStore } from '@/stores/permissionStore'
+import { useCookie } from '@/@core/composable/useCookie'
 import { useRoute } from 'vue-router'
 import { computed, onMounted, ref, watch } from 'vue'
-import axios from 'axios'
+import { api } from '@/plugins/axios'
 
 const route = useRoute()
 const permissionStore = usePermissionStore()
@@ -22,6 +24,10 @@ const categories = ref([])
 const pricingRules = ref([])
 const activeTab = ref('overview')
 const searchQuery = ref('')
+
+const userData = useCookie('userData')
+const userRole = computed(() => (userData.value?.role?.name || userData.value?.role || '').toLowerCase())
+const currentLayout = computed(() => userRole.value === 'employee' ? EmployeeLayout : ProviderLayout)
 
 const categoryHeaders = [
   { title: 'CATEGORY NAME', key: 'name', width: '30%' },
@@ -40,10 +46,8 @@ const selectedPricing = ref(null)
 const fetchPricing = async () => {
   if (!serviceId.value) return
   try {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.get(`http://127.0.0.1:8002/api/provider/pricing/?service=${serviceId.value}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    // Use full URL for Provider Service (Port 8002)
+    const response = await api.get(`http://127.0.0.1:8002/api/provider/pricing/?service=${serviceId.value}`)
     pricingRules.value = response.data.results || response.data
   } catch (err) {
     console.error('Failed to fetch pricing:', err)
@@ -53,10 +57,8 @@ const fetchPricing = async () => {
 const fetchCategories = async () => {
   if (!serviceId.value) return
   try {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.get(`http://127.0.0.1:8002/api/provider/categories/?service=${serviceId.value}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    // Use full URL for Provider Service (Port 8002)
+    const response = await api.get(`http://127.0.0.1:8002/api/provider/categories/?service=${serviceId.value}`)
     categories.value = response.data.results || response.data
   } catch (err) {
     console.error('Failed to fetch categories:', err)
@@ -123,9 +125,8 @@ watch(serviceId, () => {
 })
 
 onMounted(async () => {
-  if (permissionStore.permissions.length === 0) {
-    await permissionStore.fetchPermissions()
-  }
+  // Always fetch fresh permissions to ensure we have the latest access rights
+  await permissionStore.fetchPermissions()
   checkPermissions()
   fetchPricing()
   fetchCategories()
@@ -134,10 +135,7 @@ onMounted(async () => {
 const deleteCategory = async (id) => {
   if (!confirm('Are you sure you want to delete this category?')) return
   try {
-    const token = localStorage.getItem('accessToken')
-    await axios.delete(`http://127.0.0.1:8002/api/provider/categories/${id}/`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.delete(`http://127.0.0.1:8002/api/provider/categories/${id}/`)
     fetchCategories()
   } catch (err) {
     console.error('Failed to delete category:', err)
@@ -148,10 +146,7 @@ const deleteCategory = async (id) => {
 const deleteFacility = async (id) => {
   if (!confirm('Are you sure you want to delete this facility?')) return
   try {
-    const token = localStorage.getItem('accessToken')
-    await axios.delete(`http://127.0.0.1:8002/api/provider/facilities/${id}/`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.delete(`http://127.0.0.1:8002/api/provider/facilities/${id}/`)
     fetchCategories() // Facilities are nested in categories
   } catch (err) {
     console.error('Failed to delete facility:', err)
@@ -162,10 +157,7 @@ const deleteFacility = async (id) => {
 const deletePricing = async (id) => {
   if (!confirm('Are you sure you want to delete this pricing rule?')) return
   try {
-    const token = localStorage.getItem('accessToken')
-    await axios.delete(`http://127.0.0.1:8002/api/provider/pricing/${id}/`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.delete(`http://127.0.0.1:8002/api/provider/pricing/${id}/`)
     fetchPricing()
   } catch (err) {
     console.error('Failed to delete pricing:', err)
@@ -183,7 +175,7 @@ const analytics = [
 </script>
 
 <template>
-  <ProviderLayout>
+  <component :is="currentLayout">
     <!-- LOCKED SCREEN -->
     <LockedFeature 
       v-if="!canView" 
@@ -339,23 +331,23 @@ const analytics = [
               <!-- FACILITIES -->
               <template #item.facilities="{ item }">
                 <div class="d-flex flex-wrap gap-2 py-2">
-                  <VChip 
-                    v-for="facility in item.facilities" 
-                    :key="facility.id"
-                    size="small"
-                    :color="facility.is_template ? 'grey' : 'primary'"
-                    variant="tonal"
-                    class="font-weight-medium cursor-pointer"
-                    :closable="canEdit && !facility.is_template"
-                    @click="openEditFacility(facility, item)"
-                    @click:close="deleteFacility(facility.id)"
-                  >
-                    {{ facility.name }}
-                    <span v-if="facility.price && facility.price !== '0.00'" class="ms-1 text-success font-weight-bold">
-                      ${{ facility.price }}
-                    </span>
-                    <VTooltip activator="parent" location="top" v-if="!facility.is_template">Click to Edit</VTooltip>
-                  </VChip>
+                    <VChip 
+                      v-for="facility in item.facilities" 
+                      :key="facility.id"
+                      size="small"
+                      :color="facility.is_template ? 'grey' : 'primary'"
+                      variant="tonal"
+                      class="font-weight-medium cursor-pointer"
+                      :closable="facility.can_delete"
+                      @click="facility.can_edit ? openEditFacility(facility, item) : null"
+                      @click:close="deleteFacility(facility.id)"
+                    >
+                      {{ facility.name }}
+                      <span v-if="facility.price && facility.price !== '0.00'" class="ms-1 text-success font-weight-bold">
+                        ${{ facility.price }}
+                      </span>
+                      <VTooltip v-if="facility.can_edit" activator="parent" location="top">Click to Edit</VTooltip>
+                    </VChip>
                   <span v-if="!item.facilities?.length" class="text-caption text-disabled font-italic px-2">No facilities added</span>
                 </div>
               </template>
@@ -364,22 +356,20 @@ const analytics = [
               <template #item.actions="{ item }">
                 <div class="d-flex align-center justify-end gap-x-1">
                   <IconBtn 
-                    v-if="canEdit" 
-                    :disabled="item.is_template"
+                    v-if="item.can_edit" 
                     @click="openEditCategory(item)"
                   >
                     <VIcon icon="tabler-edit" />
-                    <VTooltip activator="parent" location="top">{{ item.is_template ? 'Standard Category (Locked)' : 'Edit Category' }}</VTooltip>
+                    <VTooltip activator="parent" location="top">Edit Category</VTooltip>
                   </IconBtn>
                   
                   <IconBtn 
-                    v-if="canDelete" 
+                    v-if="item.can_delete" 
                     color="red"
-                    :disabled="item.is_template"
                     @click="deleteCategory(item.id)"
                   >
                     <VIcon icon="tabler-trash" />
-                    <VTooltip activator="parent" location="top">{{ item.is_template ? 'Standard Category (Locked)' : 'Delete Category' }}</VTooltip>
+                    <VTooltip activator="parent" location="top">Delete Category</VTooltip>
                   </IconBtn>
                 </div>
               </template>
@@ -434,6 +424,10 @@ const analytics = [
                   <td>
                     <span v-if="rule.discount" class="text-error font-weight-bold">-{{ rule.discount }}%</span>
                     <span v-else class="text-medium-emphasis">-</span>
+                    <!-- DEBUG INFO -->
+                    <div class="text-caption text-disabled">
+                      Edit: {{ rule.can_edit }} | Tmpl: {{ rule.is_template }}
+                    </div>
                   </td>
                   <td class="text-end">
                     <VBtn 
@@ -493,7 +487,7 @@ const analytics = [
         @saved="fetchPricing"
       />
     </div>
-  </ProviderLayout>
+  </component>
 </template>
 
 <style scoped>

@@ -158,7 +158,16 @@ const verifyOtp = async () => {
         return
       }
 
-      await nextTick(() => router.replace('/'))
+      // Explicit redirection based on role
+      const role = (userData.role?.name || userData.role || '').toLowerCase()
+      if (role === 'employee') {
+        await nextTick(() => router.replace('/employee/dashboard'))
+      } else if (role === 'organization' || role === 'individual') {
+        await nextTick(() => router.replace('/provider/providerhome'))
+      } else {
+        await nextTick(() => router.replace('/'))
+      }
+      
       isLoading.value = false
       return
     }

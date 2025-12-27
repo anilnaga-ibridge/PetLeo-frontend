@@ -35,12 +35,38 @@ export const setupGuards = router => {
     // ✅ Permission Check
     if (to.meta.permission) {
       const permissionStore = usePermissionStore()
-      // Ensure permissions are loaded (might need to await or check if loaded)
-      // For now assuming loaded on layout mount or login
-
       if (!permissionStore.hasPermission(to.meta.permission)) {
         console.warn(`Access denied. Missing permission: ${to.meta.permission}`)
         return { name: 'provider-dashboard' } // Redirect to dashboard
+      }
+    }
+
+    // =======================================================
+    // 🛡️ ROLE-BASED ROUTING GUARDS
+    // =======================================================
+    if (isLoggedIn && user) {
+      const role = (user.role?.name || user.role || '').toLowerCase()
+
+      // 1. Redirect from Login/Home based on role
+      if (to.path === '/' || to.path === '/login') {
+        if (role === 'organization' || role === 'individual') return '/provider/providerhome'
+        if (role === 'employee') return '/employee/dashboard'
+      }
+
+      // 2. Protect Provider Routes
+      if (to.path.startsWith('/provider') && role === 'employee') {
+        // Allow employees to access service details
+        if (to.name === 'provider-service-details') {
+          return
+        }
+        console.warn('⛔ Employee attempted to access Provider area')
+        return '/employee/dashboard'
+      }
+
+      // 3. Protect Employee Routes
+      if (to.path.startsWith('/employee') && role !== 'employee') {
+        console.warn('⛔ Non-employee attempted to access Employee area')
+        return '/provider/dashboard'
       }
     }
 
