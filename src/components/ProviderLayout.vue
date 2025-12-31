@@ -1,4 +1,5 @@
 <script setup>
+console.log('🚀 ProviderLayout.vue: Script Setup Start')
 import { useTheme } from 'vuetify'
 import VerticalNavLayout from '@layouts/components/VerticalNavLayout.vue'
 import ProviderUserProfile from '@/components/ProviderUserProfile.vue'
@@ -27,8 +28,11 @@ const fetchAllowedServices = async () => {
 }
 
 onMounted(async () => {
+  console.log('🏗️ ProviderLayout: Mounting...')
   await permissionStore.fetchPermissions()
+  console.log('🏗️ ProviderLayout: Permissions fetched:', permissionStore.permissions)
   await fetchAllowedServices()
+  console.log('🏗️ ProviderLayout: Allowed services fetched:', allowedServices.value)
 })
 
 const filteredNavItems = computed(() => {

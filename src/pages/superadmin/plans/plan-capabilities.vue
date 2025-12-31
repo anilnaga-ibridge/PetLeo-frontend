@@ -53,14 +53,45 @@ export default {
 
     const form = ref({
       plan: null,
-      service_id: null,
-      category_id: null,
-      facility_id: null,
-      can_view: false,
-      can_create: false,
-      can_edit: false,
-      can_delete: false,
+      service_id: [], // Array of service IDs
     });
+
+    // New State for Unified UI
+    const selectedFeatures = ref({}); // { serviceId: [catId1, catId2] }
+    const selectedCRUD = ref({});     // { serviceId: { can_view: true, can_create: false... } }
+
+    const isVeterinary = (service) => {
+      if (!service) return false;
+      const name = service.name || service.display_name || "";
+      return name.toUpperCase().includes("VETERINARY");
+    };
+
+    const featureMapping = {
+      'VETERINARY_VISITS': 'Manage Visits',
+      'VETERINARY_VITALS': 'Record Vitals',
+      'VETERINARY_PRESCRIPTIONS': 'Prescriptions',
+      'VETERINARY_LABS': 'Lab Tests',
+      'VETERINARY_ONLINE_CONSULT': 'Online Consultation',
+      'VETERINARY_OFFLINE_VISIT': 'Offline Visits',
+      'VETERINARY_MEDICINE_REMINDERS': 'Medicine Reminders'
+    };
+
+    const formatFeatureName = (name) => {
+      if (!name) return '';
+      // Try exact match
+      if (featureMapping[name]) return featureMapping[name];
+      // Try matching without VETERINARY_ prefix if DB has different naming
+      const upper = name.toUpperCase();
+      if (featureMapping[upper]) return featureMapping[upper];
+      
+      // Fallback: Title Case if it looks like a code
+      if (upper.includes('_')) {
+         return name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      }
+      return name;
+    };
+
+
 
     // Lookup fetch
     const fetchLookup = async (url, setter) => {
@@ -107,62 +138,51 @@ export default {
 
     watch([page, itemsPerPage, searchQuery], fetchItems);
 
-    // Computed Filters
-    const filteredCategories = computed(() => {
-      const selectedIds = form.value.service_id;
-      if (!selectedIds || (Array.isArray(selectedIds) && selectedIds.length === 0)) {
-        return [];
-      }
-      const ids = Array.isArray(selectedIds) ? selectedIds : [selectedIds];
-      
+    // Initialize state when services are selected
+    watch(() => form.value.service_id, (newVal) => {
+      const ids = Array.isArray(newVal) ? newVal : (newVal ? [newVal] : []);
+      ids.forEach(id => {
+        if (!selectedFeatures.value[id]) selectedFeatures.value[id] = [];
+        if (!selectedCRUD.value[id]) selectedCRUD.value[id] = { 
+          can_view: false, 
+          can_create: false, 
+          can_edit: false, 
+          can_delete: false 
+        };
+      });
+    });
+
+    // Computed: Get selected service objects
+    const selectedServicesList = computed(() => {
+      const ids = Array.isArray(form.value.service_id) ? form.value.service_id : [];
+      return services.value.filter(s => ids.includes(s.id));
+    });
+
+    // Helper to get categories for a service
+    const getCategoriesForService = (serviceId) => {
       return categories.value.filter(c => {
-        const sId = c.service?.id || c.service;
-        return ids.includes(sId);
+        const cServiceId = c.service?.id || c.service;
+        return String(cServiceId) === String(serviceId);
       });
-    });
-
-    const filteredFacilities = computed(() => {
-      const selectedIds = form.value.service_id;
-      if (!selectedIds || (Array.isArray(selectedIds) && selectedIds.length === 0)) {
-        return [];
-      }
-      const ids = Array.isArray(selectedIds) ? selectedIds : [selectedIds];
-
-      return facilities.value.filter(f => {
-        const sId = f.service?.id || f.service;
-        return ids.includes(sId);
-      });
-    });
-
-    const onServiceChange = () => {
-      if (!isEdit.value) {
-        // Clear selections if they no longer belong to selected services
-        const validCats = filteredCategories.value.map(c => c.id);
-        const validFacs = filteredFacilities.value.map(f => f.id);
-        
-        if (Array.isArray(form.value.category_id)) {
-          form.value.category_id = form.value.category_id.filter(id => validCats.includes(id));
-        }
-        if (Array.isArray(form.value.facility_id)) {
-          form.value.facility_id = form.value.facility_id.filter(id => validFacs.includes(id));
-        }
-      }
     };
 
     // ADD drawer
-    const openAddDrawer = () => {
+    const openAddDrawer = async () => {
       isEdit.value = false;
       editId.value = null;
       form.value = {
         plan: null,
         service_id: [],
-        category_id: [],
-        facility_id: [],
-        can_view: false,
-        can_create: false,
-        can_edit: false,
-        can_delete: false,
       };
+      selectedFeatures.value = {};
+      selectedCRUD.value = {};
+      
+      // Refresh lookups to ensure we have latest categories
+      await Promise.all([
+        fetchLookup(servicesURL, services),
+        fetchLookup(categoriesURL, categories)
+      ]);
+
       drawerOpen.value = true;
     };
 
@@ -171,17 +191,34 @@ export default {
       isEdit.value = true;
       editId.value = item.id;
 
+      // For Edit, we only support editing one item at a time, but UI is built for bulk.
+      // We'll just load the single item into the form.
       form.value = {
         plan: item.plan?.id ?? null,
-        service_id: item.service?.id ?? null,
-        category_id: item.category?.id ?? null,
-        facility_id: item.facility?.id ?? null,
-
-        can_view: !!item.can_view,
-        can_create: !!item.can_create,
-        can_edit: !!item.can_edit,
-        can_delete: !!item.can_delete,
+        service_id: item.service?.id ? [item.service.id] : [],
       };
+      
+      // Populate state based on what it is
+      selectedFeatures.value = {};
+      selectedCRUD.value = {};
+
+      if (item.service) {
+        const sId = item.service.id;
+        if (isVeterinary(item.service)) {
+           // If it's a category permission
+           if (item.category) {
+             selectedFeatures.value[sId] = [item.category.id];
+           }
+        } else {
+           // CRUD
+           selectedCRUD.value[sId] = {
+             can_view: !!item.can_view,
+             can_create: !!item.can_create,
+             can_edit: !!item.can_edit,
+             can_delete: !!item.can_delete,
+           };
+        }
+      }
 
       drawerOpen.value = true;
     };
@@ -192,90 +229,76 @@ export default {
     const submit = async () => {
       loading.value = true;
 
-      if ((!form.value.service_id || form.value.service_id.length === 0) && (!form.value.category_id || form.value.category_id.length === 0)) {
-        alert("Please select either Service or Category.");
+      if (!form.value.plan) {
+        alert("Please select a Plan.");
+        loading.value = false;
+        return;
+      }
+      if (!form.value.service_id || form.value.service_id.length === 0) {
+        alert("Please select at least one Service.");
         loading.value = false;
         return;
       }
 
       try {
-        if (isEdit.value) {
-          // Edit Mode: Single Update
-          const payload = {
-            plan_id: form.value.plan,
-            service_id: form.value.service_id,
-            category_id: form.value.category_id || null,
-            facility_id: form.value.facility_id || null,
-            can_view: form.value.can_view,
-            can_create: form.value.can_create,
-            can_edit: form.value.can_edit,
-            can_delete: form.value.can_delete,
-          };
-          await axios.put(`${baseURL}${editId.value}/`, payload);
-        } else {
-          // Create Mode: Filtered Combinations
-          const services = Array.isArray(form.value.service_id) ? form.value.service_id : [form.value.service_id];
-          const selectedCatIds = Array.isArray(form.value.category_id) ? form.value.category_id : [];
-          const selectedFacIds = Array.isArray(form.value.facility_id) ? form.value.facility_id : [];
+        const promises = [];
+        let createdCount = 0;
+        let skippedCount = 0;
 
-          const promises = [];
-          let createdCount = 0;
-          let skippedCount = 0;
+        // Iterate over selected services
+        const serviceIds = Array.isArray(form.value.service_id) ? form.value.service_id : [form.value.service_id];
 
-          for (const sId of services) {
-            const validCats = selectedCatIds.length > 0 
-              ? selectedCatIds.filter(cId => {
-                  const cat = categories.value.find(c => c.id === cId);
-                  return cat && (cat.service?.id === sId || cat.service === sId);
-                })
-              : [null]; 
+        for (const sId of serviceIds) {
+          const serviceObj = services.value.find(s => s.id === sId);
+          if (!serviceObj) continue;
 
-            const validFacs = selectedFacIds.length > 0
-              ? selectedFacIds.filter(fId => {
-                  const fac = facilities.value.find(f => f.id === fId);
-                  return fac && (fac.service?.id === sId || fac.service === sId);
-                })
-              : [null];
-
-            for (const cat of validCats) {
-              for (const fac of validFacs) {
-                const payload = {
-                  plan_id: form.value.plan,
-                  service_id: sId,
-                  category_id: cat,
-                  facility_id: fac,
-                  can_view: form.value.can_view,
-                  can_create: form.value.can_create,
-                  can_edit: form.value.can_edit,
-                  can_delete: form.value.can_delete,
-                };
-                
-                // Wrap in a promise that catches errors to prevent Promise.all from failing
-                const p = axios.post(baseURL, payload)
-                  .then(() => { createdCount++; })
-                  .catch(err => {
-                    // If error is "unique set", just skip
-                    if (err.response?.data?.non_field_errors?.[0]?.includes("unique set")) {
-                      skippedCount++;
-                    } else {
-                      throw err; // Re-throw other errors
-                    }
-                  });
-                promises.push(p);
-              }
+          if (isVeterinary(serviceObj)) {
+            // === VETERINARY (Feature-based) ===
+            // Create one capability per selected Category
+            const catIds = selectedFeatures.value[sId] || [];
+            for (const cId of catIds) {
+              const payload = {
+                plan_id: form.value.plan,
+                service_id: sId,
+                category_id: cId,
+                facility_id: null,
+                // Feature permissions usually imply "View" access to that feature
+                can_view: true, 
+                can_create: true, // Defaulting to full access for the feature
+                can_edit: true,
+                can_delete: true,
+              };
+              promises.push(createOrUpdate(payload));
             }
-          }
-          
-          // Use Promise.all to wait for all, but individual errors (except unique) will still bubble up if we want, 
-          // or we can use allSettled. Since we re-throw non-unique errors, Promise.all will reject on unexpected errors.
-          await Promise.all(promises);
+            // If no categories selected, maybe they just want the service itself?
+            if (catIds.length === 0) {
+               // Optional: Create a "Core" capability if no category selected?
+               // For now, we'll assume they must select features.
+            }
 
-          if (createdCount > 0 || skippedCount > 0) {
-             // Success message could be added here if needed
-             console.log(`Created ${createdCount}, Skipped ${skippedCount} duplicates.`);
+          } else {
+            // === REGULAR (CRUD-based) ===
+            const perms = selectedCRUD.value[sId] || { can_view: false, can_create: false, can_edit: false, can_delete: false };
+            
+            // Only create if at least one permission is true
+            if (perms.can_view || perms.can_create || perms.can_edit || perms.can_delete) {
+              const payload = {
+                plan_id: form.value.plan,
+                service_id: sId,
+                category_id: null,
+                facility_id: null,
+                can_view: perms.can_view,
+                can_create: perms.can_create,
+                can_edit: perms.can_edit,
+                can_delete: perms.can_delete,
+              };
+              promises.push(createOrUpdate(payload));
+            }
           }
         }
 
+        await Promise.all(promises);
+        
         drawerOpen.value = false;
         await fetchItems();
 
@@ -285,6 +308,20 @@ export default {
       } finally {
         loading.value = false;
       }
+    };
+
+    const createOrUpdate = (payload) => {
+       if (isEdit.value && editId.value) {
+         return axios.put(`${baseURL}${editId.value}/`, payload);
+       } else {
+         return axios.post(baseURL, payload).catch(err => {
+            if (err.response?.data?.non_field_errors?.[0]?.includes("unique set")) {
+               // ignore duplicates
+            } else {
+               throw err;
+            }
+         });
+       }
     };
 
     // Delete
@@ -328,9 +365,11 @@ export default {
       facilities,
 
       form,
-      filteredCategories,
-      filteredFacilities,
-      onServiceChange,
+      selectedFeatures,
+      selectedCRUD,
+      selectedServicesList,
+      getCategoriesForService,
+      isVeterinary,
       
       openAddDrawer,
       openEditDrawer,
@@ -343,6 +382,7 @@ export default {
       deleteItemConfirm,
 
       updateOptions: fetchItems,
+      formatFeatureName,
     };
   },
 };
@@ -409,31 +449,61 @@ export default {
         </template>
 
         <template #item.category="{ item }">
-          <VChip v-if="item.category" size="small" color="info" variant="tonal">
-            {{ item.category.name }}
-          </VChip>
-          <span v-else class="text-medium-emphasis">-</span>
+          <!-- VETERINARY: Show Feature Badge -->
+          <div v-if="isVeterinary(item.service)">
+            <VChip v-if="item.category" size="small" color="primary" variant="flat" prepend-icon="tabler-star">
+              Feature: {{ formatFeatureName(item.category.name) }}
+            </VChip>
+            <span v-else class="text-medium-emphasis">-</span>
+          </div>
+          <!-- REGULAR: Show Category Chip -->
+          <div v-else>
+            <VChip v-if="item.category" size="small" color="info" variant="tonal">
+              {{ item.category.name }}
+            </VChip>
+            <span v-else class="text-medium-emphasis">-</span>
+          </div>
         </template>
 
         <template #item.facility="{ item }">
-          <VChip v-if="item.facility" size="small" color="success" variant="tonal">
-            {{ item.facility.name }}
-          </VChip>
-          <span v-else class="text-medium-emphasis">-</span>
+          <!-- VETERINARY: Hide Facility -->
+          <div v-if="isVeterinary(item.service)">
+            <span class="text-disabled text-caption">N/A</span>
+          </div>
+          <!-- REGULAR: Show Facility Chip -->
+          <div v-else>
+            <VChip v-if="item.facility" size="small" color="success" variant="tonal">
+              {{ item.facility.name }}
+            </VChip>
+            <span v-else class="text-medium-emphasis">-</span>
+          </div>
         </template>
 
         <!-- Permissions Grouped -->
+        <!-- Permissions Grouped -->
         <template #item.can_view="{ item }">
-          <VIcon :icon="item.can_view ? 'tabler-check' : 'tabler-x'" :color="item.can_view ? 'success' : 'medium-emphasis'" />
+          <div v-if="isVeterinary(item.service)">
+            <VChip size="x-small" color="success" variant="elevated">Enabled</VChip>
+          </div>
+          <VIcon v-else :icon="item.can_view ? 'tabler-check' : 'tabler-x'" :color="item.can_view ? 'success' : 'medium-emphasis'" />
         </template>
         <template #item.can_create="{ item }">
-          <VIcon :icon="item.can_create ? 'tabler-check' : 'tabler-x'" :color="item.can_create ? 'success' : 'medium-emphasis'" />
+          <div v-if="isVeterinary(item.service)">
+            <span class="text-disabled">-</span>
+          </div>
+          <VIcon v-else :icon="item.can_create ? 'tabler-check' : 'tabler-x'" :color="item.can_create ? 'success' : 'medium-emphasis'" />
         </template>
         <template #item.can_edit="{ item }">
-          <VIcon :icon="item.can_edit ? 'tabler-check' : 'tabler-x'" :color="item.can_edit ? 'success' : 'medium-emphasis'" />
+          <div v-if="isVeterinary(item.service)">
+            <span class="text-disabled">-</span>
+          </div>
+          <VIcon v-else :icon="item.can_edit ? 'tabler-check' : 'tabler-x'" :color="item.can_edit ? 'success' : 'medium-emphasis'" />
         </template>
         <template #item.can_delete="{ item }">
-          <VIcon :icon="item.can_delete ? 'tabler-check' : 'tabler-x'" :color="item.can_delete ? 'success' : 'medium-emphasis'" />
+          <div v-if="isVeterinary(item.service)">
+            <span class="text-disabled">-</span>
+          </div>
+          <VIcon v-else :icon="item.can_delete ? 'tabler-check' : 'tabler-x'" :color="item.can_delete ? 'success' : 'medium-emphasis'" />
         </template>
 
         <template #item.actions="{ item }">
@@ -455,98 +525,135 @@ export default {
     </VCard>
 
     <!-- Drawer -->
-    <VNavigationDrawer v-model="drawerOpen" location="end" temporary width="450" class="pa-4" style="border-left: 2px solid #E2E8F0;">
-      <div class="pa-3 mb-4 rounded-lg" style="background: linear-gradient(135deg, #42a5f5, #1e88e5); color: white;">
-        <div class="d-flex justify-space-between align-center">
-          <div>
-            <h3 class="text-h6 font-weight-bold mb-1">{{ isEdit ? "Update Capability" : "Create Capability" }}</h3>
-            <div class="text-caption opacity-90">Define what plans can do</div>
+    <VNavigationDrawer v-model="drawerOpen" location="end" temporary width="450" class="pa-0" style="border-left: 2px solid #E2E8F0;">
+      <div class="d-flex flex-column h-100 pa-4">
+        <!-- Header -->
+        <div class="pa-3 mb-4 rounded-lg flex-shrink-0" style="background: linear-gradient(135deg, #42a5f5, #1e88e5); color: white;">
+          <div class="d-flex justify-space-between align-center">
+            <div>
+              <h3 class="text-h6 font-weight-bold mb-1">{{ isEdit ? "Update Capability" : "Create Capability" }}</h3>
+              <div class="text-caption opacity-90">Define what plans can do</div>
+            </div>
+            <IconBtn @click="closeDrawer" color="white" variant="text"><VIcon icon="tabler-x" /></IconBtn>
           </div>
-          <IconBtn @click="closeDrawer" color="white" variant="text"><VIcon icon="tabler-x" /></IconBtn>
         </div>
-      </div>
 
-      <VForm>
-        <VRow>
-          <VCol cols="12">
-            <AppSelect 
-              v-model="form.plan" 
-              :items="plans" 
-              item-title="title" 
-              item-value="id" 
-              label="Plan *" 
-              placeholder="Select a plan"
-              prepend-inner-icon="tabler-file-certificate"
-            />
-          </VCol>
+        <!-- Scrollable Form -->
+        <div class="flex-grow-1 overflow-y-auto pe-2">
+          <VForm>
+            <VRow>
+              <VCol cols="12">
+                <AppSelect 
+                  v-model="form.plan" 
+                  :items="plans" 
+                  item-title="title" 
+                  item-value="id" 
+                  label="Plan *" 
+                  placeholder="Select a plan"
+                  prepend-inner-icon="tabler-file-certificate"
+                />
+              </VCol>
 
-          <VCol cols="12">
-            <AppSelect 
-              v-model="form.service_id" 
-              :items="services" 
-              item-title="display_name" 
-              item-value="id" 
-              :label="isEdit ? 'Service' : 'Service (Select multiple)'" 
-              :multiple="!isEdit"
-              :chips="!isEdit"
-              closable-chips
-              placeholder="Select service(s)"
-              prepend-inner-icon="tabler-briefcase"
-              @update:model-value="onServiceChange"
-            />
-          </VCol>
+              <VCol cols="12">
+                <AppSelect 
+                  v-model="form.service_id" 
+                  :items="services" 
+                  item-title="display_name" 
+                  item-value="id" 
+                  :label="isEdit ? 'Service' : 'Service (Select multiple)'" 
+                  :multiple="!isEdit"
+                  :chips="!isEdit"
+                  closable-chips
+                  placeholder="Select service(s)"
+                  prepend-inner-icon="tabler-briefcase"
+                />
+              </VCol>
 
-          <VCol cols="12">
-            <AppSelect 
-              v-model="form.category_id" 
-              :items="filteredCategories" 
-              item-title="name" 
-              item-value="id" 
-              :label="isEdit ? 'Category' : 'Category (Select multiple)'" 
-              :multiple="!isEdit"
-              :chips="!isEdit"
-              closable-chips
-              placeholder="Select category(s)"
-              prepend-inner-icon="tabler-category"
-              :disabled="!form.service_id || (Array.isArray(form.service_id) && form.service_id.length === 0)"
-            />
-          </VCol>
+              <!-- DYNAMIC PERMISSIONS SECTION -->
+              <VCol cols="12" v-if="selectedServicesList.length > 0">
+                <VLabel class="mb-2 font-weight-medium">Permissions</VLabel>
+                
+                <div v-for="service in selectedServicesList" :key="service.id" class="mb-4">
+                  <VCard variant="outlined" class="pa-3">
+                    <div class="d-flex align-center mb-3">
+                      <VAvatar size="32" color="primary" variant="tonal" class="me-2">
+                        <VIcon :icon="service.icon || 'tabler-box'" size="18" />
+                      </VAvatar>
+                      <span class="font-weight-bold">{{ service.display_name }}</span>
+                      <VChip v-if="isVeterinary(service)" size="x-small" color="info" class="ms-2">Feature-Based</VChip>
+                      <VChip v-else size="x-small" color="secondary" class="ms-2">CRUD-Based</VChip>
+                    </div>
 
-          <VCol cols="12">
-            <AppSelect 
-              v-model="form.facility_id" 
-              :items="filteredFacilities" 
-              item-title="name" 
-              item-value="id" 
-              :label="isEdit ? 'Facility' : 'Facility (Select multiple)'" 
-              :multiple="!isEdit"
-              :chips="!isEdit"
-              closable-chips
-              placeholder="Select facility(s)"
-              prepend-inner-icon="tabler-building"
-              :disabled="!form.service_id || (Array.isArray(form.service_id) && form.service_id.length === 0)"
-            />
-          </VCol>
+                    <VDivider class="mb-3" />
 
-          <VCol cols="12">
-            <VLabel class="mb-2 font-weight-medium">Permissions</VLabel>
-            <VCard variant="outlined" class="pa-3">
-              <div class="d-flex flex-wrap gap-4 justify-space-between">
-                <VCheckbox v-model="form.can_view" label="View" color="primary" density="compact" hide-details />
-                <VCheckbox v-model="form.can_create" label="Create" color="success" density="compact" hide-details />
-                <VCheckbox v-model="form.can_edit" label="Edit" color="warning" density="compact" hide-details />
-                <VCheckbox v-model="form.can_delete" label="Delete" color="error" density="compact" hide-details />
-              </div>
-            </VCard>
-          </VCol>
-        </VRow>
-      </VForm>
+                    <!-- VETERINARY: Show Categories as Checkboxes -->
+                    <div v-if="isVeterinary(service)">
+                      <div class="bg-grey-lighten-4 pa-3 rounded mb-3">
+                        <div class="font-weight-bold text-primary mb-1">Veterinary Management (Feature Permissions)</div>
+                        <div class="text-caption text-medium-emphasis">Select the features enabled for this plan.</div>
+                      </div>
 
-      <div class="d-flex justify-end mt-6 gap-2">
-        <VBtn variant="text" @click="closeDrawer">Cancel</VBtn>
-        <VBtn :loading="loading" color="primary" style="background: linear-gradient(135deg, #42a5f5, #1e88e5);" @click="submit">
-          {{ isEdit ? "Update" : "Create" }}
-        </VBtn>
+                      <div v-if="getCategoriesForService(service.id).length === 0" class="text-caption text-medium-emphasis px-3">
+                        No features available for this service.
+                      </div>
+                      <div v-else class="d-flex flex-column gap-2 px-3">
+                        <VCheckbox 
+                          v-for="cat in getCategoriesForService(service.id)" 
+                          :key="cat.id"
+                          v-model="selectedFeatures[service.id]"
+                          :value="cat.id"
+                          :label="formatFeatureName(cat.name)"
+                          density="compact"
+                          hide-details
+                        />
+                      </div>
+                    </div>
+
+                    <!-- REGULAR: Show CRUD Checkboxes -->
+                    <div v-else>
+                      <div class="bg-grey-lighten-4 pa-3 rounded mb-3">
+                        <div class="font-weight-bold text-primary mb-1">{{ service.display_name }} (CRUD Permissions)</div>
+                        <div class="text-caption text-medium-emphasis">Define access levels for this service.</div>
+                      </div>
+
+                      <div class="d-flex flex-wrap gap-4 justify-space-between px-3">
+                        <VCheckbox 
+                          v-model="selectedCRUD[service.id].can_view" 
+                          label="View" color="primary" density="compact" hide-details 
+                          @update:model-value="(val) => { if(!selectedCRUD[service.id]) selectedCRUD[service.id] = {}; selectedCRUD[service.id].can_view = val; }"
+                        />
+                        <VCheckbox 
+                          v-model="selectedCRUD[service.id].can_create" 
+                          label="Create" color="success" density="compact" hide-details 
+                          @update:model-value="(val) => { if(!selectedCRUD[service.id]) selectedCRUD[service.id] = {}; selectedCRUD[service.id].can_create = val; }"
+                        />
+                        <VCheckbox 
+                          v-model="selectedCRUD[service.id].can_edit" 
+                          label="Edit" color="warning" density="compact" hide-details 
+                          @update:model-value="(val) => { if(!selectedCRUD[service.id]) selectedCRUD[service.id] = {}; selectedCRUD[service.id].can_edit = val; }"
+                        />
+                        <VCheckbox 
+                          v-model="selectedCRUD[service.id].can_delete" 
+                          label="Delete" color="error" density="compact" hide-details 
+                          @update:model-value="(val) => { if(!selectedCRUD[service.id]) selectedCRUD[service.id] = {}; selectedCRUD[service.id].can_delete = val; }"
+                        />
+                      </div>
+                    </div>
+
+                  </VCard>
+                </div>
+              </VCol>
+            </VRow>
+          </VForm>
+        </div>
+
+        <!-- Footer -->
+        <div class="d-flex justify-end mt-4 pt-2 border-t flex-shrink-0 gap-2">
+          <VBtn variant="text" @click="closeDrawer">Cancel</VBtn>
+          <VBtn :loading="loading" color="primary" style="background: linear-gradient(135deg, #42a5f5, #1e88e5);" @click="submit">
+            {{ isEdit ? "Update" : "Create" }}
+          </VBtn>
+        </div>
       </div>
     </VNavigationDrawer>
 

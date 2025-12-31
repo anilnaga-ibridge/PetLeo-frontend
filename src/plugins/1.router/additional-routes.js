@@ -1,3 +1,5 @@
+import { useCookie } from '@/@core/composable/useCookie'
+import { getPostLoginRoute } from '@/utils/routeHelpers'
 const emailRouteComponent = () => import("@/pages/apps/email/index.vue");
 
 // 👉 Redirects
@@ -8,17 +10,18 @@ export const redirects = [
     path: "/",
     name: "index",
     redirect: (to) => {
-      // TODO: Get type from backend
-      const userData = useCookie("userData");
-      console.log("userData", userData.value);
+      const userData = useCookie("userData").value || JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || 'null')
+      const token = useCookie("accessToken").value || localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 
-      const userRole = userData.value?.role;
-      if (userRole === "SuperAdmin") return { name: "dashboards-crm" };
-      if (userRole === "individual" || userRole === "organization") return { name: "provider-providerhome" };
-      if (userRole === "employee") return { name: "employee-dashboard" };
-      if (userRole === "client") return { name: "access-control" };
-      if (userRole != null) return { name: "dashboards-crm" };
-
+      if (userData && token) {
+        const targetRoute = getPostLoginRoute(userData)
+        // Convert path to route name if possible, or return path (redirect function supports path)
+        // But additional-routes uses name usually. 
+        // Let's check if getPostLoginRoute returns a path. It does.
+        // We can return the path directly or map it.
+        // The redirect function in Vue Router can return a string path.
+        return targetRoute
+      }
       return { name: "login", query: to.query };
     },
   },

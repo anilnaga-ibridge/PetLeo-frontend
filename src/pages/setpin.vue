@@ -15,7 +15,7 @@ const router = useRouter()
 const cookie = useCookie()
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-const SET_PIN_URL = `${API_BASE}/auth/set-pin/`
+const SET_PIN_URL = `${API_BASE}/auth/api/auth/set-pin/`
 
 const pin = ref('')
 const confirmPin = ref('')
@@ -97,7 +97,7 @@ const router = useRouter()
 const cookie = useCookie()
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-const SET_PIN_URL = `${API_BASE}/auth/set-pin/`
+const SET_PIN_URL = `${API_BASE}/auth/api/auth/set-pin/`
 
 /* ---- Your existing logic ---- */
 const loading = ref(false)

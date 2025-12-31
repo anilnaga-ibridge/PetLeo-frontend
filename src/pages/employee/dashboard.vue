@@ -8,6 +8,14 @@ definePage({
   meta: {
     layout: 'blank',
   },
+  beforeEnter: (to, from, next) => {
+    const userData = JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || 'null')
+    if (userData && userData.permissions && userData.permissions.includes('VETERINARY_CORE')) {
+      console.warn('⛔ Veterinary staff redirected from generic employee dashboard (Route Guard)')
+      return next('/veterinary/dashboard')
+    }
+    next()
+  },
 })
 
 const userData = useCookie('userData')

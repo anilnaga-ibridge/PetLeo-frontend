@@ -1,4 +1,5 @@
 <script setup>
+console.log('🚀 default.vue: Layout Start')
 import { useConfigStore } from '@core/stores/config'
 import { AppContentLayoutNav } from '@layouts/enums'
 import { switchToVerticalNavOnLtOverlayNavBreakpoint } from '@layouts/utils'
@@ -40,6 +41,7 @@ watch([
     <AppLoadingIndicator ref="refLoadingIndicator" />
 
     <RouterView v-slot="{ Component }">
+      {{ console.log('📦 default.vue: RouterView Component:', Component ? 'Defined' : 'NULL') || '' }}
       <Suspense
         :timeout="0"
         @fallback="isFallbackStateActive = true"

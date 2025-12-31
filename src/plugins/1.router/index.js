@@ -11,7 +11,9 @@ function recursiveLayouts(route) {
     return route
   }
 
-  return setupLayouts([route])[0]
+  const layoutRoute = setupLayouts([route])[0]
+  console.log('🗺️ Router: Wrapping route:', route.path, 'with layout:', route.meta?.layout || 'default', '-> Result Path:', layoutRoute.path)
+  return layoutRoute
 }
 
 const router = createRouter({

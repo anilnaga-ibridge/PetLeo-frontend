@@ -1,6 +1,19 @@
 <script setup>
 import navItems from '@/navigation/vertical'
 import { themeConfig } from '@themeConfig'
+import { usePermissionStore } from '@/stores/permissionStore'
+import { computed } from 'vue'
+
+const permissionStore = usePermissionStore()
+
+const filteredNavItems = computed(() => {
+  return navItems.filter(item => {
+    if (item.capability) {
+      return permissionStore.hasCapability(item.capability)
+    }
+    return true
+  })
+})
 
 // Components
 import Footer from '@/layouts/components/Footer.vue'
@@ -16,7 +29,7 @@ import { VerticalNavLayout } from '@layouts'
 </script>
 
 <template>
-  <VerticalNavLayout :nav-items="navItems">
+  <VerticalNavLayout :nav-items="filteredNavItems">
     <!-- 👉 navbar -->
     <template #navbar="{ toggleVerticalOverlayNavActive }">
       <div class="d-flex h-100 align-center">

@@ -26,12 +26,23 @@ const editingId = ref(null)
 const form = ref({
   full_name: '',
   email: '',
-  phone_number: ''
+  phone_number: '',
+  role: 'employee'
 })
+
+const roles = [
+  { title: 'Receptionist', value: 'receptionist' },
+  { title: 'Vitals Staff', value: 'vitals staff' },
+  { title: 'Doctor', value: 'doctor' },
+  { title: 'Lab Tech', value: 'lab tech' },
+  { title: 'Pharmacy', value: 'pharmacy' },
+  { title: 'General Employee', value: 'employee' },
+]
 
 // Headers
 const headers = [
   { title: 'Employee', key: 'full_name' },
+  { title: 'Role', key: 'role' },
   { title: 'Contact', key: 'contact' },
   { title: 'Status', key: 'status' },
   { title: 'Joined', key: 'joined_at' },
@@ -63,14 +74,16 @@ const openDialog = (employee = null) => {
     form.value = {
       full_name: employee.full_name || employee.raw?.full_name,
       email: employee.email || employee.raw?.email,
-      phone_number: employee.phone_number || employee.raw?.phone_number
+      phone_number: employee.phone_number || employee.raw?.phone_number,
+      role: (employee.role || employee.raw?.role || 'employee').toLowerCase()
     }
   } else {
     editingId.value = null
     form.value = {
       full_name: '',
       email: '',
-      phone_number: ''
+      phone_number: '',
+      role: 'employee'
     }
   }
   dialog.value = true
@@ -101,6 +114,7 @@ const updateEmployee = async () => {
       full_name: form.value.full_name,
       email: form.value.email,
       phone_number: form.value.phone_number,
+      role: form.value.role
     }
 
     await api.patch(`http://127.0.0.1:8002/api/provider/employees/${editingId.value}/`, payload)
@@ -131,31 +145,26 @@ const registerEmployee = async () => {
   successMessage.value = ''
 
   try {
-    const AUTH_URL = 'http://127.0.0.1:8000/auth/api/auth/register/'
+    // Use Provider Service Proxy for registration
+    const PROVIDER_API = 'http://127.0.0.1:8002/api/provider/employees/'
     
     const payload = {
       full_name: form.value.full_name,
       email: form.value.email,
       phone_number: form.value.phone_number,
-      role: 'employee'
+      role: form.value.role
     }
 
-    const res = await api.post(AUTH_URL, payload)
+    const res = await api.post(PROVIDER_API, payload)
     
-    if (res.data?.session_id) {
-      successMessage.value = 'Invitation sent successfully!'
-      // localStorage.setItem('session_id', res.data.session_id) // Not needed if we aren't redirecting immediately
-      fetchEmployees() // Refresh the list to show the new employee
-      setTimeout(() => {
-        dialog.value = false
-        // Optional: Reset form here if needed, but dialog close usually handles it via openDialog logic
-      }, 1500)
-    } else {
-      errorMessage.value = 'Registration failed.'
-    }
+    successMessage.value = 'Invitation sent successfully!'
+    fetchEmployees()
+    setTimeout(() => {
+      dialog.value = false
+    }, 1500)
   } catch (err) {
     console.error('Registration Error:', err)
-    errorMessage.value = 'Registration failed.'
+    errorMessage.value = err.response?.data?.detail || err.response?.data?.message || 'Registration failed.'
   } finally {
     registering.value = false
   }
@@ -236,10 +245,11 @@ const deleteEmployee = async (id) => {
 }
 
 const getStatusColor = (status) => {
-  switch (status) {
-    case 'active': return 'success'
-    case 'invited': return 'warning'
-    case 'suspended': return 'error'
+  const s = (status || '').toUpperCase()
+  switch (s) {
+    case 'ACTIVE': return 'success'
+    case 'PENDING': return 'warning'
+    case 'DISABLED': return 'error'
     default: return 'grey'
   }
 }
@@ -303,6 +313,11 @@ onMounted(() => {
               <span class="text-caption">{{ item.email || item.raw?.email }}</span>
             </div>
           </div>
+        </template>
+
+        <!-- Role Column -->
+        <template #item.role="{ item }">
+          <span class="text-capitalize">{{ item.role || item.raw?.role || 'Employee' }}</span>
         </template>
 
         <!-- Status Column -->
@@ -452,8 +467,31 @@ onMounted(() => {
                 </div>
               </div>
               
-              <!-- Email -->
+              <!-- Role Selection -->
               <div class="animate-item" style="animation-delay: 0.3s">
+                <div class="input-group">
+                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">Role</VLabel>
+                  <VSelect
+                    v-model="form.role"
+                    :items="roles"
+                    placeholder="Select Role"
+                    variant="solo"
+                    flat
+                    bg-color="white"
+                    class="soft-input elevation-2"
+                    rounded="lg"
+                    hide-details="auto"
+                    required
+                  >
+                    <template #prepend-inner>
+                      <VIcon icon="tabler-user-cog" size="20" class="text-primary opacity-70" />
+                    </template>
+                  </VSelect>
+                </div>
+              </div>
+
+              <!-- Email -->
+              <div class="animate-item" style="animation-delay: 0.4s">
                 <div class="input-group">
                   <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">
                     Email Address <span class="text-disabled font-weight-regular text-lowercase ms-1">(optional)</span>

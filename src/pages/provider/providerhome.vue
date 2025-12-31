@@ -23,7 +23,9 @@ const theme = useTheme()
 // Placeholder images
 const heroImage = useGenerateImageVariant(authV2LoginIllustrationLight, authV2LoginIllustrationDark)
 
-const isLoggedIn = computed(() => !!useCookie('userData').value)
+const isLoggedIn = computed(() => {
+  return !!useCookie('userData').value || !!localStorage.getItem('userData')
+})
 
 const services = ref([])
 
@@ -46,7 +48,7 @@ const plans = ref([])
 
 const fetchPlans = async () => {
   try {
-    const userData = useCookie('userData').value
+    const userData = useCookie('userData').value || JSON.parse(localStorage.getItem('userData') || '{}')
     const role = userData?.provider_type || 'individual' // Default to individual if not logged in or missing
     
     const res = await api.get('/api/superadmin/provider/plans/', {
@@ -96,7 +98,7 @@ const checkVerificationStatus = async () => {
 
   loadingVerification.value = true
   try {
-    const userData = useCookie('userData').value || {}
+    const userData = useCookie('userData').value || JSON.parse(localStorage.getItem('userData') || '{}')
     const userId = userData.id
     const dynamicTarget = userData.provider_type || 'individual'
     const PROVIDER_BASE_URL = 'http://127.0.0.1:8002'
@@ -191,8 +193,8 @@ const addToCart = async (plan) => {
       plan_role: plan.role || 'provider', // Default role if missing
       billing_cycle_id: plan.billing_cycle.id,
       billing_cycle_name: plan.billing_cycle.name,
-      price_amount: plan.price.amount,
-      price_currency: plan.price.currency,
+      price_amount: plan.price ? plan.price.amount : 0,
+      price_currency: plan.price ? plan.price.currency : 'INR',
     }
 
     await api.post('http://127.0.0.1:8002/api/provider/cart/add/', payload)

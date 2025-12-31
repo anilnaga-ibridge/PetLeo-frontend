@@ -1,4 +1,5 @@
 <script setup>
+console.log('🚀 dashboard.vue: Script Setup Start')
 import ProviderLayout from '@/components/ProviderLayout.vue'
 import { usePermissionStore } from '@/stores/permissionStore'
 import { onMounted } from 'vue'
@@ -6,7 +7,9 @@ import { onMounted } from 'vue'
 const permissionStore = usePermissionStore()
 
 onMounted(async () => {
+  console.log('📊 Provider Dashboard: Mounting...')
   await permissionStore.fetchPermissions()
+  console.log('📊 Provider Dashboard: Permissions loaded:', permissionStore.permissions.length)
 })
 </script>
 

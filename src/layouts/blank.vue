@@ -1,4 +1,5 @@
 <script setup>
+console.log('🚀 blank.vue: Layout Start')
 const { injectSkinClasses } = useSkins()
 
 // ℹ️ This will inject classes in body tag for accurate styling
@@ -27,7 +28,8 @@ watch([
     class="layout-wrapper layout-blank"
     data-allow-mismatch
   >
-    <RouterView #="{Component}">
+    <RouterView v-slot="{Component}">
+      {{ console.log('📦 blank.vue: RouterView Component:', Component ? 'Defined' : 'NULL') || '' }}
       <Suspense
         :timeout="0"
         @fallback="isFallbackStateActive = true"

@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-const RESET_PIN_URL = `${API_BASE}/auth/reset-pin/`
+const RESET_PIN_URL = `${API_BASE}/auth/api/auth/reset-pin/`
 
 const phone = ref('')
 const loading = ref(false)
@@ -56,7 +56,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-const RESET_PIN_URL = `${API_BASE}/auth/reset-pin/`
+const RESET_PIN_URL = `${API_BASE}/auth/api/auth/reset-pin/`
 
 const phone = ref('')
 const loading = ref(false)

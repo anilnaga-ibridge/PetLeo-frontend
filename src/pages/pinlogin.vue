@@ -10,7 +10,7 @@ const ability = useAbility()
 const cookie = useCookie()
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-const LOGIN_PIN_URL = `${API_BASE}/auth/login-with-pin/`
+const LOGIN_PIN_URL = `${API_BASE}/auth/api/auth/login-with-pin/`
 
 const phone = ref('')
 const pin = ref('')
@@ -91,7 +91,7 @@ const ability = useAbility()
 const cookie = useCookie()
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-const LOGIN_PIN_URL = `${API_BASE}/auth/login-with-pin/`
+const LOGIN_PIN_URL = `${API_BASE}/auth/api/auth/login-with-pin/`
 
 const phone = ref('')
 const pin = ref('')

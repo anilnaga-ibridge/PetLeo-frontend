@@ -21,7 +21,7 @@ const PROFILE_API = '/api/provider/profile/'
 const SUBMIT_API = '/api/provider/submit/'
 
 // User Data
-const userData = useCookie('userData').value || {}
+const userData = useCookie('userData').value || JSON.parse(localStorage.getItem('userData') || '{}')
 const userId = userData.id
 const dynamicTarget = userData.provider_type || 'individual'
 

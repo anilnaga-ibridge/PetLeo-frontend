@@ -8,6 +8,8 @@ import { useAbility } from '@casl/vue'
 import { useCookie } from '@/@core/composable/useCookie'
 import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
 import MultiBoxPinInput from '@/components/MultiBoxPinInput.vue'
+import { getPostLoginRoute } from '@/utils/routeHelpers'
+import { usePermissionStore } from '@/stores/permissionStore'
 
 import authV2MaskDark from '@images/pages/misc-mask-dark.png'
 import authV2MaskLight from '@images/pages/misc-mask-light.png'
@@ -149,7 +151,6 @@ const verifyOtp = async () => {
       } = res.data
 
       storeSession(accessToken, userData, userAbilityRules, rememberMe)
-
       localStorage.removeItem('session_id')
 
       if (require_set_pin || !has_pin) {
@@ -158,15 +159,17 @@ const verifyOtp = async () => {
         return
       }
 
-      // Explicit redirection based on role
-      const role = (userData.role?.name || userData.role || '').toLowerCase()
-      if (role === 'employee') {
-        await nextTick(() => router.replace('/employee/dashboard'))
-      } else if (role === 'organization' || role === 'individual') {
-        await nextTick(() => router.replace('/provider/providerhome'))
-      } else {
-        await nextTick(() => router.replace('/'))
+      // 2. Fetch dynamic permissions via Store
+      const permissionStore = usePermissionStore()
+      try {
+        await permissionStore.fetchPermissions()
+      } catch (e) {
+        console.error("Permission fetch failed", e)
       }
+
+      // Capability-based redirection
+      const targetRoute = getPostLoginRoute(userData)
+      await nextTick(() => router.replace(targetRoute))
       
       isLoading.value = false
       return

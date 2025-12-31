@@ -1,4 +1,5 @@
 <script setup>
+console.log('🚀 App.vue: Script Setup Start')
 import { useTheme } from 'vuetify'
 import ScrollToTop from '@core/components/ScrollToTop.vue'
 import initCore from '@core/initCore'

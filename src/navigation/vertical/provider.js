@@ -3,6 +3,21 @@ import { usePermissionStore } from '@/stores/permissionStore'
 const getProviderNavigation = () => {
     const permissionStore = usePermissionStore()
 
+    // Get User Role
+    let userData = {}
+    try {
+        userData = JSON.parse(localStorage.getItem('userData') || '{}')
+    } catch (e) {
+        console.error('❌ provider.js: Error parsing userData', e)
+    }
+    const roleUpper = (userData.role?.name || userData.role || '').toUpperCase()
+    const isProviderAdmin = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(roleUpper)
+
+    // STRICT: Veterinary Staff (Non-Admins) see NO Provider navigation
+    if (permissionStore.hasCapability('VETERINARY_CORE') && !isProviderAdmin) {
+        return []
+    }
+
     // Base navigation items that are always visible
     const navigation = [
         {
@@ -30,13 +45,18 @@ const getProviderNavigation = () => {
         navigation.push({ heading: 'Services' })
 
         enabledServices.forEach(service => {
+            const isVeterinary = service.service_name.toLowerCase().includes('veterinary') ||
+                service.service_id === '2dff446f-c95f-4310-ba4d-05e3395dd7eb'
+
             navigation.push({
                 title: service.service_name,
-                to: {
-                    name: 'provider-service-details',
-                    params: { serviceId: service.service_id }
-                },
-                icon: { icon: service.icon || 'tabler-box' }, // Use service icon or default
+                to: isVeterinary
+                    ? { name: 'veterinary-dashboard' }
+                    : {
+                        name: 'provider-service-details',
+                        params: { serviceId: service.service_id }
+                    },
+                icon: { icon: service.icon || (isVeterinary ? 'tabler-stethoscope' : 'tabler-box') },
             })
         })
     }
@@ -51,16 +71,15 @@ const getProviderNavigation = () => {
     }
 
     // Check for Organization role to show Employees
-    const userData = JSON.parse(localStorage.getItem('userData') || '{}')
-    const userRole = userData.role ? userData.role.toLowerCase() : ''
-
-    if (userRole === 'organization') {
+    if (roleUpper === 'ORGANIZATION') {
         navigation.push({
             title: 'Employees',
             to: { name: 'provider-employees' },
             icon: { icon: 'tabler-users' },
         })
     }
+
+
 
     return navigation
 }

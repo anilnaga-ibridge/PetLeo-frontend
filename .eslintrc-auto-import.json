@@ -363,6 +363,9 @@
     "whenever": true,
     "fullLogout": true,
     "decodeToken": true,
-    "useIdleTimer": true
+    "useIdleTimer": true,
+    "fetchAndMergePermissions": true,
+    "flattenPermissions": true,
+    "getPostLoginRoute": true
   }
 }

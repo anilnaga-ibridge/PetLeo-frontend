@@ -51,7 +51,7 @@ const unlock = async () => {
   try {
     console.log("🔓 Unlocking with:", { pin: pin.value, action: 'reverify' })
 
-    await axios.post(`${API_BASE}/auth/login-with-pin/`, {
+    await axios.post(`${API_BASE}/auth/api/auth/login-with-pin/`, {
       pin: pin.value,
       action: 'reverify'
     }, {

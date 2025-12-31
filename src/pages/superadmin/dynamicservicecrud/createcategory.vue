@@ -224,7 +224,7 @@ const goToCategories = () => {
         style="background: linear-gradient(135deg,#42a5f5,#1e88e5); color:white;"
       >
         <h3 class="text-h6 font-weight-bold mb-1">
-          {{ isEdit ? "Update Category" : "Create Category" }}
+          {{ drawerTitle }}
         </h3>
         <p class="text-caption opacity-90">
           Manage categories for your services.
@@ -258,7 +258,7 @@ const goToCategories = () => {
             <VCol cols="12">
               <AppTextField
                 v-model="form.name"
-                label="Category Name *"
+                :label="categoryLabel"
                 placeholder="e.g. Hair Cutting"
                 color="primary"
                 variant="outlined"
@@ -270,7 +270,7 @@ const goToCategories = () => {
             <VCol cols="12">
               <AppTextField
                 v-model="form.description"
-                label="Description"
+                :label="descriptionLabel"
                 textarea
                 rows="3"
                 color="primary"
@@ -347,7 +347,7 @@ const goToCategories = () => {
 
 <script>
 import axios from "axios";
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, computed } from "vue";
 import { useCookie } from "@/@core/composable/useCookie";
 
 export default {
@@ -478,6 +478,20 @@ export default {
       fetchCategories();
     };
 
+    // DYNAMIC LABELS
+    const isVeterinarySelected = computed(() => {
+      if (!form.value.service) return false;
+      const s = services.value.find((x) => x.id === form.value.service);
+      return s && (s.name.toUpperCase().startsWith("VETERINARY") || s.display_name.toUpperCase().includes("VETERINARY"));
+    });
+
+    const categoryLabel = computed(() => isVeterinarySelected.value ? "Feature Name *" : "Category Name *");
+    const descriptionLabel = computed(() => isVeterinarySelected.value ? "Feature Description" : "Description");
+    const drawerTitle = computed(() => {
+      const type = isVeterinarySelected.value ? "Feature" : "Category";
+      return isEdit.value ? `Update ${type}` : `Create ${type}`;
+    });
+
     return {
       categories,
       services,
@@ -504,6 +518,12 @@ export default {
 
       updateOptions,
       selectedRows,
+      
+      // Dynamic Labels
+      categoryLabel,
+      descriptionLabel,
+      drawerTitle,
+      isVeterinarySelected,
     };
   },
 };

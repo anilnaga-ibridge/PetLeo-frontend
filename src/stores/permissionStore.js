@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { api } from '@/plugins/axios'
+import { providerApi } from '@/plugins/axios'
 
 export const usePermissionStore = defineStore('permission', {
     state: () => {
@@ -55,7 +55,9 @@ export const usePermissionStore = defineStore('permission', {
             this.isLoading = true
             try {
                 // Fetch permissions from the Service Provider Service (Port 8002)
-                const res = await api.get('http://127.0.0.1:8002/api/provider/permissions/')
+                console.log('🔑 PermissionStore: Fetching from /api/provider/permissions/...')
+                const res = await providerApi.get('/api/provider/permissions/')
+                console.log('🔑 PermissionStore: API Response:', res.data)
 
                 this.permissions = res.data.permissions || []
                 this.planDetails = res.data.plan || null
@@ -132,6 +134,54 @@ export const usePermissionStore = defineStore('permission', {
 
             const prop = propMap[action]
             return !!service[prop]
+        },
+
+        // Check if a specific capability (Category) exists within a Service
+        hasCapability(serviceName, categoryName, action = 'view') {
+            // 1. Get user role
+            let role = ''
+            try {
+                const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+                role = (userData.role?.name || userData.role || '').toLowerCase()
+            } catch (e) {
+                console.warn('Error parsing userData for permissions', e)
+            }
+
+            // 2. If Organization, GRANT ALL (for now)
+            if (role === 'organization') return true
+
+            if (!serviceName) return false
+
+            const service = this.permissions.find(
+                p => p.service_name?.toLowerCase() === serviceName.toLowerCase()
+            )
+
+            if (!service) return false
+
+            // If checking for the service itself (e.g. VETERINARY_CORE)
+            if (!categoryName) {
+                return !!service.permissions?.can_view
+            }
+
+            // If checking for a category (e.g. VETERINARY_VISITS)
+            if (service.categories) {
+                const category = service.categories.find(
+                    c => c.name?.toLowerCase() === categoryName.toLowerCase()
+                )
+                if (!category) return false
+
+                // Map action to property name
+                const propMap = {
+                    'create': 'can_create',
+                    'edit': 'can_edit',
+                    'delete': 'can_delete',
+                    'view': 'can_view'
+                }
+                const prop = propMap[action] || 'can_view'
+                return !!category.permissions?.[prop]
+            }
+
+            return false
         }
     }
 })
