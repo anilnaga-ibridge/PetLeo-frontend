@@ -45,8 +45,10 @@ const getProviderNavigation = () => {
         navigation.push({ heading: 'Services' })
 
         enabledServices.forEach(service => {
+            console.log('🧭 Navigation Debug:', { name: service.service_name, id: service.service_id })
             const isVeterinary = service.service_name.toLowerCase().includes('veterinary') ||
-                service.service_id === '2dff446f-c95f-4310-ba4d-05e3395dd7eb'
+                service.service_id === '2dff446f-c95f-4310-ba4d-05e3395dd7eb' ||
+                service.service_id === 'VETERINARY_CORE' // Add explicit check for string ID if applicable
 
             navigation.push({
                 title: service.service_name,
