@@ -127,6 +127,7 @@ const goToCategories = () => {
 
       <VCardText>
         <VRow>
+          <!-- SEARCH -->
           <VCol cols="12" sm="4">
             <AppTextField
               v-model="searchQuery"
@@ -135,7 +136,22 @@ const goToCategories = () => {
             />
           </VCol>
 
-          <VCol cols="12" sm="8" class="d-flex justify-end">
+          <!-- SERVICE FILTER -->
+          <VCol cols="12" sm="4">
+            <VSelect
+              v-model="selectedService"
+              :items="services"
+              item-title="display_name"
+              item-value="id"
+              label="Filter by Service"
+              placeholder="All Services"
+              clearable
+              prepend-inner-icon="tabler-filter"
+            />
+          </VCol>
+
+          <!-- ADD BUTTON -->
+          <VCol cols="12" sm="4" class="d-flex justify-end">
             <VBtn
               color="primary"
               prepend-icon="tabler-plus"
@@ -377,6 +393,7 @@ export default {
     const itemsPerPage = ref(10);
     const totalItems = ref(0);
     const searchQuery = ref("");
+    const selectedService = ref(null); // 👈 Added Filter
     const selectedRows = ref([]);
 
     // DRAWER + DELETE POPUP
@@ -407,6 +424,7 @@ export default {
         page: page.value,
         page_size: itemsPerPage.value,
         search: searchQuery.value,
+        service: selectedService.value, // 👈 Apply Filter
       };
 
       const res = await axios.get(BASE_URL + "categories/", { params });
@@ -419,7 +437,7 @@ export default {
       fetchCategories();
     });
 
-    watch([page, itemsPerPage, searchQuery], fetchCategories);
+    watch([page, itemsPerPage, searchQuery, selectedService], fetchCategories); // 👈 Watch Filter
 
     const updateOptions = () => fetchCategories();
 
@@ -427,7 +445,7 @@ export default {
     const openAddDrawer = () => {
       isEdit.value = false;
       form.value = {
-        service: null,
+        service: selectedService.value || null, // Pre-fill if filter selected
         name: "",
         description: "",
         is_active: true,
@@ -500,6 +518,7 @@ export default {
       itemsPerPage,
       totalItems,
       searchQuery,
+      selectedService, // 👈 Return Filter
 
       drawerOpen,
       isEdit,

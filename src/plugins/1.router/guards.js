@@ -1,3 +1,4 @@
+
 import { ability } from '@/plugins/casl/ability'
 import { usePermissionStore } from '@/stores/permissionStore'
 import { useCookie } from '@/@core/composable/useCookie'
@@ -7,20 +8,10 @@ export const setupGuards = router => {
   // 👉 router.beforeEach
   // Docs: https://router.vuejs.org/guide/advanced/navigation-guards.html#global-before-guards
   router.beforeEach(async (to, from) => {
-    /*
-         * If it's a public route, continue navigation. This kind of pages are allowed to visited by login & non-login users. Basically, without any restrictions.
-         * Examples of public routes are, 404, under maintenance, etc.
-         */
-    console.log('🛡️ Router Guard: Navigating to:', to.path, 'Name:', to.name, 'Meta:', to.meta)
-    if (to.meta.public) {
-      console.log('🛡️ Router Guard: Public route, allowing.')
-      return
-    }
-
     /**
-         * Check if user is logged in by checking if token & user data exists in local storage
-         * Feel free to update this logic to suit your needs
-         */
+     * Check if user is logged in by checking if token & user data exists in local storage
+     * Feel free to update this logic to suit your needs
+     */
     const userCookie = useCookie('userData').value
     const tokenCookie = useCookie('accessToken').value
 
@@ -30,6 +21,36 @@ export const setupGuards = router => {
 
     const isLoggedIn = Boolean(user && token)
     console.log('🛡️ Router Guard: isLoggedIn:', isLoggedIn, 'Role:', user?.role)
+    console.log('🛡️ Router Guard: Target:', to.path, 'Name:', to.name)
+    console.log('🛡️ Router Guard: Meta:', JSON.stringify(to.meta, null, 2))
+    console.log('🛡️ Router Guard: Action:', to.meta.action, 'Subject:', to.meta.subject)
+
+    // =======================================================
+    // 1. STRICT AUTHENTICATION CHECK
+    // =======================================================
+    // If user is NOT logged in, and route is NOT public, and NOT unauthenticatedOnly
+    // -> Redirect to Login immediately.
+    if (!isLoggedIn && !to.meta.public && !to.meta.unauthenticatedOnly) {
+      console.warn('⛔ Unauthenticated access to protected route. Redirecting to login.')
+      return { name: 'login', query: { to: to.fullPath } }
+    }
+
+    /*
+         * If it's a public route, continue navigation. This kind of pages are allowed to visited by login & non-login users. Basically, without any restrictions.
+         * Examples of public routes are, 404, under maintenance, etc.
+         */
+    console.log('🛡️ Router Guard: Navigating to:', to.path, 'Name:', to.name, 'Meta:', to.meta)
+    if (to.meta.public) {
+      // Special case: If unauthenticated user tries to access not-authorized page, send them to login
+      // Check for name 'not-authorized' or path containing 'not-authorized'
+      const isNotAuthorizedPage = to.name === 'not-authorized' || to.path.includes('not-authorized')
+
+      if (isNotAuthorizedPage && !isLoggedIn) {
+        return { name: 'login', query: { to: to.fullPath } }
+      }
+      console.log('🛡️ Router Guard: Public route, allowing.')
+      return
+    }
 
     /*
           If user is logged in and is trying to access login like page, redirect to home
@@ -58,8 +79,11 @@ export const setupGuards = router => {
     if (isLoggedIn && user) {
       const permissionStore = usePermissionStore()
 
-      // Ensure permissions are loaded
-      if (!permissionStore.permissions || permissionStore.permissions.length === 0) {
+      // Ensure permissions are loaded (ONLY FOR PROVIDERS)
+      const role = (user.role?.name || user.role || '').toLowerCase()
+      const isSuperAdmin = role === 'superadmin' || role === 'admin'
+
+      if (!isSuperAdmin && (!permissionStore.permissions || permissionStore.permissions.length === 0)) {
         console.log('🛡️ Router Guard: Permissions missing, fetching...')
         try {
           await permissionStore.fetchPermissions()
@@ -132,15 +156,10 @@ export const setupGuards = router => {
       }
 
       if (!canAccess) {
-        return isLoggedIn
-          ? { name: 'not-authorized' }
-          : {
-            name: 'login',
-            query: {
-              ...to.query,
-              to: to.fullPath !== '/' ? to.path : undefined,
-            },
-          }
+        // Since we already checked authentication at the start, 
+        // if we are here and access is denied, it MUST be a permission issue.
+        // So we redirect to not-authorized.
+        return { name: 'not-authorized' }
       }
     }
   })

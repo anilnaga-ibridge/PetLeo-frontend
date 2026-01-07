@@ -19,12 +19,22 @@ const activeTab = ref('vitals');
 
 const loadData = async () => {
   try {
-    const [visitRes, vitalsRes, prescriptionRes] = await Promise.all([
-      veterinaryApi.getVisit(visitId),
-      veterinaryApi.getFields({ entity_type: 'VITALS', clinic: 'TODO_CLINIC_ID' }), // Need clinic ID from context
-      veterinaryApi.getFields({ entity_type: 'PRESCRIPTION', clinic: 'TODO_CLINIC_ID' })
-    ]);
+    // 1. Load Visit first to get Clinic ID
+    const visitRes = await veterinaryApi.getVisit(visitId);
     visit.value = visitRes.data;
+    
+    if (!visit.value || !visit.value.clinic) {
+        console.error("Visit or Clinic ID missing");
+        return;
+    }
+    
+    const clinicId = typeof visit.value.clinic === 'object' ? visit.value.clinic.id : visit.value.clinic;
+
+    // 2. Load Fields using Clinic ID
+    const [vitalsRes, prescriptionRes] = await Promise.all([
+      veterinaryApi.getFields({ entity_type: 'VITALS', clinic: clinicId }),
+      veterinaryApi.getFields({ entity_type: 'PRESCRIPTION', clinic: clinicId })
+    ]);
     vitalsFields.value = vitalsRes.data.results;
     prescriptionFields.value = prescriptionRes.data.results;
   } catch (e) {
@@ -44,8 +54,9 @@ const handleVitalsSubmit = async (data) => {
 
 const handlePrescriptionSubmit = async (data) => {
   try {
+    const clinicId = typeof visit.value.clinic === 'object' ? visit.value.clinic.id : visit.value.clinic;
     await veterinaryApi.createEntity({
-      clinic_id: visit.value.clinic,
+      clinic_id: clinicId,
       entity_type: 'PRESCRIPTION',
       data: { ...data, visit_id: visitId }
     });
@@ -70,14 +81,14 @@ onMounted(() => {
 
     <div class="flex border-b mb-6">
       <button
-        v-if="permissionStore.hasCapability('VETERINARY', 'VETERINARY_VITALS')"
+        v-if="permissionStore.hasCapability('VETERINARY_VITALS')"
         @click="activeTab = 'vitals'"
         :class="['px-4 py-2', activeTab === 'vitals' ? 'border-b-2 border-indigo-500 font-bold' : '']"
       >
         Vitals
       </button>
       <button
-        v-if="permissionStore.hasCapability('VETERINARY', 'VETERINARY_PRESCRIPTIONS')"
+        v-if="permissionStore.hasCapability('VETERINARY_PRESCRIPTIONS')"
         @click="activeTab = 'prescription'"
         :class="['px-4 py-2', activeTab === 'prescription' ? 'border-b-2 border-indigo-500 font-bold' : '']"
       >

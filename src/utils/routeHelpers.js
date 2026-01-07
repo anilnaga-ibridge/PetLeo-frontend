@@ -16,8 +16,9 @@ export const getPostLoginRoute = (userData) => {
     // 1. Super Admin
     if (role === 'SUPERADMIN') return '/dashboards/crm'
 
-    // 2. Tenant Owner (Provider/Organization) - HIGHEST PRIORITY for Admins
-    if (['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(role)) return '/provider/providerhome'
+    // 2. Tenant Owner (Provider/Organization)
+    // Prioritize Provider Home for these roles
+    if (['ORGANIZATION', 'PROVIDER', 'INDIVIDUAL'].includes(role)) return '/provider/providerhome'
 
     // 3. Veterinary Staff (Strict Capability Check via Store)
     if (permissionStore.hasCapability('VETERINARY_CORE')) {

@@ -13,6 +13,25 @@ definePage({
 })
 
 const authThemeMask = useGenerateImageVariant(miscMaskLight, miscMaskDark)
+
+import { useRouter } from 'vue-router'
+import { useCookie } from '@/@core/composable/useCookie'
+
+const router = useRouter()
+
+// Double check authentication on mount
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  const userCookie = useCookie('userData').value
+  const tokenCookie = useCookie('accessToken').value
+  const user = userCookie || JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || 'null')
+  const token = tokenCookie || localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+  
+  if (!user || !token) {
+    router.replace({ name: 'login', query: { to: router.currentRoute.value.fullPath } })
+  }
+})
 </script>
 
 <template>

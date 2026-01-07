@@ -139,11 +139,6 @@ const addFacility = async () => {
           </div>
         </template>
 
-        <!-- Price -->
-        <template #item.price="{ item }">
-          <strong>₹ {{ item.price }}</strong>
-        </template>
-
         <!-- Active -->
         <template #item.is_active="{ item }">
           <VChip size="small" color="success" v-if="item.is_active">Active</VChip>
@@ -242,19 +237,6 @@ const addFacility = async () => {
                 variant="outlined"
               />
             </VCol>
-
-            <!-- Price -->
-            <VCol cols="12">
-              <AppTextField
-                v-model="form.price"
-                type="number"
-                label="Price (₹)"
-                placeholder="e.g. 999.00"
-                color="primary"
-                rounded
-                variant="outlined"
-              />
-            </VCol>
           </VRow>
         </VCard>
 
@@ -340,7 +322,6 @@ export default {
       { title: "Facility Name", key: "name" },
       { title: "Service", key: "service_display" },
       { title: "Description", key: "description" },
-      { title: "Price (₹)", key: "price" },
       { title: "Active", key: "is_active" },
       { title: "Actions", key: "actions", sortable: false },
     ];
@@ -364,7 +345,6 @@ export default {
       service: null,
       name: "",
       description: "",
-      price: "",
       is_active: true,
     });
 
@@ -402,7 +382,6 @@ export default {
         service: null,
         name: "",
         description: "",
-        price: "",
         is_active: true,
       };
       drawerOpen.value = true;
@@ -415,7 +394,6 @@ export default {
         service: item.service,
         name: item.name,
         description: item.description,
-        price: item.price,
         is_active: item.is_active,
       };
       drawerOpen.value = true;

@@ -13,38 +13,57 @@ export default [
         to: "superadmin-dashboard",
       },
       {
-        title: "Services",
-        icon: { icon: "tabler-tool" },
+        title: "Services & Plans",
+        icon: { icon: "tabler-wand" },
         children: [
           {
-            title: "Dynamic Services",
-            to: "superadmin-dynamicservicecrud-dynamicservices",
+            title: "Services Builder",
+            to: "superadmin-builder-services",
           },
           {
-            title: "Create Category",
-            to: "superadmin-dynamicservicecrud-createcategory",
+            title: "Plans Builder",
+            to: "superadmin-builder-plans",
           },
-          {
-            title: "Facilities",
-            to: "superadmin-dynamicservicecrud-addfacility",
-          },
-          { title: "Pricing", to: "superadmin-dynamicservicecrud-addpricing" },
         ],
       },
       {
-        title: "Plans & Billing",
-        icon: { icon: "tabler-shopping-cart" },
+        title: "Advanced Configuration",
+        icon: { icon: "tabler-settings-automation" },
         children: [
-          { title: "Billing-Cycle", to: "superadmin-plans-bill" },
-          { title: "Plans", to: "superadmin-plans-planss" },
-          { title: "Plan Prices", to: "superadmin-plans-plan-prices" },
-
-          { title: "Coupons", to: "superadmin-plans-coupon" },
           {
-            title: 'Plan Capabilities',
-            to: 'superadmin-plans-plan-capabilities',
+            title: "Services",
+            icon: { icon: "tabler-tool" },
+            children: [
+              {
+                title: "Dynamic Services",
+                to: "superadmin-dynamicservicecrud-dynamicservices",
+              },
+              {
+                title: "Categories",
+                to: "superadmin-dynamicservicecrud-createcategory",
+              },
+              {
+                title: "Facilities",
+                to: "superadmin-dynamicservicecrud-addfacility",
+              },
+              { title: "Pricing", to: "superadmin-dynamicservicecrud-addpricing" },
+            ],
           },
-        ],
+          {
+            title: "Plans & Billing",
+            icon: { icon: "tabler-shopping-cart" },
+            children: [
+              { title: "Plans Builder", to: "superadmin-plans-builder" },
+              { title: "Plans", to: "superadmin-plans-planss" },
+              { title: "Billing Cycles", to: "superadmin-plans-billing-cycles" },
+              { title: "Coupons", to: "superadmin-plans-coupon" },
+              {
+                title: 'Plan Capabilities',
+                to: 'superadmin-plans-plan-capabilities',
+              },
+            ],
+          },
+        ]
       },
       {
         title: "Pet Types & Breeds",

@@ -1,219 +1,6 @@
-<!-- <script>
-import axios from "axios";
-import { ref, onMounted, watch } from "vue";
-import { useCookie } from "@/@core/composable/useCookie";
-
-export default {
-  name: "PlansPage",
-
-  setup() {
-    const baseURL = "http://127.0.0.1:8003/api/superadmin/plans/";
-    const billingCycleURL = "http://127.0.0.1:8003/api/superadmin/billing-cycles/";
-    const rolesURL = "http://127.0.0.1:8000/auth/roles/public/";
-
-    // Token
-    const cookieToken = useCookie("accessToken");
-    const token = cookieToken.value;
-    if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-    // Table state
-    const plans = ref([]);
-    const headers = [
-      { title: "Title", key: "title" },
-      { title: "Subtitle", key: "subtitle" },
-      { title: "Role", key: "role" },
-      { title: "Billing Cycle", key: "billing_cycle" },
-      { title: "Features", key: "features" },
-      { title: "Description", key: "description" },
-      { title: "Active", key: "is_active" },
-      { title: "Actions", key: "actions", sortable: false },
-    ];
-
-    const page = ref(1);
-    const itemsPerPage = ref(10);
-    const totalItems = ref(0);
-    const searchQuery = ref("");
-
-    const drawerOpen = ref(false);
-    const isEdit = ref(false);
-    const loading = ref(false);
-    const editId = ref(null);
-
-    const deleteDialog = ref(false);
-    const deleteItem = ref(null);
-
-    // Dropdowns
-    const billingCycles = ref([]);
-    const roles = ref([]);
-
-    // Form
-    const form = ref({
-      title: "",
-      role: "",
-      subtitle: "",
-      description: "",
-      features: [],
-      default_billing_cycle: null,
-      is_active: true,
-    });
-
-    // Chip input model
-    const featureInput = ref("");
-
-    // Fetch roles
-    const fetchRoles = async () => {
-      const res = await axios.get(rolesURL);
-      roles.value = res.data?.roles || res.data;
-    };
-
-    // Fetch billing cycles
-    const fetchBillingCycles = async () => {
-      const res = await axios.get(billingCycleURL);
-      billingCycles.value = res.data.results || res.data;
-    };
-
-    // Fetch plans
-    const fetchPlans = async () => {
-      const params = {
-        page: page.value,
-        page_size: itemsPerPage.value,
-        search: searchQuery.value,
-      };
-
-      const res = await axios.get(baseURL, { params });
-
-      plans.value = res.data.results || res.data;
-      totalItems.value = res.data.count || res.data.length;
-    };
-
-    onMounted(() => {
-      fetchRoles();
-      fetchBillingCycles();
-      fetchPlans();
-    });
-
-    watch([page, itemsPerPage, searchQuery], fetchPlans);
-
-    const updateOptions = () => fetchPlans();
-
-    // Add drawer
-    const openAddDrawer = () => {
-      isEdit.value = false;
-      form.value = {
-        title: "",
-        role: "",
-        subtitle: "",
-        description: "",
-        features: [],
-        default_billing_cycle: null,
-        is_active: true,
-      };
-      featureInput.value = "";
-      drawerOpen.value = true;
-    };
-
-    // Edit drawer
-    const openEditDrawer = (item) => {
-      isEdit.value = true;
-      editId.value = item.id;
-
-      form.value = {
-        title: item.title,
-        role: item.role,
-        subtitle: item.subtitle,
-        description: item.description,
-        features: item.features || [],
-        default_billing_cycle: item.default_billing_cycle?.id || null,
-        is_active: item.is_active,
-      };
-
-      drawerOpen.value = true;
-    };
-
-    const closeDrawer = () => (drawerOpen.value = false);
-
-    // Add Feature Chip
-    const addFeature = () => {
-      if (featureInput.value.trim() !== "") {
-        form.value.features.push(featureInput.value.trim());
-        featureInput.value = "";
-      }
-    };
-
-    const removeFeature = (index) => {
-      form.value.features.splice(index, 1);
-    };
-
-    // Submit
-    const submit = async () => {
-      loading.value = true;
-
-      const payload = {
-        ...form.value,
-        default_billing_cycle: form.value.default_billing_cycle,
-      };
-
-      if (isEdit.value) {
-        await axios.put(baseURL + editId.value + "/", payload);
-      } else {
-        await axios.post(baseURL, payload);
-      }
-
-      drawerOpen.value = false;
-      loading.value = false;
-      fetchPlans();
-    };
-
-    // Delete dialog
-    const openDeleteDialog = (item) => {
-      deleteItem.value = item;
-      deleteDialog.value = true;
-    };
-
-    const deletePlan = async () => {
-      await axios.delete(baseURL + deleteItem.value.id + "/");
-      deleteDialog.value = false;
-      fetchPlans();
-    };
-
-    return {
-      plans,
-      headers,
-      page,
-      itemsPerPage,
-      totalItems,
-      searchQuery,
-
-      drawerOpen,
-      form,
-      isEdit,
-      loading,
-
-      billingCycles,
-      roles,
-
-      featureInput,
-      addFeature,
-      removeFeature,
-
-      openAddDrawer,
-      openEditDrawer,
-      closeDrawer,
-      updateOptions,
-
-      deleteDialog,
-      deleteItem,
-      openDeleteDialog,
-      deletePlan,
-      submit,
-    };
-  },
-};
-</script> -->
 <script>
-import axios from "axios";
+import { superAdminApi } from "@/plugins/axios";
 import { ref, onMounted, watch } from "vue";
-import { useCookie } from "@/@core/composable/useCookie";
 import { useRouter } from "vue-router";
 
 export default {
@@ -222,20 +9,16 @@ export default {
   setup() {
     const router = useRouter();
 
-    const baseURL = "http://127.0.0.1:8003/api/superadmin/plans/";
-    const billingCycleURL = "http://127.0.0.1:8003/api/superadmin/billing-cycles/";
+    const baseURL = "/api/superadmin/plans/";
+    const billingCycleURL = "/api/superadmin/billing-cycles/";
     const rolesURL = "http://127.0.0.1:8000/auth/roles/public/";
-
-    const cookieToken = useCookie("accessToken");
-    const token = cookieToken.value;
-    if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
     const plans = ref([]);
     const headers = [
       { title: "Title", key: "title" },
       { title: "Subtitle", key: "subtitle" },
-      { title: "Role", key: "role" },
-      { title: "Billing Cycle", key: "default_billing_cycle" },
+      { title: "Target Type", key: "target_type" },
+      { title: "Billing Cycle", key: "billing_cycle" },
       { title: "Features", key: "features" },
       { title: "Description", key: "description" },
       { title: "Active", key: "is_active" },
@@ -257,7 +40,7 @@ export default {
           page_size: itemsPerPage.value,
           search: searchQuery.value,
         };
-        const res = await axios.get(baseURL, { params });
+        const res = await superAdminApi.get(baseURL, { params });
         plans.value = res.data.results || res.data;
         totalItems.value = res.data.count ?? res.data.length;
       } catch (err) {
@@ -280,12 +63,25 @@ export default {
 
     const deletePlan = async () => {
       try {
-        await axios.delete(`${baseURL}${deleteItem.value.id}/`);
+        await superAdminApi.delete(`${baseURL}${deleteItem.value.id}/`);
         deleteDialog.value = false;
         fetchPlans();
       } catch (err) {
         console.error("deletePlan error:", err);
         alert("Failed to delete plan");
+      }
+    };
+
+    const togglePlanStatus = async (item) => {
+      try {
+        await superAdminApi.patch(`${baseURL}${item.id}/`, {
+          is_active: item.is_active,
+        });
+      } catch (err) {
+        console.error("togglePlanStatus error:", err);
+        // Revert on error
+        item.is_active = !item.is_active;
+        alert("Failed to update plan status");
       }
     };
 
@@ -305,6 +101,7 @@ export default {
       openDeleteDialog,
       deletePlan,
       updateOptions,
+      togglePlanStatus,
     };
   },
 };
@@ -362,20 +159,19 @@ export default {
           </div>
         </template>
 
-        <!-- Role -->
-        <template #item.role="{ item }">
+        <!-- Target Type -->
+        <template #item.target_type="{ item }">
           <VChip size="small" label color="info" variant="tonal" class="text-capitalize">
-            {{ item.role }}
+            {{ item.target_type }}
           </VChip>
         </template>
 
         <!-- Billing Cycle -->
-        <template #item.default_billing_cycle="{ item }">
-          <div v-if="item.default_billing_cycle" class="d-flex align-center gap-1">
+        <template #item.billing_cycle="{ item }">
+          <div class="d-flex align-center gap-1">
             <VIcon icon="tabler-calendar-repeat" size="14" class="text-medium-emphasis" />
-            <span>{{ item.default_billing_cycle.name }}</span>
+            <span>{{ item.billing_cycle }}</span>
           </div>
-          <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- Features -->
@@ -399,13 +195,13 @@ export default {
 
         <!-- Active / Inactive -->
         <template #item.is_active="{ item }">
-          <VChip
-            size="small"
-            :color="item.is_active ? 'success' : 'error'"
-            variant="tonal"
-          >
-            {{ item.is_active ? "Active" : "Inactive" }}
-          </VChip>
+          <VSwitch
+            v-model="item.is_active"
+            density="compact"
+            color="success"
+            hide-details
+            @update:model-value="togglePlanStatus(item)"
+          />
         </template>
 
         <!-- Actions -->

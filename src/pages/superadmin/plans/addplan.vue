@@ -1,20 +1,12 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import axios from "axios";
-import { useRoute, useRouter } from "vue-router";
-import { useCookie } from "@/@core/composable/useCookie";
+import { superAdminApi } from "@/plugins/axios";
 
-const baseURL = "http://127.0.0.1:8003/api/superadmin/plans/";
-const billingCycleURL = "http://127.0.0.1:8003/api/superadmin/billing-cycles/";
-const rolesURL = "http://127.0.0.1:8000/auth/roles/public/";
+const baseURL = "/api/superadmin/plans/";
+const billingCycleURL = "/api/superadmin/billing-cycles/";
 
 const router = useRouter();
 const route = useRoute();
-
-// Token
-const cookieToken = useCookie("accessToken");
-const token = cookieToken.value;
-if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
 // Check if edit mode
 const planId = route.query.id || null;
@@ -22,16 +14,21 @@ const isEdit = ref(!!planId);
 
 // Dropdowns
 const billingCycles = ref([]);
-const roles = ref([]);
+const targetTypes = [
+  { title: "Individual", value: "INDIVIDUAL" },
+  { title: "Organization", value: "ORGANIZATION" },
+];
 
-// Form - Crt Field Name => default_billing_cycle_id
+// Form
 const form = ref({
   title: "",
-  role: "",
+  target_type: "ORGANIZATION",
   subtitle: "",
   description: "",
   features: [],
-  default_billing_cycle_id: null,   // FIXED
+  billing_cycle: null,
+  price: 0,
+  currency: "INR",
   is_active: true,
 });
 
@@ -47,34 +44,38 @@ const addFeature = () => {
 
 const removeFeature = (i) => form.value.features.splice(i, 1);
 
-// Fetch roles
-const fetchRoles = async () => {
-  const res = await axios.get(rolesURL);
-  roles.value = res.data.roles || res.data || [];
-};
-
 // Fetch billing cycles
 const fetchBillingCycles = async () => {
-  const res = await axios.get(billingCycleURL);
-  billingCycles.value = res.data.results || res.data || [];
+  try {
+    const res = await superAdminApi.get(billingCycleURL);
+    billingCycles.value = res.data.results || res.data || [];
+  } catch (err) {
+    console.error("Error fetching billing cycles:", err);
+  }
 };
 
 // Load existing data
 const loadPlan = async () => {
   if (!planId) return;
 
-  const res = await axios.get(`${baseURL}${planId}/`);
-  const p = res.data;
+  try {
+    const res = await superAdminApi.get(`${baseURL}${planId}/`);
+    const p = res.data;
 
-  form.value = {
-    title: p.title,
-    role: p.role,
-    subtitle: p.subtitle,
-    description: p.description,
-    features: Array.isArray(p.features) ? [...p.features] : [],
-    default_billing_cycle_id: p.default_billing_cycle?.id || null,  // FIXED
-    is_active: p.is_active,
-  };
+    form.value = {
+      title: p.title,
+      target_type: p.target_type,
+      subtitle: p.subtitle,
+      description: p.description,
+      features: Array.isArray(p.features) ? [...p.features] : [],
+      billing_cycle: p.billing_cycle,
+      price: p.price,
+      currency: p.currency,
+      is_active: p.is_active,
+    };
+  } catch (err) {
+    console.error("Error loading plan:", err);
+  }
 };
 
 // Submit handler
@@ -85,19 +86,21 @@ const submit = async () => {
 
   const payload = {
     title: form.value.title,
-    role: form.value.role,
+    target_type: form.value.target_type,
     subtitle: form.value.subtitle,
     description: form.value.description,
     features: [...form.value.features],
-    default_billing_cycle_id: form.value.default_billing_cycle_id,  // FIXED
+    billing_cycle: form.value.billing_cycle,
+    price: form.value.price,
+    currency: form.value.currency,
     is_active: form.value.is_active,
   };
 
   try {
     if (isEdit.value) {
-      await axios.put(`${baseURL}${planId}/`, payload);
+      await superAdminApi.put(`${baseURL}${planId}/`, payload);
     } else {
-      await axios.post(baseURL, payload);
+      await superAdminApi.post(baseURL, payload);
     }
 
     router.push("/superadmin/plans/planss");
@@ -111,7 +114,6 @@ const submit = async () => {
 
 // Init
 onMounted(async () => {
-  await fetchRoles();
   await fetchBillingCycles();
   if (isEdit.value) await loadPlan();
 });
@@ -131,11 +133,11 @@ onMounted(async () => {
 
           <VCol cols="12">
             <VSelect
-              v-model="form.role"
-              :items="roles"
-              item-title="name"
-              item-value="key"
-              label="Role *"
+              v-model="form.target_type"
+              :items="targetTypes"
+              item-title="title"
+              item-value="value"
+              label="Target Type *"
             />
           </VCol>
 
@@ -172,14 +174,18 @@ onMounted(async () => {
             </div>
           </VCol>
 
-          <VCol cols="12">
+          <VCol cols="12" md="6">
             <VSelect
-              v-model="form.default_billing_cycle_id"
+              v-model="form.billing_cycle"
               :items="billingCycles"
-              item-title="name"
-              item-value="id"
-              label="Default Billing Cycle"
+              item-title="display_name"
+              item-value="code"
+              label="Billing Cycle *"
             />
+          </VCol>
+          
+          <VCol cols="12" md="6">
+             <AppTextField v-model="form.price" label="Price" type="number" />
           </VCol>
 
           <VCol cols="12">

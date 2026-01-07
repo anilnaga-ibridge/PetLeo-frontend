@@ -1,3 +1,4 @@
+
 <script setup>
 import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
 import authV2LoginIllustrationLight from '@images/pages/auth-v2-login-illustration-light.png'
@@ -49,7 +50,15 @@ const plans = ref([])
 const fetchPlans = async () => {
   try {
     const userData = useCookie('userData').value || JSON.parse(localStorage.getItem('userData') || '{}')
-    const role = userData?.provider_type || 'individual' // Default to individual if not logged in or missing
+    
+    // Robust role detection matching routeHelpers.js
+    let role = (userData?.role?.name || userData?.role || 'individual').toLowerCase()
+    
+    // Map 'provider' to 'individual' if needed, or keep as is. 
+    // Backend likely expects 'individual' or 'organization'.
+    if (role === 'provider') role = 'individual'
+
+    console.log('Fetching plans for role:', role)
     
     const res = await api.get('/api/superadmin/provider/plans/', {
       params: { role }
@@ -361,7 +370,7 @@ const addToCart = async (plan) => {
                   <span class="text-h5 font-weight-bold text-medium-emphasis mt-2">{{ plan.price.currency }}</span>
                   <span class="text-h2 font-weight-bolder text-primary">{{ plan.price.amount }}</span>
                   <span class="text-body-1 text-medium-emphasis align-self-end mb-2" v-if="plan.billing_cycle">
-                    /{{ plan.billing_cycle.name.toLowerCase() }}
+                    /{{ plan.billing_cycle?.name?.toLowerCase() || '' }}
                   </span>
                 </div>
                 <div v-else class="text-h2 font-weight-bolder text-primary mb-2">

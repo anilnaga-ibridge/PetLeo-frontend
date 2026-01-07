@@ -202,15 +202,26 @@ const useOtpInstead = () => {
 }
 
 onMounted(() => {
+  // Clear all auth data
   localStorage.removeItem('accessToken')
   localStorage.removeItem('userData')
   localStorage.removeItem('userAbilityRules')
   sessionStorage.removeItem('accessToken')
   sessionStorage.removeItem('userData')
+  sessionStorage.removeItem('userAbilityRules')
+  
+  // Clear cookies
   useCookie('accessToken').value = null
   useCookie('userData').value = null
   useCookie('userAbilityRules').value = null
+  useCookie('auth_user_id').value = null
+  
+  // Reset axios headers
   delete axios.defaults.headers.common["Authorization"]
+  
+  // Reset permission store if initialized
+  const permissionStore = usePermissionStore()
+  permissionStore.$reset()
 })
 </script>
 

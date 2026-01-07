@@ -1,5 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { formatFeatureName } from '@/utils/capabilityMapping'
+import { VETERINARY_ROLES } from '@/utils/veterinaryRoles'
 
 const props = defineProps({
   available: {
@@ -16,6 +18,13 @@ const emit = defineEmits(['update:permissions'])
 
 // Internal selection state
 const permissions = ref({}) // key -> { can_view, can_create, can_edit, can_delete }
+const selectedRole = ref(null)
+const showAdvanced = ref(false)
+
+// Check if a service is Veterinary
+const isVeterinaryService = (service) => {
+  return service.service_key?.startsWith('VETERINARY') || service.service_name?.toLowerCase().includes('veterinary')
+}
 
 // Initialize selection from assigned prop
 watch(() => props.assigned, (newAssigned) => {
@@ -47,7 +56,50 @@ watch(() => props.assigned, (newAssigned) => {
   })
   
   permissions.value = newPerms
+  
+  // Try to detect role based on permissions (heuristic)
+  // This is optional/nice-to-have
 }, { immediate: true })
+
+// Handle Role Selection
+const selectRole = (roleValue, service) => {
+  selectedRole.value = roleValue
+  const role = VETERINARY_ROLES.find(r => r.value === roleValue)
+  if (!role) return
+
+  // 1. Enable Service View
+  const svcKey = `service:${service.service_id}`
+  if (!permissions.value[svcKey]) permissions.value[svcKey] = { can_view: true, can_create: false, can_edit: false, can_delete: false }
+  permissions.value[svcKey].can_view = true
+
+  // 2. Enable Categories based on Capabilities
+  service.categories.forEach(cat => {
+    const catKey = `category:${cat.id}`
+    const linkedCap = cat.linked_capability
+    
+    // Check if this category's capability is in the role's allowed list
+    const shouldEnable = role.capabilities.includes(linkedCap) || role.capabilities.includes('VETERINARY_CORE')
+    
+    if (shouldEnable) {
+      if (!permissions.value[catKey]) permissions.value[catKey] = { can_view: true, can_create: false, can_edit: false, can_delete: false }
+      permissions.value[catKey].can_view = true
+      
+      // Also enable all facilities under it by default for simplicity? Or just view?
+      // For now, let's enable view for all facilities if category is enabled
+      cat.facilities.forEach(fac => {
+         const facKey = `facility:${fac.id}`
+         if (!permissions.value[facKey]) permissions.value[facKey] = { can_view: true, can_create: false, can_edit: false, can_delete: false }
+         permissions.value[facKey].can_view = true
+      })
+    } else {
+      // Disable if not allowed (unless advanced mode override? No, role selection resets)
+      if (permissions.value[catKey]) permissions.value[catKey].can_view = false
+    }
+  })
+  
+  emitUpdate()
+}
+
 
 // Helper to toggle selection
 const toggle = (key, type, item, parentKeys = [], field = 'can_view') => {
@@ -224,165 +276,206 @@ const emitUpdate = () => {
         </VExpansionPanelTitle>
 
         <VExpansionPanelText class="pt-4 px-4 pb-4">
-          <div v-if="service.categories.length === 0" class="text-body-2 text-disabled text-center py-4">
-            No categories available for this service.
+          
+          <!-- VETERINARY ROLE TEMPLATES -->
+          <div v-if="isVeterinaryService(service)" class="mb-6">
+            <div class="d-flex align-center justify-space-between mb-4">
+              <div class="text-subtitle-1 font-weight-bold text-primary">Role Assignment</div>
+              <VSwitch 
+                v-model="showAdvanced" 
+                label="Advanced Mode" 
+                color="secondary" 
+                density="compact" 
+                hide-details 
+                class="ms-4"
+              />
+            </div>
+
+            <div class="d-flex flex-wrap gap-4 mb-4" v-if="!showAdvanced">
+              <VCard
+                v-for="role in VETERINARY_ROLES"
+                :key="role.value"
+                variant="outlined"
+                class="role-card cursor-pointer"
+                :class="{ 'selected-role': selectedRole === role.value }"
+                @click="selectRole(role.value, service)"
+                width="200"
+              >
+                <VCardText class="text-center pa-4">
+                  <div class="text-h6 font-weight-bold mb-1">{{ role.title }}</div>
+                  <div class="text-caption text-medium-emphasis">{{ role.description }}</div>
+                </VCardText>
+              </VCard>
+            </div>
           </div>
 
-          <div v-else class="d-flex flex-column gap-4">
-            <div class="text-overline text-medium-emphasis">Categories & Facilities</div>
-            
-            <VCard
-              v-for="category in service.categories"
-              :key="category.id"
-              variant="outlined"
-              class="category-card rounded-lg"
-              :class="{ 'border-primary': permissions[`category:${category.id}`]?.can_view }"
-            >
-              <VCardText class="pa-4">
-                <!-- Category Header -->
-                <div class="d-flex align-center justify-space-between mb-3">
-                  <div class="d-flex align-center flex-grow-1">
-                    <VCheckbox
-                      :model-value="permissions[`category:${category.id}`]?.can_view"
-                      @update:model-value="toggle(`category:${category.id}`, 'category', category, [`service:${service.service_id}`], 'can_view')"
-                      hide-details
-                      density="compact"
-                      color="primary"
-                      class="me-2"
-                    />
-                    <span class="text-subtitle-1 font-weight-bold">{{ category.name }}</span>
-                  </div>
-                  
-                  <!-- Category Level Operations -->
-                  <div class="d-flex gap-2 me-4">
-                    <VCheckbox
-                      label="C"
-                      :model-value="permissions[`category:${category.id}`]?.can_create"
-                      @update:model-value="toggle(`category:${category.id}`, 'category', category, [`service:${service.service_id}`], 'can_create')"
-                      hide-details
-                      density="compact"
-                      color="success"
-                      title="Create"
-                    />
-                    <VCheckbox
-                      label="E"
-                      :model-value="permissions[`category:${category.id}`]?.can_edit"
-                      @update:model-value="toggle(`category:${category.id}`, 'category', category, [`service:${service.service_id}`], 'can_edit')"
-                      hide-details
-                      density="compact"
-                      color="info"
-                      title="Edit"
-                    />
-                    <VCheckbox
-                      label="D"
-                      :model-value="permissions[`category:${category.id}`]?.can_delete"
-                      @update:model-value="toggle(`category:${category.id}`, 'category', category, [`service:${service.service_id}`], 'can_delete')"
-                      hide-details
-                      density="compact"
-                      color="error"
-                      title="Delete"
-                    />
-                  </div>
+          <!-- STANDARD CATEGORY LIST (Hidden if Vet + !Advanced) -->
+          <div v-if="!isVeterinaryService(service) || showAdvanced">
+            <div v-if="service.categories.length === 0" class="text-body-2 text-disabled text-center py-4">
+              No categories available for this service.
+            </div>
 
-                  <!-- Service Context -->
-                  <div class="d-flex align-center text-caption text-disabled bg-grey-lighten-4 px-2 py-1 rounded">
-                    <VIcon :icon="service.icon || 'tabler-box'" size="14" class="me-1" />
-                    <span class="font-weight-medium">{{ service.display_name || service.name }}</span>
-                  </div>
-                </div>
-
-                <!-- Category Pricing Chips -->
-                <div v-if="category.pricing && category.pricing.length > 0" class="mb-4 ps-8">
-                  <div class="text-caption text-medium-emphasis mb-2 font-weight-medium">PRICING OPTIONS</div>
-                  <div class="d-flex flex-wrap gap-2">
-                    <VChip
-                      v-for="price in category.pricing"
-                      :key="price.id"
-                      :color="permissions[`pricing:${price.id}`]?.can_view ? 'primary' : 'default'"
-                      :variant="permissions[`pricing:${price.id}`]?.can_view ? 'tonal' : 'outlined'"
-                      filter
-                      :input-value="permissions[`pricing:${price.id}`]?.can_view"
-                      @click="toggle(`pricing:${price.id}`, 'pricing', price, [`service:${service.service_id}`, `category:${category.id}`])"
-                      class="pricing-chip"
-                    >
-                      {{ price.description || price.duration }} - ${{ price.price }}
-                    </VChip>
-                  </div>
-                </div>
-
-                <!-- Facilities List -->
-                <div v-if="category.facilities && category.facilities.length > 0" class="ps-6">
-                  <div class="text-caption text-medium-emphasis mb-2 font-weight-medium">FACILITIES</div>
-                  
-                  <div v-for="facility in category.facilities" :key="facility.id" class="facility-item mb-3 pa-3 bg-grey-lighten-5 rounded">
-                    <div class="d-flex align-center justify-space-between mb-2">
-                      <div class="d-flex align-center flex-grow-1">
-                        <VCheckbox
-                          :model-value="permissions[`facility:${facility.id}`]?.can_view"
-                          @update:model-value="toggle(`facility:${facility.id}`, 'facility', facility, [`service:${service.service_id}`, `category:${category.id}`], 'can_view')"
-                          hide-details
-                          density="compact"
-                          color="primary"
-                          class="me-2"
-                        />
-                        <span class="text-body-2 font-weight-bold">{{ facility.name }}</span>
-                      </div>
-
-                      <!-- Facility Level Operations -->
-                      <div class="d-flex gap-2">
-                        <VCheckbox
-                          label="C"
-                          :model-value="permissions[`facility:${facility.id}`]?.can_create"
-                          @update:model-value="toggle(`facility:${facility.id}`, 'facility', facility, [`service:${service.service_id}`, `category:${category.id}`], 'can_create')"
-                          hide-details
-                          density="compact"
-                          color="success"
-                          title="Create"
-                        />
-                        <VCheckbox
-                          label="E"
-                          :model-value="permissions[`facility:${facility.id}`]?.can_edit"
-                          @update:model-value="toggle(`facility:${facility.id}`, 'facility', facility, [`service:${service.service_id}`, `category:${category.id}`], 'can_edit')"
-                          hide-details
-                          density="compact"
-                          color="info"
-                          title="Edit"
-                        />
-                        <VCheckbox
-                          label="D"
-                          :model-value="permissions[`facility:${facility.id}`]?.can_delete"
-                          @update:model-value="toggle(`facility:${facility.id}`, 'facility', facility, [`service:${service.service_id}`, `category:${category.id}`], 'can_delete')"
-                          hide-details
-                          density="compact"
-                          color="error"
-                          title="Delete"
-                        />
+            <div v-else class="d-flex flex-column gap-4">
+              <div class="text-overline text-medium-emphasis">Categories & Facilities</div>
+              
+              <VCard
+                v-for="category in service.categories"
+                :key="category.id"
+                variant="outlined"
+                class="category-card rounded-lg"
+                :class="{ 'border-primary': permissions[`category:${category.id}`]?.can_view }"
+              >
+                <VCardText class="pa-4">
+                  <!-- Category Header -->
+                  <div class="d-flex align-center justify-space-between mb-3">
+                    <div class="d-flex align-center flex-grow-1">
+                      <VCheckbox
+                        :model-value="permissions[`category:${category.id}`]?.can_view"
+                        @update:model-value="toggle(`category:${category.id}`, 'category', category, [`service:${service.service_id}`], 'can_view')"
+                        hide-details
+                        density="compact"
+                        color="primary"
+                        class="me-2"
+                      />
+                      <div class="d-flex flex-column">
+                        <span class="text-subtitle-1 font-weight-bold">{{ formatFeatureName(category.name) }}</span>
+                        <span v-if="category.linked_capability" class="text-caption text-disabled">
+                          Cap: {{ category.linked_capability }}
+                        </span>
                       </div>
                     </div>
+                    
+                    <!-- Category Level Operations -->
+                    <div class="d-flex gap-2 me-4">
+                      <VCheckbox
+                        label="C"
+                        :model-value="permissions[`category:${category.id}`]?.can_create"
+                        @update:model-value="toggle(`category:${category.id}`, 'category', category, [`service:${service.service_id}`], 'can_create')"
+                        hide-details
+                        density="compact"
+                        color="success"
+                        title="Create"
+                      />
+                      <VCheckbox
+                        label="E"
+                        :model-value="permissions[`category:${category.id}`]?.can_edit"
+                        @update:model-value="toggle(`category:${category.id}`, 'category', category, [`service:${service.service_id}`], 'can_edit')"
+                        hide-details
+                        density="compact"
+                        color="info"
+                        title="Edit"
+                      />
+                      <VCheckbox
+                        label="D"
+                        :model-value="permissions[`category:${category.id}`]?.can_delete"
+                        @update:model-value="toggle(`category:${category.id}`, 'category', category, [`service:${service.service_id}`], 'can_delete')"
+                        hide-details
+                        density="compact"
+                        color="error"
+                        title="Delete"
+                      />
+                    </div>
 
-                    <!-- Facility Pricing Chips -->
-                    <div v-if="facility.pricing && facility.pricing.length > 0" class="ps-8">
-                      <div class="d-flex flex-wrap gap-2">
-                        <VChip
-                          v-for="price in facility.pricing"
-                          :key="price.id"
-                          :color="permissions[`pricing:${price.id}`]?.can_view ? 'primary' : 'default'"
-                          :variant="permissions[`pricing:${price.id}`]?.can_view ? 'tonal' : 'outlined'"
-                          filter
-                          size="small"
-                          :input-value="permissions[`pricing:${price.id}`]?.can_view"
-                          @click="toggle(`pricing:${price.id}`, 'pricing', price, [`service:${service.service_id}`, `category:${category.id}`, `facility:${facility.id}`])"
-                          class="pricing-chip"
-                        >
-                          {{ price.description || price.duration }} - ${{ price.price }}
-                        </VChip>
+                    <!-- Service Context -->
+                    <div class="d-flex align-center text-caption text-disabled bg-grey-lighten-4 px-2 py-1 rounded">
+                      <VIcon :icon="service.icon || 'tabler-box'" size="14" class="me-1" />
+                      <span class="font-weight-medium">{{ service.display_name || service.name }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Category Pricing Chips -->
+                  <div v-if="category.pricing && category.pricing.length > 0" class="mb-4 ps-8">
+                    <div class="text-caption text-medium-emphasis mb-2 font-weight-medium">PRICING OPTIONS</div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <VChip
+                        v-for="price in category.pricing"
+                        :key="price.id"
+                        :color="permissions[`pricing:${price.id}`]?.can_view ? 'primary' : 'default'"
+                        :variant="permissions[`pricing:${price.id}`]?.can_view ? 'tonal' : 'outlined'"
+                        filter
+                        :input-value="permissions[`pricing:${price.id}`]?.can_view"
+                        @click="toggle(`pricing:${price.id}`, 'pricing', price, [`service:${service.service_id}`, `category:${category.id}`])"
+                        class="pricing-chip"
+                      >
+                        {{ price.description || price.duration }} - ${{ price.price }}
+                      </VChip>
+                    </div>
+                  </div>
+
+                  <!-- Facilities List -->
+                  <div v-if="category.facilities && category.facilities.length > 0" class="ps-6">
+                    <div class="text-caption text-medium-emphasis mb-2 font-weight-medium">FACILITIES</div>
+                    
+                    <div v-for="facility in category.facilities" :key="facility.id" class="facility-item mb-3 pa-3 bg-grey-lighten-5 rounded">
+                      <div class="d-flex align-center justify-space-between mb-2">
+                        <div class="d-flex align-center flex-grow-1">
+                          <VCheckbox
+                            :model-value="permissions[`facility:${facility.id}`]?.can_view"
+                            @update:model-value="toggle(`facility:${facility.id}`, 'facility', facility, [`service:${service.service_id}`, `category:${category.id}`], 'can_view')"
+                            hide-details
+                            density="compact"
+                            color="primary"
+                            class="me-2"
+                          />
+                          <span class="text-body-2 font-weight-bold">{{ facility.name }}</span>
+                        </div>
+
+                        <!-- Facility Level Operations -->
+                        <div class="d-flex gap-2">
+                          <VCheckbox
+                            label="C"
+                            :model-value="permissions[`facility:${facility.id}`]?.can_create"
+                            @update:model-value="toggle(`facility:${facility.id}`, 'facility', facility, [`service:${service.service_id}`, `category:${category.id}`], 'can_create')"
+                            hide-details
+                            density="compact"
+                            color="success"
+                            title="Create"
+                          />
+                          <VCheckbox
+                            label="E"
+                            :model-value="permissions[`facility:${facility.id}`]?.can_edit"
+                            @update:model-value="toggle(`facility:${facility.id}`, 'facility', facility, [`service:${service.service_id}`, `category:${category.id}`], 'can_edit')"
+                            hide-details
+                            density="compact"
+                            color="info"
+                            title="Edit"
+                          />
+                          <VCheckbox
+                            label="D"
+                            :model-value="permissions[`facility:${facility.id}`]?.can_delete"
+                            @update:model-value="toggle(`facility:${facility.id}`, 'facility', facility, [`service:${service.service_id}`, `category:${category.id}`], 'can_delete')"
+                            hide-details
+                            density="compact"
+                            color="error"
+                            title="Delete"
+                          />
+                        </div>
+                      </div>
+
+                      <!-- Facility Pricing Chips -->
+                      <div v-if="facility.pricing && facility.pricing.length > 0" class="ps-8">
+                        <div class="d-flex flex-wrap gap-2">
+                          <VChip
+                            v-for="price in facility.pricing"
+                            :key="price.id"
+                            :color="permissions[`pricing:${price.id}`]?.can_view ? 'primary' : 'default'"
+                            :variant="permissions[`pricing:${price.id}`]?.can_view ? 'tonal' : 'outlined'"
+                            filter
+                            size="small"
+                            :input-value="permissions[`pricing:${price.id}`]?.can_view"
+                            @click="toggle(`pricing:${price.id}`, 'pricing', price, [`service:${service.service_id}`, `category:${category.id}`, `facility:${facility.id}`])"
+                            class="pricing-chip"
+                          >
+                            {{ price.description || price.duration }} - ${{ price.price }}
+                          </VChip>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-              </VCardText>
-            </VCard>
+                </VCardText>
+              </VCard>
+            </div>
           </div>
         </VExpansionPanelText>
       </VExpansionPanel>
@@ -405,5 +498,17 @@ const emitUpdate = () => {
 }
 .gap-4 {
   gap: 16px;
+}
+.role-card {
+  transition: all 0.2s ease;
+}
+.role-card:hover {
+  border-color: rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.05);
+}
+.selected-role {
+  border-color: rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.1);
+  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.2);
 }
 </style>

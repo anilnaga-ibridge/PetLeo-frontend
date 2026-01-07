@@ -34,7 +34,11 @@ const label = computed(() => useAttrs().label)
         label: undefined,
         variant: 'outlined',
         id: elementId,
-        menuProps: { contentClass: ['app-inner-list', 'app-select__content', 'v-select__content', $attrs.multiple !== undefined ? 'v-list-select-multiple' : ''] },
+        menuProps: { 
+          contentClass: ['app-inner-list', 'app-select__content', 'v-select__content', $attrs.multiple !== undefined ? 'v-list-select-multiple' : ''],
+          ...($attrs.menuProps || {}),
+          ...($attrs['menu-props'] || {}),
+        },
       }"
     >
       <template

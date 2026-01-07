@@ -9,6 +9,7 @@ declare global {
   const $api: typeof import('./src/utils/api.js')['$api']
   const COOKIE_MAX_AGE_1_YEAR: typeof import('./src/utils/constants.js')['COOKIE_MAX_AGE_1_YEAR']
   const EffectScope: typeof import('vue')['EffectScope']
+  const VETERINARY_ROLES: typeof import('./src/utils/veterinaryRoles.js')['VETERINARY_ROLES']
   const acceptHMRUpdate: typeof import('pinia')['acceptHMRUpdate']
   const alphaDashValidator: typeof import('./src/@core/utils/validators.js')['alphaDashValidator']
   const alphaValidator: typeof import('./src/@core/utils/validators.js')['alphaValidator']
@@ -49,10 +50,12 @@ declare global {
   const effectScope: typeof import('vue')['effectScope']
   const emailValidator: typeof import('./src/@core/utils/validators.js')['emailValidator']
   const extendRef: typeof import('@vueuse/core')['extendRef']
+  const featureMapping: typeof import('./src/utils/capabilityMapping.js')['featureMapping']
   const fetchAndMergePermissions: typeof import('./src/utils/permissions.js')['fetchAndMergePermissions']
   const flattenPermissions: typeof import('./src/utils/permissions.js')['flattenPermissions']
   const formatDate: typeof import('./src/@core/utils/formatters.js')['formatDate']
   const formatDateToMonthShort: typeof import('./src/@core/utils/formatters.js')['formatDateToMonthShort']
+  const formatFeatureName: typeof import('./src/utils/capabilityMapping.js')['formatFeatureName']
   const fullLogout: typeof import('./src/utils/logout.js')['fullLogout']
   const getActivePinia: typeof import('pinia')['getActivePinia']
   const getCurrentInstance: typeof import('vue')['getCurrentInstance']
@@ -375,6 +378,7 @@ declare module 'vue' {
     readonly $api: UnwrapRef<typeof import('./src/utils/api.js')['$api']>
     readonly COOKIE_MAX_AGE_1_YEAR: UnwrapRef<typeof import('./src/utils/constants.js')['COOKIE_MAX_AGE_1_YEAR']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
+    readonly VETERINARY_ROLES: UnwrapRef<typeof import('./src/utils/veterinaryRoles.js')['VETERINARY_ROLES']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly alphaDashValidator: UnwrapRef<typeof import('./src/@core/utils/validators.js')['alphaDashValidator']>
     readonly alphaValidator: UnwrapRef<typeof import('./src/@core/utils/validators.js')['alphaValidator']>
@@ -415,10 +419,12 @@ declare module 'vue' {
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
     readonly emailValidator: UnwrapRef<typeof import('./src/@core/utils/validators.js')['emailValidator']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
+    readonly featureMapping: UnwrapRef<typeof import('./src/utils/capabilityMapping.js')['featureMapping']>
     readonly fetchAndMergePermissions: UnwrapRef<typeof import('./src/utils/permissions.js')['fetchAndMergePermissions']>
     readonly flattenPermissions: UnwrapRef<typeof import('./src/utils/permissions.js')['flattenPermissions']>
     readonly formatDate: UnwrapRef<typeof import('./src/@core/utils/formatters.js')['formatDate']>
     readonly formatDateToMonthShort: UnwrapRef<typeof import('./src/@core/utils/formatters.js')['formatDateToMonthShort']>
+    readonly formatFeatureName: UnwrapRef<typeof import('./src/utils/capabilityMapping.js')['formatFeatureName']>
     readonly fullLogout: UnwrapRef<typeof import('./src/utils/logout.js')['fullLogout']>
     readonly getActivePinia: UnwrapRef<typeof import('pinia')['getActivePinia']>
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>

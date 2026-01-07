@@ -365,6 +365,16 @@ const addService = async () => {
           </VCol>
 
           <VCol cols="12">
+            <VSelect
+              v-model="form.default_billing_unit"
+              :items="billingUnitOptions"
+              label="Default Billing Unit"
+              placeholder="Select billing unit"
+              prepend-inner-icon="tabler-currency-dollar"
+            />
+          </VCol>
+
+          <VCol cols="12">
             <AppTextField
               v-model="form.description"
               label="Description"
@@ -466,6 +476,7 @@ export default {
     const headers = [
       { title: "Name", key: "name" },
       { title: "Display Name", key: "display_name" },
+      { title: "Billing Unit", key: "default_billing_unit" },
       { title: "Description", key: "description" },
       { title: "Active", key: "is_active" },
       { title: "Actions", key: "actions", sortable: false },
@@ -514,11 +525,20 @@ export default {
       { title: 'Schedule', value: 'tabler-calendar-time' },
     ];
 
+    const billingUnitOptions = [
+      { title: 'Hourly', value: 'HOURLY' },
+      { title: 'Daily', value: 'DAILY' },
+      { title: 'Weekly', value: 'WEEKLY' },
+      { title: 'Per Session', value: 'PER_SESSION' },
+      { title: 'One Time', value: 'ONE_TIME' },
+    ];
+
     const form = ref({
       name: "",
       display_name: "",
       description: "",
       icon: "",
+      default_billing_unit: "PER_SESSION",
       is_active: true,
       blocked: false,
     });
@@ -549,6 +569,7 @@ export default {
         display_name: "",
         description: "",
         icon: "",
+        default_billing_unit: "PER_SESSION",
         is_active: true,
         blocked: false,
       };
@@ -617,6 +638,7 @@ export default {
       openDeleteDialog,
       submit,
       iconList,
+      billingUnitOptions,
     };
   },
 };

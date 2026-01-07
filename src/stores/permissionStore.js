@@ -30,7 +30,8 @@ export const usePermissionStore = defineStore('permission', {
         canViewService: (state) => (serviceName) => {
             if (!serviceName) return false
             const service = state.permissions.find(
-                p => p.service_name?.toLowerCase() === serviceName.toLowerCase()
+                p => (p.service_key?.toLowerCase() === serviceName.toLowerCase()) ||
+                    (p.service_name?.toLowerCase() === serviceName.toLowerCase())
             )
             return !!service?.can_view
         },
@@ -40,7 +41,8 @@ export const usePermissionStore = defineStore('permission', {
         // Get permissions for a specific category within a service
         getCategoryPermissions: (state) => (serviceName, categoryName) => {
             const service = state.permissions.find(
-                p => p.service_name?.toLowerCase() === serviceName.toLowerCase()
+                p => (p.service_key?.toLowerCase() === serviceName.toLowerCase()) ||
+                    (p.service_name?.toLowerCase() === serviceName.toLowerCase())
             )
             if (!service || !service.categories) return null
 
@@ -91,8 +93,8 @@ export const usePermissionStore = defineStore('permission', {
                 console.warn('Error parsing userData for permissions', e)
             }
 
-            // 2. If Organization, GRANT ALL
-            if (role === 'organization') return true
+            // 2. If Organization or Individual, GRANT ALL
+            if (role === 'organization' || role === 'individual') return true
 
             // 3. Normal checks
             if (!permissionName) return true
@@ -112,14 +114,15 @@ export const usePermissionStore = defineStore('permission', {
                 console.warn('Error parsing userData for permissions', e)
             }
 
-            // 2. If Organization, GRANT ALL
-            if (role === 'organization') return true
+            // 2. If Organization or Individual, GRANT ALL
+            if (role === 'organization' || role === 'individual') return true
 
             // 3. Normal checks
             if (!serviceName || !action) return false
 
             const service = this.permissions.find(
-                p => p.service_name?.toLowerCase() === serviceName.toLowerCase()
+                p => (p.service_key?.toLowerCase() === serviceName.toLowerCase()) ||
+                    (p.service_name?.toLowerCase() === serviceName.toLowerCase())
             )
 
             if (!service) return false
@@ -147,13 +150,14 @@ export const usePermissionStore = defineStore('permission', {
                 console.warn('Error parsing userData for permissions', e)
             }
 
-            // 2. If Organization, GRANT ALL (for now)
-            if (role === 'organization') return true
+            // 2. If Organization or Individual, GRANT ALL
+            if (role === 'organization' || role === 'individual') return true
 
             if (!serviceName) return false
 
             const service = this.permissions.find(
-                p => p.service_name?.toLowerCase() === serviceName.toLowerCase()
+                p => (p.service_key?.toLowerCase() === serviceName.toLowerCase()) ||
+                    (p.service_name?.toLowerCase() === serviceName.toLowerCase())
             )
 
             if (!service) return false

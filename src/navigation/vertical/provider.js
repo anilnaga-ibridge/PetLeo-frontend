@@ -72,12 +72,17 @@ const getProviderNavigation = () => {
         })
     }
 
-    // Check for Organization role to show Employees
+    // Check for Organization role to show Employees and Roles
     if (roleUpper === 'ORGANIZATION') {
         navigation.push({
             title: 'Employees',
             to: { name: 'provider-employees' },
             icon: { icon: 'tabler-users' },
+        })
+        navigation.push({
+            title: 'Roles',
+            to: { name: 'provider-roles' },
+            icon: { icon: 'tabler-user-shield' },
         })
     }
 

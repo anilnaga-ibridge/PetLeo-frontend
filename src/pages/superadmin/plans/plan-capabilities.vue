@@ -1,26 +1,19 @@
 <script>
-import axios from "axios";
 import { ref, onMounted, watch, nextTick, computed } from "vue";
-import { useCookie } from "@/@core/composable/useCookie";
+import { superAdminApi } from "@/plugins/axios";
+import { featureMapping, formatFeatureName } from '@/utils/capabilityMapping';
 
 export default {
   name: "PlanCapabilitiesPage",
 
   setup() {
-    const BASE = "http://127.0.0.1:8003/api/superadmin/";
-    const baseURL = BASE + "plan-capabilities/";
-    const plansURL = BASE + "plans/";
-    const servicesURL = BASE + "services/";
-    const categoriesURL = BASE + "categories/";
-    const facilitiesURL = BASE + "facilities/";
-
-    // Token
-    const cookieToken = useCookie("accessToken");
-    const token = cookieToken.value;
-
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    }
+    // API paths relative to superAdminApi baseURL (http://127.0.0.1:8003)
+    const BASE_PATH = "/api/superadmin/";
+    const baseURL = BASE_PATH + "plan-capabilities/";
+    const plansURL = BASE_PATH + "plans/";
+    const servicesURL = BASE_PATH + "services/";
+    const categoriesURL = BASE_PATH + "categories/";
+    const facilitiesURL = BASE_PATH + "facilities/";
 
     // State
     const items = ref([]);
@@ -34,10 +27,10 @@ export default {
       { title: "Service", key: "service" },
       { title: "Category", key: "category" },
       { title: "Facility", key: "facility" },
-      { title: "View", key: "can_view" },
-      { title: "Create", key: "can_create" },
-      { title: "Edit", key: "can_edit" },
-      { title: "Delete", key: "can_delete" },
+      { title: "View", key: "permissions.can_view" },
+      { title: "Create", key: "permissions.can_create" },
+      { title: "Edit", key: "permissions.can_edit" },
+      { title: "Delete", key: "permissions.can_delete" },
       { title: "Actions", key: "actions", sortable: false },
     ];
 
@@ -66,37 +59,10 @@ export default {
       return name.toUpperCase().includes("VETERINARY");
     };
 
-    const featureMapping = {
-      'VETERINARY_VISITS': 'Manage Visits',
-      'VETERINARY_VITALS': 'Record Vitals',
-      'VETERINARY_PRESCRIPTIONS': 'Prescriptions',
-      'VETERINARY_LABS': 'Lab Tests',
-      'VETERINARY_ONLINE_CONSULT': 'Online Consultation',
-      'VETERINARY_OFFLINE_VISIT': 'Offline Visits',
-      'VETERINARY_MEDICINE_REMINDERS': 'Medicine Reminders'
-    };
-
-    const formatFeatureName = (name) => {
-      if (!name) return '';
-      // Try exact match
-      if (featureMapping[name]) return featureMapping[name];
-      // Try matching without VETERINARY_ prefix if DB has different naming
-      const upper = name.toUpperCase();
-      if (featureMapping[upper]) return featureMapping[upper];
-      
-      // Fallback: Title Case if it looks like a code
-      if (upper.includes('_')) {
-         return name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-      }
-      return name;
-    };
-
-
-
     // Lookup fetch
     const fetchLookup = async (url, setter) => {
       try {
-        const res = await axios.get(url, { params: { page_size: 1000 } });
+        const res = await superAdminApi.get(url, { params: { page_size: 1000 } });
         setter.value = res.data.results || res.data || [];
       } catch (err) {
         console.error("❌ Lookup Error:", err);
@@ -106,7 +72,7 @@ export default {
     // Fetch items
     const fetchItems = async () => {
       try {
-        const res = await axios.get(baseURL, {
+        const res = await superAdminApi.get(baseURL, {
           params: {
             page: page.value,
             page_size: itemsPerPage.value,
@@ -211,11 +177,13 @@ export default {
            }
         } else {
            // CRUD
+           // Unpack from item.permissions JSON
+           const p = item.permissions || {};
            selectedCRUD.value[sId] = {
-             can_view: !!item.can_view,
-             can_create: !!item.can_create,
-             can_edit: !!item.can_edit,
-             can_delete: !!item.can_delete,
+             can_view: !!p.can_view,
+             can_create: !!p.can_create,
+             can_edit: !!p.can_edit,
+             can_delete: !!p.can_delete,
            };
         }
       }
@@ -263,10 +231,12 @@ export default {
                 category_id: cId,
                 facility_id: null,
                 // Feature permissions usually imply "View" access to that feature
-                can_view: true, 
-                can_create: true, // Defaulting to full access for the feature
-                can_edit: true,
-                can_delete: true,
+                permissions: {
+                  can_view: true, 
+                  can_create: true, // Defaulting to full access for the feature
+                  can_edit: true,
+                  can_delete: true,
+                }
               };
               promises.push(createOrUpdate(payload));
             }
@@ -287,10 +257,12 @@ export default {
                 service_id: sId,
                 category_id: null,
                 facility_id: null,
-                can_view: perms.can_view,
-                can_create: perms.can_create,
-                can_edit: perms.can_edit,
-                can_delete: perms.can_delete,
+                permissions: {
+                  can_view: perms.can_view,
+                  can_create: perms.can_create,
+                  can_edit: perms.can_edit,
+                  can_delete: perms.can_delete,
+                }
               };
               promises.push(createOrUpdate(payload));
             }
@@ -312,9 +284,9 @@ export default {
 
     const createOrUpdate = (payload) => {
        if (isEdit.value && editId.value) {
-         return axios.put(`${baseURL}${editId.value}/`, payload);
+         return superAdminApi.put(`${baseURL}${editId.value}/`, payload);
        } else {
-         return axios.post(baseURL, payload).catch(err => {
+         return superAdminApi.post(baseURL, payload).catch(err => {
             if (err.response?.data?.non_field_errors?.[0]?.includes("unique set")) {
                // ignore duplicates
             } else {
@@ -339,7 +311,7 @@ export default {
       console.log("Deleting PlanCapability ID:", deleteItem.value.id);
 
       try {
-        await axios.delete(`${baseURL}${deleteItem.value.id}/`);
+        await superAdminApi.delete(`${baseURL}${deleteItem.value.id}/`);
         deleteDialog.value = false;
         await fetchItems();
       } catch (err) {
@@ -480,30 +452,29 @@ export default {
         </template>
 
         <!-- Permissions Grouped -->
-        <!-- Permissions Grouped -->
-        <template #item.can_view="{ item }">
+        <template #item.permissions.can_view="{ item }">
           <div v-if="isVeterinary(item.service)">
             <VChip size="x-small" color="success" variant="elevated">Enabled</VChip>
           </div>
-          <VIcon v-else :icon="item.can_view ? 'tabler-check' : 'tabler-x'" :color="item.can_view ? 'success' : 'medium-emphasis'" />
+          <VIcon v-else :icon="item.permissions?.can_view ? 'tabler-check' : 'tabler-x'" :color="item.permissions?.can_view ? 'success' : 'medium-emphasis'" />
         </template>
-        <template #item.can_create="{ item }">
+        <template #item.permissions.can_create="{ item }">
           <div v-if="isVeterinary(item.service)">
             <span class="text-disabled">-</span>
           </div>
-          <VIcon v-else :icon="item.can_create ? 'tabler-check' : 'tabler-x'" :color="item.can_create ? 'success' : 'medium-emphasis'" />
+          <VIcon v-else :icon="item.permissions?.can_create ? 'tabler-check' : 'tabler-x'" :color="item.permissions?.can_create ? 'success' : 'medium-emphasis'" />
         </template>
-        <template #item.can_edit="{ item }">
+        <template #item.permissions.can_edit="{ item }">
           <div v-if="isVeterinary(item.service)">
             <span class="text-disabled">-</span>
           </div>
-          <VIcon v-else :icon="item.can_edit ? 'tabler-check' : 'tabler-x'" :color="item.can_edit ? 'success' : 'medium-emphasis'" />
+          <VIcon v-else :icon="item.permissions?.can_edit ? 'tabler-check' : 'tabler-x'" :color="item.permissions?.can_edit ? 'success' : 'medium-emphasis'" />
         </template>
-        <template #item.can_delete="{ item }">
+        <template #item.permissions.can_delete="{ item }">
           <div v-if="isVeterinary(item.service)">
             <span class="text-disabled">-</span>
           </div>
-          <VIcon v-else :icon="item.can_delete ? 'tabler-check' : 'tabler-x'" :color="item.can_delete ? 'success' : 'medium-emphasis'" />
+          <VIcon v-else :icon="item.permissions?.can_delete ? 'tabler-check' : 'tabler-x'" :color="item.permissions?.can_delete ? 'success' : 'medium-emphasis'" />
         </template>
 
         <template #item.actions="{ item }">

@@ -111,15 +111,27 @@ const instances = [authApi, providerApi, superAdminApi, veterinaryApi, api];
 instances.forEach(instance => {
   instance.interceptors.request.use(
     config => {
-      const token =
+      let token =
         localStorage.getItem("accessToken") ||
         sessionStorage.getItem("accessToken");
 
+      // Fallback: Check cookie if not in storage
+      if (!token) {
+        const match = document.cookie.match(new RegExp('(^| )accessToken=([^;]+)'));
+        if (match) {
+          token = decodeURIComponent(match[2]);
+          // If it was stringified JSON (e.g. "token"), remove quotes
+          if (token.startsWith('"') && token.endsWith('"')) {
+            token = token.slice(1, -1);
+          }
+        }
+      }
+
       if (token) {
-        console.log(`🚀 Axios: Attaching token to ${config.url}`)
+        // console.log(`🚀 Axios: Attaching token to ${config.url}`);
         config.headers["Authorization"] = `Bearer ${token}`;
       } else {
-        console.warn(`🚀 Axios: No token found for ${config.url}`)
+        console.warn(`🚀 Axios: No token found for ${config.url}. Cookies: ${document.cookie}`);
       }
 
       return config;

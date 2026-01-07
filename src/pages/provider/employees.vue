@@ -21,16 +21,19 @@ const registering = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const editingId = ref(null)
+const providerRoles = ref([])
+const capabilities = ref([])
 
 // Form
 const form = ref({
   full_name: '',
   email: '',
   phone_number: '',
-  role: 'employee'
+  role: 'employee',
+  provider_role: null
 })
 
-const roles = [
+const legacyRoles = [
   { title: 'Receptionist', value: 'receptionist' },
   { title: 'Vitals Staff', value: 'vitals staff' },
   { title: 'Doctor', value: 'doctor' },
@@ -42,7 +45,8 @@ const roles = [
 // Headers
 const headers = [
   { title: 'Employee', key: 'full_name' },
-  { title: 'Role', key: 'role' },
+  { title: 'Role (Custom)', key: 'provider_role_name' },
+  { title: 'Type', key: 'role' },
   { title: 'Contact', key: 'contact' },
   { title: 'Status', key: 'status' },
   { title: 'Joined', key: 'joined_at' },
@@ -54,10 +58,16 @@ const fetchEmployees = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const res = await api.get('http://127.0.0.1:8002/api/provider/employees/')
-    employees.value = res.data
+    const [empRes, rolesRes, capsRes] = await Promise.all([
+      api.get('http://127.0.0.1:8002/api/provider/employees/'),
+      api.get('http://127.0.0.1:8002/api/provider/roles/'),
+      api.get('http://127.0.0.1:8002/api/provider/capabilities/')
+    ])
+    employees.value = empRes.data
+    providerRoles.value = rolesRes.data
+    capabilities.value = capsRes.data
   } catch (err) {
-    console.error('Failed to fetch employees', err)
+    console.error('Failed to fetch data', err)
     errorMessage.value = 'Failed to load employees.'
   } finally {
     loading.value = false
@@ -75,7 +85,8 @@ const openDialog = (employee = null) => {
       full_name: employee.full_name || employee.raw?.full_name,
       email: employee.email || employee.raw?.email,
       phone_number: employee.phone_number || employee.raw?.phone_number,
-      role: (employee.role || employee.raw?.role || 'employee').toLowerCase()
+      role: (employee.role || employee.raw?.role || 'employee').toLowerCase(),
+      provider_role: employee.provider_role || employee.raw?.provider_role
     }
   } else {
     editingId.value = null
@@ -83,11 +94,24 @@ const openDialog = (employee = null) => {
       full_name: '',
       email: '',
       phone_number: '',
-      role: 'employee'
+      role: 'employee',
+      provider_role: null
     }
   }
   dialog.value = true
 }
+// Role Permission Preview
+const selectedRolePermissions = computed(() => {
+  if (!form.value.provider_role) return []
+  const role = providerRoles.value.find(r => r.id === form.value.provider_role)
+  if (!role) return []
+  
+  // Map keys to labels
+  return (role.capabilities || []).map(key => {
+    const cap = capabilities.value.find(c => c.key === key)
+    return cap ? cap.label : key
+  })
+})
 
 // Handle Form Submit
 const handleSubmit = () => {
@@ -114,7 +138,8 @@ const updateEmployee = async () => {
       full_name: form.value.full_name,
       email: form.value.email,
       phone_number: form.value.phone_number,
-      role: form.value.role
+      role: form.value.role,
+      provider_role: form.value.provider_role
     }
 
     await api.patch(`http://127.0.0.1:8002/api/provider/employees/${editingId.value}/`, payload)
@@ -147,12 +172,12 @@ const registerEmployee = async () => {
   try {
     // Use Provider Service Proxy for registration
     const PROVIDER_API = 'http://127.0.0.1:8002/api/provider/employees/'
-    
     const payload = {
       full_name: form.value.full_name,
       email: form.value.email,
       phone_number: form.value.phone_number,
-      role: form.value.role
+      role: form.value.role,
+      provider_role: form.value.provider_role
     }
 
     const res = await api.post(PROVIDER_API, payload)
@@ -170,59 +195,6 @@ const registerEmployee = async () => {
   }
 }
 
-// Manage Services State
-const servicesDialog = ref(false)
-const loadingServices = ref(false)
-const savingServices = ref(false)
-const selectedEmployeeForServices = ref(null)
-const availableServices = ref([]) // Tree structure
-const assignedServices = ref([])  // Tree structure
-const permissionsPayload = ref([]) // Flat list to save
-
-// Open Manage Services Dialog
-const openManageServices = async (employee) => {
-  selectedEmployeeForServices.value = employee
-  servicesDialog.value = true
-  loadingServices.value = true
-  permissionsPayload.value = [] // Reset
-  
-  try {
-    // 1. Fetch Available Services (Tree)
-    const availRes = await api.get('http://127.0.0.1:8002/api/provider/employee-assignments/available/')
-    availableServices.value = availRes.data
-    
-    // 2. Fetch Assigned Services (Tree)
-    const assignedRes = await api.get(`http://127.0.0.1:8002/api/provider/employee-assignments/${employee.id}/assigned/`)
-    assignedServices.value = assignedRes.data
-    
-  } catch (err) {
-    console.error('Failed to fetch services', err)
-    errorMessage.value = 'Failed to load services.'
-  } finally {
-    loadingServices.value = false
-  }
-}
-
-// Save Services
-const saveServices = async () => {
-  if (!selectedEmployeeForServices.value) return
-  
-  savingServices.value = true
-  try {
-    await api.post(`http://127.0.0.1:8002/api/provider/employee-assignments/${selectedEmployeeForServices.value.id}/assign/`, {
-      permissions: permissionsPayload.value
-    })
-    
-    successMessage.value = 'Services assigned successfully!'
-    servicesDialog.value = false
-    
-  } catch (err) {
-    console.error('Failed to save services', err)
-    errorMessage.value = 'Failed to save assignments.'
-  } finally {
-    savingServices.value = false
-  }
-}
 
 // Actions
 const updateStatus = async (id, action) => {
@@ -336,14 +308,6 @@ onMounted(() => {
         <template #item.actions="{ item }">
           <div class="d-flex gap-2">
             <VBtn
-              icon="tabler-settings"
-              variant="text"
-              color="info"
-              size="small"
-              title="Manage Services"
-              @click="openManageServices(item.raw || item)"
-            />
-            <VBtn
               icon="tabler-edit"
               variant="text"
               color="primary"
@@ -352,7 +316,7 @@ onMounted(() => {
               @click="openDialog(item.raw || item)"
             />
             <VBtn
-              v-if="(item.status || item.raw?.status) === 'active'"
+              v-if="(item.status || item.raw?.status) === 'ACTIVE'"
               icon="tabler-ban"
               variant="text"
               color="warning"
@@ -361,7 +325,7 @@ onMounted(() => {
               @click="updateStatus(item.id || item.raw?.id, 'suspend')"
             />
             <VBtn
-              v-if="(item.status || item.raw?.status) === 'suspended'"
+              v-if="(item.status || item.raw?.status) === 'DISABLED'"
               icon="tabler-check"
               variant="text"
               color="success"
@@ -467,14 +431,39 @@ onMounted(() => {
                 </div>
               </div>
               
-              <!-- Role Selection -->
+              <!-- Provider Role Selection -->
               <div class="animate-item" style="animation-delay: 0.3s">
                 <div class="input-group">
-                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">Role</VLabel>
+                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">Provider Role (Custom)</VLabel>
+                  <VSelect
+                    v-model="form.provider_role"
+                    :items="providerRoles"
+                    item-title="name"
+                    item-value="id"
+                    placeholder="Select Custom Role"
+                    variant="solo"
+                    flat
+                    bg-color="white"
+                    class="soft-input elevation-2"
+                    rounded="lg"
+                    hide-details="auto"
+                    clearable
+                  >
+                    <template #prepend-inner>
+                      <VIcon icon="tabler-user-shield" size="20" class="text-primary opacity-70" />
+                    </template>
+                  </VSelect>
+                </div>
+              </div>
+
+              <!-- Role Selection (Legacy/Type) -->
+              <div class="animate-item" style="animation-delay: 0.35s">
+                <div class="input-group">
+                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">Employee Type</VLabel>
                   <VSelect
                     v-model="form.role"
-                    :items="roles"
-                    placeholder="Select Role"
+                    :items="legacyRoles"
+                    placeholder="Select Type"
                     variant="solo"
                     flat
                     bg-color="white"
@@ -487,6 +476,30 @@ onMounted(() => {
                       <VIcon icon="tabler-user-cog" size="20" class="text-primary opacity-70" />
                     </template>
                   </VSelect>
+                </div>
+              </div>
+
+              <!-- Permission Preview (Read-Only) -->
+              <div v-if="selectedRolePermissions.length > 0" class="animate-item" style="animation-delay: 0.38s">
+                <div class="pa-4 rounded-lg bg-primary-lighten-5 border-primary border-opacity-25 border">
+                  <div class="d-flex align-center gap-2 mb-2">
+                    <VIcon icon="tabler-shield-check" size="18" color="primary" />
+                    <span class="text-caption font-weight-bold text-primary text-uppercase">Effective Permissions</span>
+                  </div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <VChip
+                      v-for="perm in selectedRolePermissions"
+                      :key="perm"
+                      size="x-small"
+                      color="primary"
+                      variant="tonal"
+                    >
+                      {{ perm }}
+                    </VChip>
+                  </div>
+                  <p class="text-caption text-medium-emphasis mt-2 mb-0">
+                    Permissions are inherited from the selected role and cannot be modified individually.
+                  </p>
                 </div>
               </div>
 
@@ -569,37 +582,5 @@ onMounted(() => {
       </div>
     </VNavigationDrawer>
 
-    <!-- Manage Services Dialog -->
-    <VDialog v-model="servicesDialog" max-width="600" scrollable>
-      <VCard title="Manage Services">
-        <VCardText style="max-height: 60vh;">
-          <p class="mb-4">Select services, categories, and facilities that <strong>{{ selectedEmployeeForServices?.full_name }}</strong> can access.</p>
-          
-          <div v-if="loadingServices" class="d-flex justify-center py-4">
-            <VProgressCircular indeterminate color="primary" />
-          </div>
-          
-          <div v-else-if="availableServices.length === 0" class="text-center py-4 text-medium-emphasis">
-            No services available to assign.
-          </div>
-
-          <div v-else>
-            <EmployeePermissionTree
-              :available="availableServices"
-              :assigned="assignedServices"
-              @update:permissions="permissionsPayload = $event"
-            />
-          </div>
-        </VCardText>
-
-        <VCardActions>
-          <VSpacer />
-          <VBtn color="secondary" variant="text" @click="servicesDialog = false">Cancel</VBtn>
-          <VBtn color="primary" :loading="savingServices" @click="saveServices">
-            Save Assignments
-          </VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
   </ProviderLayout>
 </template>

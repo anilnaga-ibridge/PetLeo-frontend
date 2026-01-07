@@ -16,6 +16,11 @@ body {
 
   // TODO: Use grid gutter variable here
   padding-block: 1.5rem;
+
+  &.full-bleed {
+    max-inline-size: 100%;
+    padding-inline: 0;
+  }
 }
 
 .layout-footer {

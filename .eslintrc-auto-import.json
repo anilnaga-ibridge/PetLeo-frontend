@@ -366,6 +366,9 @@
     "useIdleTimer": true,
     "fetchAndMergePermissions": true,
     "flattenPermissions": true,
-    "getPostLoginRoute": true
+    "getPostLoginRoute": true,
+    "featureMapping": true,
+    "formatFeatureName": true,
+    "VETERINARY_ROLES": true
   }
 }

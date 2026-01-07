@@ -54,7 +54,9 @@ onMounted(async () => {
             md="6" 
             lg="4"
           >
-            <VCard :to="{ name: 'provider-service-details', params: { serviceId: service.service_id } }">
+            <VCard :to="(service.service_name.toLowerCase().includes('veterinary') || service.service_key === 'VETERINARY_CORE') 
+              ? { name: 'veterinary-dashboard' } 
+              : { name: 'provider-service-details', params: { serviceId: service.service_id } }">
               <VCardItem>
                 <template #prepend>
                   <VAvatar color="secondary" variant="tonal" class="rounded">

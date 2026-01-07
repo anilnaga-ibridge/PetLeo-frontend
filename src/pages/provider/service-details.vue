@@ -7,7 +7,7 @@ import AddFacilityDialog from '@/components/AddFacilityDialog.vue'
 import AddPricingDialog from '@/components/AddPricingDialog.vue'
 import { usePermissionStore } from '@/stores/permissionStore'
 import { useCookie } from '@/@core/composable/useCookie'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { computed, onMounted, ref, watch } from 'vue'
 import { providerApi } from '@/plugins/axios'
 
@@ -219,6 +219,17 @@ const analytics = [
   { title: 'Profile Views', value: '1,204', change: '+24%', icon: 'tabler-eye', color: 'info' },
   { title: 'Avg. Rating', value: '4.8', change: '+0.2', icon: 'tabler-star', color: 'warning' },
 ]
+
+const showUpgradeDialog = ref(false)
+const router = useRouter()
+
+const handleOpenDashboard = () => {
+  if (permissionStore.hasCapability('VETERINARY_CORE')) {
+    router.push({ name: 'veterinary-dashboard' })
+  } else {
+    showUpgradeDialog.value = true
+  }
+}
 </script>
 
 <template>
@@ -311,7 +322,7 @@ const analytics = [
                     </VRow>
 
                     <div class="mt-6">
-                      <VBtn color="primary" size="large" block prepend-icon="tabler-layout-dashboard" :to="{ name: 'veterinary-dashboard' }">
+                      <VBtn color="primary" size="large" block prepend-icon="tabler-layout-dashboard" @click="handleOpenDashboard">
                         Open Veterinary Dashboard
                       </VBtn>
                     </div>
@@ -332,6 +343,8 @@ const analytics = [
               </VCol>
             </VRow>
           </div>
+
+
 
           <!-- REGULAR: Catalog Service UI -->
           <div v-else>
@@ -375,6 +388,25 @@ const analytics = [
               </VCol>
             </VRow>
           </div>
+
+          <!-- UPGRADE DIALOG -->
+          <VDialog v-model="showUpgradeDialog" max-width="500">
+            <VCard>
+              <VCardTitle class="text-h5 font-weight-bold pa-4">
+                Upgrade Required
+              </VCardTitle>
+              <VCardText class="pa-4 pt-0">
+                <p class="text-body-1 mb-4">
+                  Your current plan does not include access to the Veterinary Dashboard. 
+                  Please upgrade your plan to unlock these features.
+                </p>
+                <div class="d-flex justify-end gap-2">
+                  <VBtn variant="text" color="secondary" @click="showUpgradeDialog = false">Cancel</VBtn>
+                  <VBtn color="primary" :to="{ name: 'provider-providerhome', hash: '#plans' }">View Plans</VBtn>
+                </div>
+              </VCardText>
+            </VCard>
+          </VDialog>
         </VWindowItem>
 
         <!-- 2. CATEGORIES TAB -->

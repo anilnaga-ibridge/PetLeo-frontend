@@ -1,6 +1,9 @@
 <script setup>
 import { VerticalNav } from '@layouts/components'
 import { useLayoutConfigStore } from '@layouts/stores/config'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 const props = defineProps({
   navItems: {
@@ -88,11 +91,14 @@ const verticalNavAttrs = computed(() => {
           />
         </div>
       </header>
-      <main class="layout-page-content">
+      <VMain
+        class="layout-page-content"
+        :class="route.meta.contentClass"
+      >
         <div class="page-content-container">
           <slot />
         </div>
-      </main>
+      </VMain>
       <footer class="layout-footer">
         <div class="footer-content-container">
           <slot name="footer" />

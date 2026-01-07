@@ -56,16 +56,16 @@ const currentLayout = VeterinaryLayout
           <VitalsQueueWidget v-if="can('VETERINARY_VITALS')" class="mt-6" />
 
           <!-- DOCTOR: PATIENT QUEUE -->
-          <DoctorQueueWidget v-if="can('VETERINARY_PRESCRIPTIONS')" class="mt-6" />
+          <DoctorQueueWidget v-if="can('VETERINARY_DOCTOR')" class="mt-6" />
 
           <!-- LAB: LAB QUEUE -->
           <LabQueueWidget v-if="can('VETERINARY_LABS')" class="mt-6" />
 
           <!-- PHARMACY: PHARMACY QUEUE -->
-          <PharmacyQueueWidget v-if="can('VETERINARY_MEDICINE_REMINDERS')" class="mt-6" />
+          <PharmacyQueueWidget v-if="can('VETERINARY_PHARMACY')" class="mt-6" />
 
-          <!-- SCHEDULE WIDGET (Visible if has Schedule capability) -->
-          <ScheduleWidget v-if="can('VETERINARY_SCHEDULE')" class="mt-6" />
+          <!-- SCHEDULE WIDGET (Visible if has Schedule capability - mapped to CORE or VISITS/DOCTOR) -->
+          <ScheduleWidget v-if="can('VETERINARY_CORE')" class="mt-6" />
         </VCol>
       </VRow>
     </div>

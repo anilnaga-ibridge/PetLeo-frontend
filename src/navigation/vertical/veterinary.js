@@ -3,7 +3,7 @@ export default [
         title: 'Veterinary Dashboard',
         to: { name: 'veterinary-dashboard' },
         icon: { icon: 'tabler-dashboard' },
-        capability: 'VETERINARY_CORE', // [NEW]
+        capability: 'VETERINARY_CORE',
     },
     {
         title: 'Visits',
@@ -21,7 +21,7 @@ export default [
         title: 'Prescriptions',
         to: { name: 'veterinary-prescriptions' },
         icon: { icon: 'tabler-pill' },
-        capability: 'VETERINARY_PRESCRIPTIONS'
+        capability: 'VETERINARY_DOCTOR' // Changed from VETERINARY_PRESCRIPTIONS
     },
     {
         title: 'Lab Tests',
@@ -33,25 +33,25 @@ export default [
         title: 'Online Consult',
         to: { name: 'veterinary-online-consult' },
         icon: { icon: 'tabler-video' },
-        capability: 'VETERINARY_ONLINE_CONSULT'
+        capability: 'VETERINARY_DOCTOR' // Changed from VETERINARY_ONLINE_CONSULT
     },
     {
         title: 'Offline Visits',
         to: { name: 'veterinary-offline-visits' },
         icon: { icon: 'tabler-building-hospital' },
-        capability: 'VETERINARY_OFFLINE_VISIT'
+        capability: 'VETERINARY_VISITS' // Changed from VETERINARY_OFFLINE_VISIT
     },
     {
         title: 'Medicine Reminders',
         to: { name: 'veterinary-medicine-reminders' },
         icon: { icon: 'tabler-bell' },
-        capability: 'VETERINARY_MEDICINE_REMINDERS'
+        capability: 'VETERINARY_PHARMACY' // Changed from VETERINARY_MEDICINE_REMINDERS
     },
     {
         title: 'Schedule',
         to: { name: 'veterinary-schedule' },
         icon: { icon: 'tabler-calendar' },
-        capability: 'VETERINARY_CORE', // [NEW]
+        capability: 'VETERINARY_CORE',
     },
     { heading: 'Exit Module' },
     {
