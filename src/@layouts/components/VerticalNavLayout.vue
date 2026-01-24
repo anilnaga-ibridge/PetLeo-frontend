@@ -3,8 +3,6 @@ import { VerticalNav } from '@layouts/components'
 import { useLayoutConfigStore } from '@layouts/stores/config'
 import { useRoute } from 'vue-router'
 
-const route = useRoute()
-
 const props = defineProps({
   navItems: {
     type: null,
@@ -16,6 +14,8 @@ const props = defineProps({
     default: () => ({}),
   },
 })
+
+const route = useRoute()
 
 const { width: windowWidth } = useWindowSize()
 const configStore = useLayoutConfigStore()

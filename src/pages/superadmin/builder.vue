@@ -1,4 +1,5 @@
 <script setup>
+
 // No script needed for simple layout
 </script>
 
@@ -6,11 +7,14 @@
   <div class="builder-page">
     <div class="builder-frame">
       <!-- Builder content -->
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
+      <RouterView v-slot="{ Component }">
+        <Transition
+          name="fade"
+          mode="out-in"
+        >
           <component :is="Component" />
-        </transition>
-      </router-view>
+        </Transition>
+      </RouterView>
     </div>
   </div>
 </template>

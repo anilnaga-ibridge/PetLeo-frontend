@@ -1,5 +1,6 @@
 <script setup>
 console.log('🚀 blank.vue: Layout Start')
+
 const { injectSkinClasses } = useSkins()
 
 // ℹ️ This will inject classes in body tag for accurate styling

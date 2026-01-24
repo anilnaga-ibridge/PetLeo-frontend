@@ -20,6 +20,7 @@ export const setupGuards = router => {
     const token = tokenCookie || localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 
     const isLoggedIn = Boolean(user && token)
+
     console.log('🛡️ Router Guard: isLoggedIn:', isLoggedIn, 'Role:', user?.role)
     console.log('🛡️ Router Guard: Target:', to.path, 'Name:', to.name)
     console.log('🛡️ Router Guard: Meta:', JSON.stringify(to.meta, null, 2))
@@ -32,6 +33,7 @@ export const setupGuards = router => {
     // -> Redirect to Login immediately.
     if (!isLoggedIn && !to.meta.public && !to.meta.unauthenticatedOnly) {
       console.warn('⛔ Unauthenticated access to protected route. Redirecting to login.')
+
       return { name: 'login', query: { to: to.fullPath } }
     }
 
@@ -49,6 +51,7 @@ export const setupGuards = router => {
         return { name: 'login', query: { to: to.fullPath } }
       }
       console.log('🛡️ Router Guard: Public route, allowing.')
+
       return
     }
 
@@ -69,6 +72,7 @@ export const setupGuards = router => {
       const permissionStore = usePermissionStore()
       if (!permissionStore.hasPermission(to.meta.permission)) {
         console.warn(`Access denied. Missing permission: ${to.meta.permission}`)
+
         return { name: 'provider-dashboard' } // Redirect to dashboard
       }
     }
@@ -87,6 +91,7 @@ export const setupGuards = router => {
         console.log('🛡️ Router Guard: Permissions missing, fetching...')
         try {
           await permissionStore.fetchPermissions()
+          await permissionStore.fetchDynamicAccess()
         } catch (e) {
           console.error('🛡️ Router Guard: Failed to fetch permissions', e)
         }
@@ -106,6 +111,7 @@ export const setupGuards = router => {
       // 2. Protect Module Routes
       if (to.path.startsWith('/veterinary') && !permissionStore.hasCapability('VETERINARY_CORE')) {
         console.warn('⛔ Access denied to Veterinary module')
+
         return '/employee/dashboard'
       }
 
@@ -114,25 +120,29 @@ export const setupGuards = router => {
         // STRICT BLOCK: Veterinary Staff must NEVER see Provider screens
         // EXCEPTION: Organization/Provider Admins ARE allowed (they have all capabilities)
         const roleUpper = (user.role?.name || user.role || '').toUpperCase()
-        const isProviderAdmin = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(roleUpper)
+        const isProviderAdmin = ['ORGANIZATION', 'PROVIDER', 'INDIVIDUAL', 'SERVICEPROVIDER', 'SERVICE_PROVIDER', 'SERVICE PROVIDER'].includes(roleUpper)
+          || permissionStore.hasCapability('PROVIDER_MODULE')
+          || user.capabilities?.includes('PROVIDER_MODULE')
+          || !!user.provider_type
 
-        console.log('🛡️ Guard Debug:', { roleUpper, isProviderAdmin, hasVetCore: permissionStore.hasCapability('VETERINARY_CORE') })
+        console.log('🛡️ Provider Guard Debug:', { roleUpper, isProviderAdmin, hasVetCore: permissionStore.hasCapability('VETERINARY_CORE'), hasProviderMod: permissionStore.hasCapability('PROVIDER_MODULE'), providerType: user.provider_type })
 
         if (permissionStore.hasCapability('VETERINARY_CORE') && !isProviderAdmin) {
           console.warn('⛔ Veterinary staff blocked from Provider area')
+
           return '/veterinary/dashboard'
         }
 
-        // Allow if they have MANAGE_ORGANIZATION or similar? 
-        // Or just block employees.
-        // For now, if they are an employee (have VETERINARY_CORE but not Organization role), block.
-        // Ideally, we should have a capability for this too.
+        // Allow if they are a Provider admin
+        if (isProviderAdmin) return
 
-        if (roleUpper !== 'ORGANIZATION' && roleUpper !== 'INDIVIDUAL' && roleUpper !== 'PROVIDER') {
+        // Fallback for others (employees etc.)
+        if (!isProviderAdmin) {
           // Allow specific sub-routes if needed (e.g. service details)
           if (to.name === 'provider-service-details') return
 
           console.warn('⛔ Employee attempted to access Provider area')
+
           return '/employee/dashboard'
         }
       }
@@ -140,6 +150,7 @@ export const setupGuards = router => {
       // 4. Block Generic Employee Dashboard for Veterinary Staff
       if (to.path.startsWith('/employee') && permissionStore.hasCapability('VETERINARY_CORE')) {
         console.warn('⛔ Veterinary staff redirected from generic employee dashboard')
+
         return '/veterinary/dashboard'
       }
     }

@@ -4,6 +4,7 @@ import { useCookie } from '@/@core/composable/useCookie'
 
 // Get logged-in user data from cookies
 const userData = useCookie('userData')
+
 // 👉 Store
 const searchQuery = ref('')
 const selectedRole = ref()

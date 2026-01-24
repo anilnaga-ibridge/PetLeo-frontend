@@ -17,6 +17,7 @@ export const useFacilityStore = defineStore('facilitystore', () => {
     try {
       const token = useCookie('accessToken').value
       const res = await axios.get(API, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+
       facilities.value = res.data.results || res.data || []
     } catch (err) {
       error.value = err

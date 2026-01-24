@@ -6,47 +6,50 @@ const props = defineProps({
   modelValue: Boolean,
   serviceId: {
     type: String,
-    required: true
+    required: true,
   },
   categories: {
     type: Array,
-    required: true
+    required: true,
   },
   pricing: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'saved'])
 
 const loading = ref(false)
 const error = ref('')
+
 const form = ref({
   category_id: null,
   facility_id: null,
   price: 0,
   duration: 'per_day',
-  discount: 0
+  discount: 0,
 })
 
 const availableFacilities = ref([])
 
 // Watch for category change to filter facilities
-watch(() => form.value.category_id, (newCatId) => {
+watch(() => form.value.category_id, newCatId => {
   if (newCatId) {
     const cat = props.categories.find(c => c.id === newCatId)
+
     availableFacilities.value = cat ? cat.facilities : []
   } else {
     availableFacilities.value = []
   }
+
   // Reset facility if it doesn't belong to new category
   if (form.value.facility_id && !availableFacilities.value.find(f => f.id === form.value.facility_id)) {
     form.value.facility_id = null
   }
 })
 
-watch(() => props.modelValue, (val) => {
+watch(() => props.modelValue, val => {
   if (val) {
     error.value = ''
     if (props.pricing) {
@@ -55,10 +58,12 @@ watch(() => props.modelValue, (val) => {
         facility_id: props.pricing.facility,
         price: props.pricing.price || 0,
         duration: props.pricing.duration || 'per_day',
-        discount: props.pricing.discount || 0
+        discount: props.pricing.discount || 0,
       }
+
       // Populate facilities for selected category
       const cat = props.categories.find(c => c.id === props.pricing.category)
+
       availableFacilities.value = cat ? cat.facilities : []
     } else {
       form.value = {
@@ -66,7 +71,7 @@ watch(() => props.modelValue, (val) => {
         facility_id: null,
         price: 0,
         duration: 'per_day',
-        discount: 0
+        discount: 0,
       }
       availableFacilities.value = []
     }
@@ -90,8 +95,9 @@ const save = async () => {
     const payload = {
       ...form.value,
       service_id: props.serviceId,
-      facility: form.value.facility_id // Map to backend field name
+      facility: form.value.facility_id, // Map to backend field name
     }
+
     delete payload.facility_id // Remove old key if not needed, though DRF ignores extra fields usually
 
     await axios({
@@ -99,8 +105,8 @@ const save = async () => {
       url,
       data: payload,
       headers: {
-        'Authorization': `Bearer ${token}`
-      }
+        'Authorization': `Bearer ${token}`,
+      },
     })
     
     emit('saved')
@@ -117,13 +123,20 @@ const save = async () => {
 <template>
   <VDialog
     :model-value="modelValue"
-    @update:model-value="emit('update:modelValue', $event)"
     max-width="500"
+    @update:model-value="emit('update:modelValue', $event)"
   >
     <VCard>
       <VCardTitle>{{ pricing ? 'Edit Pricing' : 'Add New Pricing' }}</VCardTitle>
       <VCardText>
-        <VAlert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</VAlert>
+        <VAlert
+          v-if="error"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+        >
+          {{ error }}
+        </VAlert>
         
         <VSelect
           v-model="form.category_id"
@@ -173,13 +186,18 @@ const save = async () => {
       </VCardText>
       <VCardActions>
         <VSpacer />
-        <VBtn variant="text" @click="emit('update:modelValue', false)">Cancel</VBtn>
+        <VBtn
+          variant="text"
+          @click="emit('update:modelValue', false)"
+        >
+          Cancel
+        </VBtn>
         <VBtn 
           color="primary" 
           variant="elevated" 
-          @click="save" 
-          :loading="loading"
+          :loading="loading" 
           :disabled="!form.price"
+          @click="save"
         >
           Save
         </VBtn>

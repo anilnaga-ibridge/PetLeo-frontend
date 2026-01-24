@@ -6,10 +6,11 @@ import BillingCycleManager from './components/BillingCycleManager.vue'
 import AppSelect from '@/@core/components/app-form-elements/AppSelect.vue'
 
 
-const router = useRouter()
-
 const props = defineProps(['state', 'hideNavigation'])
+
 const emit = defineEmits(['prev', 'update:state'])
+
+const router = useRouter()
 
 const plans = ref([])
 const billingCycles = ref([])
@@ -25,6 +26,25 @@ const targetTypes = [
   { title: 'Organization', value: 'ORGANIZATION' },
   { title: 'Individual', value: 'INDIVIDUAL' },
 ]
+
+const suggestedFeatures = [
+  '24/7 Priority Support',
+  'Mobile App Access',
+  'Advanced Data Analytics',
+  'Unlimited Staff Accounts',
+  'Automated SMS Reminders',
+  'Email Marketing Suite',
+  'Smart Online Booking',
+  'Integrated Payments',
+  'Custom Clinic Branding',
+  'Multi-Location Support',
+]
+
+const addFeature = feature => {
+  if (!form.value.features.includes(feature)) {
+    form.value.features.push(feature)
+  }
+}
 
 
 const form = ref({
@@ -43,6 +63,7 @@ const fetchPlans = async () => {
   loading.value = true
   try {
     const res = await superAdminApi.get('/api/superadmin/plans/')
+
     plans.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch plans:', err)
@@ -63,8 +84,9 @@ const fetchMetadata = async () => {
       superAdminApi.get('/api/superadmin/services/'),
       superAdminApi.get('/api/superadmin/categories/'),
       superAdminApi.get('/api/superadmin/facilities/'),
-      superAdminApi.get('/api/superadmin/capabilities/')
+      superAdminApi.get('/api/superadmin/capabilities/'),
     ])
+
     billingCycles.value = bcRes.data.results || bcRes.data || []
     services.value = svcRes.data.results || svcRes.data || []
     categories.value = catRes.data.results || catRes.data || []
@@ -77,21 +99,33 @@ const fetchMetadata = async () => {
 
 const groupedCapabilities = computed(() => {
   const groups = {}
+
   availableCapabilities.value.forEach(cap => {
     if (!groups[cap.group]) {
       groups[cap.group] = []
     }
     groups[cap.group].push(cap)
   })
+  
   return groups
 })
 
 const customerServices = computed(() => {
-  return services.value.filter(s => s.name.toUpperCase() !== 'VETERINARY')
+  return services.value.filter(s => {
+    const isNotVet = s.name?.toUpperCase() !== 'VETERINARY'
+    const matchesTarget = !s.target_audience || s.target_audience === 'BOTH' || s.target_audience === form.value.target_type
+    
+    return isNotVet && matchesTarget
+  })
 })
 
 const veterinaryService = computed(() => {
-  return services.value.find(s => s.name.toUpperCase() === 'VETERINARY')
+  return services.value.find(s => {
+    const isVet = s.name?.toUpperCase() === 'VETERINARY'
+    const matchesTarget = !s.target_audience || s.target_audience === 'BOTH' || s.target_audience === form.value.target_type
+    
+    return isVet && matchesTarget
+  })
 })
 
 const openAddDrawer = () => {
@@ -110,15 +144,16 @@ const openAddDrawer = () => {
   drawerOpen.value = true
 }
 
-const openEditDrawer = async (plan) => {
+const openEditDrawer = async plan => {
   isEdit.value = true
   editId.value = plan.id
   
   const capsMap = {}
   try {
     const capRes = await superAdminApi.get('/api/superadmin/plan-capabilities/', {
-      params: { plan: plan.id }
+      params: { plan: plan.id },
     })
+
     const caps = capRes.data.results || capRes.data || []
     
     // Initialize map structure
@@ -140,10 +175,15 @@ const openEditDrawer = async (plan) => {
       else if (svcId) key = `svc_${svcId}`
       
       if (key) {
+        // BUG FIX: If permissions is an empty object, default to full access
+        const basePermissions = c.permissions && Object.keys(c.permissions).length > 0 
+          ? c.permissions 
+          : { can_view: true, can_create: true, can_edit: true, can_delete: true }
+
         capsMap[key] = {
           enabled: true,
           id: c.id,
-          permissions: c.permissions || { can_view: true, can_create: true, can_edit: true, can_delete: true }
+          permissions: basePermissions,
         }
       }
     })
@@ -161,6 +201,7 @@ const openEditDrawer = async (plan) => {
 const submit = async () => {
   try {
     let planId = editId.value
+
     const planPayload = {
       title: form.value.title,
       subtitle: form.value.subtitle,
@@ -176,13 +217,38 @@ const submit = async () => {
       await superAdminApi.put(`/api/superadmin/plans/${planId}/`, planPayload)
     } else {
       const res = await superAdminApi.post('/api/superadmin/plans/', planPayload)
+
       planId = res.data.id
+    }
+
+    // Auto-sync Categories for Veterinary permissions
+    const vetSvc = veterinaryService.value
+    if (vetSvc) {
+      const vetCap = form.value.capabilities[`svc_${vetSvc.id}`]
+      if (vetCap && vetCap.enabled && vetCap.permissions) {
+        Object.keys(vetCap.permissions).forEach(permKey => {
+          if (vetCap.permissions[permKey]) {
+            // Find category linked to this permKey
+            const cat = categories.value.find(c => c.linked_capability === permKey)
+            if (cat) {
+              const catKey = `cat_${cat.id}`
+              if (!form.value.capabilities[catKey] || !form.value.capabilities[catKey].enabled) {
+                form.value.capabilities[catKey] = {
+                  enabled: true,
+                  permissions: { can_view: true, can_create: true, can_edit: true, can_delete: true },
+                }
+              }
+            }
+          }
+        })
+      }
     }
 
     // Sync Capabilities
     const capRes = await superAdminApi.get('/api/superadmin/plan-capabilities/', {
-      params: { plan: planId }
+      params: { plan: planId },
     })
+
     const currentCaps = capRes.data.results || capRes.data || []
     
     // Helper to find existing capability
@@ -200,6 +266,7 @@ const submit = async () => {
         if (facId) return cFacId === facId
         if (catId) return cCatId === catId && !cFacId
         if (svcId) return cSvcId === svcId && !cCatId && !cFacId
+        
         return false
       })
     }
@@ -216,12 +283,16 @@ const submit = async () => {
       if (key.startsWith('svc_')) svcId = key.split('_')[1]
       else if (key.startsWith('cat_')) {
         catId = key.split('_')[1]
+
+
         // Find service for this category
         const cat = categories.value.find(c => c.id === catId)
         if (cat) svcId = cat.service
       }
       else if (key.startsWith('fac_')) {
         facId = key.split('_')[1]
+
+
         // Find service for this facility
         const fac = facilities.value.find(f => f.id === facId)
         if (fac) svcId = fac.service
@@ -235,7 +306,7 @@ const submit = async () => {
           service_id: svcId || null,
           category_id: catId || null,
           facility_id: facId || null,
-          permissions: capData.permissions
+          permissions: capData.permissions,
         }
         
         if (existingCap) {
@@ -279,10 +350,15 @@ const toggleCapability = (type, id, val) => {
     if (!form.value.capabilities[key]) {
       form.value.capabilities[key] = {
         enabled: true,
-        permissions: {} // Will be populated by checkboxes
+        permissions: { can_view: true, can_create: true, can_edit: true, can_delete: true }, 
       }
     } else {
       form.value.capabilities[key].enabled = true
+
+      // If it exists but has no permissions, ensure they are set
+      if (!form.value.capabilities[key].permissions || Object.keys(form.value.capabilities[key].permissions).length === 0) {
+        form.value.capabilities[key].permissions = { can_view: true, can_create: true, can_edit: true, can_delete: true }
+      }
     }
   } else {
     // Disable
@@ -292,7 +368,7 @@ const toggleCapability = (type, id, val) => {
   }
 }
 
-const toggleStatus = async (plan) => {
+const toggleStatus = async plan => {
   try {
     await superAdminApi.patch(`/api/superadmin/plans/${plan.id}/`, {
       is_active: plan.is_active,
@@ -306,7 +382,7 @@ const toggleStatus = async (plan) => {
 const deleteDialog = ref(false)
 const planToDelete = ref(null)
 
-const confirmDelete = (plan) => {
+const confirmDelete = plan => {
   planToDelete.value = plan
   deleteDialog.value = true
 }
@@ -324,7 +400,7 @@ const deletePlan = async () => {
   }
 }
 
-const groupCapabilities = (caps) => {
+const groupCapabilities = caps => {
   if (!caps || !caps.length) return []
   
   const grouped = {}
@@ -339,7 +415,7 @@ const groupCapabilities = (caps) => {
         permissions: null, // Service-level permissions
         categories: {},
         facilities: {},
-        vetCapabilities: [] // For veterinary human-friendly labels
+        vetCapabilities: [], // For veterinary human-friendly labels
       }
     }
 
@@ -347,20 +423,20 @@ const groupCapabilities = (caps) => {
       // Category capability
       grouped[svc.id].categories[cap.category.id] = {
         category: cap.category,
-        permissions: cap.permissions
+        permissions: cap.permissions,
       }
     } else if (cap.facility) {
       // Facility capability
       grouped[svc.id].facilities[cap.facility.id] = {
         facility: cap.facility,
-        permissions: cap.permissions
+        permissions: cap.permissions,
       }
     } else {
       // Service capability
       grouped[svc.id].permissions = cap.permissions
       
       // If it's veterinary, extract human-friendly labels
-      if (svc.name.toUpperCase() === 'VETERINARY' && cap.permissions) {
+      if (svc.name?.toUpperCase() === 'VETERINARY' && cap.permissions) {
         Object.keys(cap.permissions).forEach(key => {
           if (cap.permissions[key]) {
             const capInfo = availableCapabilities.value.find(c => c.key === key)
@@ -376,7 +452,7 @@ const groupCapabilities = (caps) => {
   return Object.values(grouped).map(g => ({
     ...g,
     categories: Object.values(g.categories),
-    facilities: Object.values(g.facilities)
+    facilities: Object.values(g.facilities),
   }))
 }
 
@@ -397,43 +473,83 @@ onMounted(() => {
         variant="outlined"
         class="bg-surface premium-toggle"
       >
-        <VBtn value="card" prepend-icon="tabler-layout-grid">
+        <VBtn
+          value="card"
+          prepend-icon="tabler-layout-grid"
+        >
           Grid
         </VBtn>
-        <VBtn value="table" prepend-icon="tabler-table">
+        <VBtn
+          value="table"
+          prepend-icon="tabler-table"
+        >
           Table
         </VBtn>
       </VBtnToggle>
 
       <div class="d-flex gap-3">
-        <VBtn variant="text" prepend-icon="tabler-settings" class="premium-btn-text" @click="showBillingManager = true">
+        <VBtn
+          variant="text"
+          prepend-icon="tabler-settings"
+          class="premium-btn-text"
+          @click="showBillingManager = true"
+        >
           Manage Billing Cycles
         </VBtn>
-        <VBtn color="primary" prepend-icon="tabler-plus" class="premium-btn shadow-sm" @click="openAddDrawer">
+        <VBtn
+          color="primary"
+          prepend-icon="tabler-plus"
+          class="premium-btn shadow-sm"
+          @click="openAddDrawer"
+        >
           Create Plan
         </VBtn>
       </div>
     </div>
 
-    <VDialog v-model="showBillingManager" max-width="800">
+    <VDialog
+      v-model="showBillingManager"
+      max-width="800"
+    >
       <BillingCycleManager @refresh="fetchMetadata" />
     </VDialog>
 
-    <VDialog v-model="deleteDialog" max-width="500">
+    <VDialog
+      v-model="deleteDialog"
+      max-width="500"
+    >
       <VCard title="Delete Plan">
         <VCardText>
           Are you sure you want to delete this plan? This action cannot be undone.
         </VCardText>
         <VCardActions>
           <VSpacer />
-          <VBtn color="medium-emphasis" variant="text" @click="deleteDialog = false">Cancel</VBtn>
-          <VBtn color="error" variant="elevated" @click="deletePlan">Delete</VBtn>
+          <VBtn
+            color="medium-emphasis"
+            variant="text"
+            @click="deleteDialog = false"
+          >
+            Cancel
+          </VBtn>
+          <VBtn
+            color="error"
+            variant="elevated"
+            @click="deletePlan"
+          >
+            Delete
+          </VBtn>
         </VCardActions>
       </VCard>
     </VDialog>
 
     <VRow v-if="loading">
-      <VCol v-for="i in 3" :key="i" cols="12" sm="6" md="4">
+      <VCol
+        v-for="i in 3"
+        :key="i"
+        cols="12"
+        sm="6"
+        md="4"
+      >
         <VSkeletonLoader type="card" />
       </VCol>
     </VRow>
@@ -448,15 +564,24 @@ onMounted(() => {
           md="4"
         >
           <VCard class="plan-card premium-card h-100">
-            <div class="card-glass-overlay"></div>
+            <div class="card-glass-overlay" />
             <VCardText class="pa-6 d-flex flex-column h-100 position-relative">
               <div class="d-flex justify-space-between align-start mb-4">
                 <div>
-                  <VChip size="x-small" color="info" variant="tonal" class="mb-2 uppercase">
+                  <VChip
+                    size="x-small"
+                    color="info"
+                    variant="tonal"
+                    class="mb-2 uppercase"
+                  >
                     {{ plan.target_type }}
                   </VChip>
-                  <h3 class="text-h5 font-weight-bold">{{ plan.title }}</h3>
-                  <div class="text-body-2 text-medium-emphasis">{{ plan.subtitle }}</div>
+                  <h3 class="text-h5 font-weight-bold">
+                    {{ plan.title }}
+                  </h3>
+                  <div class="text-body-2 text-medium-emphasis">
+                    {{ plan.subtitle }}
+                  </div>
                 </div>
                 <div class="d-flex">
                   <VBtn
@@ -486,20 +611,39 @@ onMounted(() => {
               <VDivider class="my-6 opacity-50" />
 
               <div class="flex-grow-1">
-                <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">Features</div>
+                <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                  Features
+                </div>
                 <ul class="feature-list pa-0 mb-4">
-                  <li v-for="(feature, i) in plan.features" :key="i" class="d-flex align-center gap-2 mb-1">
-                    <VIcon icon="tabler-check" size="14" color="success" />
+                  <li
+                    v-for="(feature, i) in plan.features"
+                    :key="i"
+                    class="d-flex align-center gap-2 mb-1"
+                  >
+                    <VIcon
+                      icon="tabler-check"
+                      size="14"
+                      color="success"
+                    />
                     <span class="text-body-2">{{ feature }}</span>
                   </li>
-                  <li v-if="!plan.features || plan.features.length === 0" class="text-body-2 text-medium-emphasis italic">
+                  <li
+                    v-if="!plan.features || plan.features.length === 0"
+                    class="text-body-2 text-medium-emphasis italic"
+                  >
                     No features listed.
                   </li>
                 </ul>
 
                 <div v-if="plan.capabilities && plan.capabilities.length > 0">
-                  <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">Capabilities</div>
-                  <VExpansionPanels variant="accordion" density="compact" class="mb-4">
+                  <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                    Capabilities
+                  </div>
+                  <VExpansionPanels
+                    variant="accordion"
+                    density="compact"
+                    class="mb-4"
+                  >
                     <VExpansionPanel
                       v-for="group in groupCapabilities(plan.capabilities)"
                       :key="group.service.id"
@@ -508,49 +652,158 @@ onMounted(() => {
                     >
                       <VExpansionPanelTitle class="pa-2 min-h-0">
                         <div class="d-flex align-center gap-2">
-                          <VIcon :icon="group.service.icon || 'tabler-package'" size="16" color="primary" />
+                          <VIcon
+                            :icon="group.service.icon || 'tabler-package'"
+                            size="16"
+                            color="primary"
+                          />
                           <span class="text-body-2 font-weight-medium">{{ group.service.display_name }}</span>
                         </div>
                       </VExpansionPanelTitle>
                       <VExpansionPanelText class="pa-0">
                         <div class="pa-2">
                           <!-- Veterinary Labels -->
-                          <div v-if="group.service.name.toUpperCase() === 'VETERINARY' && group.vetCapabilities.length > 0" class="d-flex gap-2 mb-2 flex-wrap">
-                            <VChip v-for="label in group.vetCapabilities" :key="label" size="x-small" color="success" variant="flat">{{ label }}</VChip>
+                          <div
+                            v-if="group.service.name?.toUpperCase() === 'VETERINARY' && group.vetCapabilities.length > 0"
+                            class="d-flex gap-2 mb-2 flex-wrap"
+                          >
+                            <VChip
+                              v-for="label in group.vetCapabilities"
+                              :key="label"
+                              size="x-small"
+                              color="success"
+                              variant="flat"
+                            >
+                              {{ label }}
+                            </VChip>
                           </div>
 
                           <!-- Service Permissions (Non-Veterinary) -->
-                          <div v-else-if="group.permissions" class="d-flex gap-2 mb-2 flex-wrap">
-                            <VChip v-if="group.permissions.can_view" size="x-small" color="info" variant="flat">View</VChip>
-                            <VChip v-if="group.permissions.can_create" size="x-small" color="success" variant="flat">Create</VChip>
-                            <VChip v-if="group.permissions.can_edit" size="x-small" color="warning" variant="flat">Edit</VChip>
-                            <VChip v-if="group.permissions.can_delete" size="x-small" color="error" variant="flat">Delete</VChip>
+                          <div
+                            v-else-if="group.permissions"
+                            class="d-flex gap-2 mb-2 flex-wrap"
+                          >
+                            <VChip
+                              v-if="group.permissions.can_view"
+                              size="x-small"
+                              color="info"
+                              variant="flat"
+                            >
+                              View
+                            </VChip>
+                            <VChip
+                              v-if="group.permissions.can_create"
+                              size="x-small"
+                              color="success"
+                              variant="flat"
+                            >
+                              Create
+                            </VChip>
+                            <VChip
+                              v-if="group.permissions.can_edit"
+                              size="x-small"
+                              color="warning"
+                              variant="flat"
+                            >
+                              Edit
+                            </VChip>
+                            <VChip
+                              v-if="group.permissions.can_delete"
+                              size="x-small"
+                              color="error"
+                              variant="flat"
+                            >
+                              Delete
+                            </VChip>
                           </div>
 
                           <!-- Categories -->
-                          <div v-if="group.categories.length > 0" class="mb-2">
-                            <div class="text-caption font-weight-bold mb-1">Categories</div>
-                            <div v-for="cat in group.categories" :key="cat.category.id" class="d-flex align-center justify-space-between mb-1 pl-2 border-l-2">
+                          <div
+                            v-if="group.categories.length > 0"
+                            class="mb-2"
+                          >
+                            <div class="text-caption font-weight-bold mb-1">
+                              Categories
+                            </div>
+                            <div
+                              v-for="cat in group.categories"
+                              :key="cat.category.id"
+                              class="d-flex align-center justify-space-between mb-1 pl-2 border-l-2"
+                            >
                               <span class="text-caption">{{ cat.category.name }}</span>
                               <div class="d-flex gap-1">
-                                <VIcon v-if="cat.permissions.can_view" icon="tabler-eye" size="12" color="medium-emphasis" title="View" />
-                                <VIcon v-if="cat.permissions.can_create" icon="tabler-plus" size="12" color="medium-emphasis" title="Create" />
-                                <VIcon v-if="cat.permissions.can_edit" icon="tabler-pencil" size="12" color="medium-emphasis" title="Edit" />
-                                <VIcon v-if="cat.permissions.can_delete" icon="tabler-trash" size="12" color="medium-emphasis" title="Delete" />
+                                <VIcon
+                                  v-if="cat.permissions.can_view"
+                                  icon="tabler-eye"
+                                  size="12"
+                                  color="medium-emphasis"
+                                  title="View"
+                                />
+                                <VIcon
+                                  v-if="cat.permissions.can_create"
+                                  icon="tabler-plus"
+                                  size="12"
+                                  color="medium-emphasis"
+                                  title="Create"
+                                />
+                                <VIcon
+                                  v-if="cat.permissions.can_edit"
+                                  icon="tabler-pencil"
+                                  size="12"
+                                  color="medium-emphasis"
+                                  title="Edit"
+                                />
+                                <VIcon
+                                  v-if="cat.permissions.can_delete"
+                                  icon="tabler-trash"
+                                  size="12"
+                                  color="medium-emphasis"
+                                  title="Delete"
+                                />
                               </div>
                             </div>
                           </div>
 
                           <!-- Facilities -->
                           <div v-if="group.facilities.length > 0">
-                            <div class="text-caption font-weight-bold mb-1">Facilities</div>
-                            <div v-for="fac in group.facilities" :key="fac.facility.id" class="d-flex align-center justify-space-between mb-1 pl-2 border-l-2">
+                            <div class="text-caption font-weight-bold mb-1">
+                              Facilities
+                            </div>
+                            <div
+                              v-for="fac in group.facilities"
+                              :key="fac.facility.id"
+                              class="d-flex align-center justify-space-between mb-1 pl-2 border-l-2"
+                            >
                               <span class="text-caption">{{ fac.facility.name }}</span>
                               <div class="d-flex gap-1">
-                                <VIcon v-if="fac.permissions.can_view" icon="tabler-eye" size="12" color="medium-emphasis" title="View" />
-                                <VIcon v-if="fac.permissions.can_create" icon="tabler-plus" size="12" color="medium-emphasis" title="Create" />
-                                <VIcon v-if="fac.permissions.can_edit" icon="tabler-pencil" size="12" color="medium-emphasis" title="Edit" />
-                                <VIcon v-if="fac.permissions.can_delete" icon="tabler-trash" size="12" color="medium-emphasis" title="Delete" />
+                                <VIcon
+                                  v-if="fac.permissions.can_view"
+                                  icon="tabler-eye"
+                                  size="12"
+                                  color="medium-emphasis"
+                                  title="View"
+                                />
+                                <VIcon
+                                  v-if="fac.permissions.can_create"
+                                  icon="tabler-plus"
+                                  size="12"
+                                  color="medium-emphasis"
+                                  title="Create"
+                                />
+                                <VIcon
+                                  v-if="fac.permissions.can_edit"
+                                  icon="tabler-pencil"
+                                  size="12"
+                                  color="medium-emphasis"
+                                  title="Edit"
+                                />
+                                <VIcon
+                                  v-if="fac.permissions.can_delete"
+                                  icon="tabler-trash"
+                                  size="12"
+                                  color="medium-emphasis"
+                                  title="Delete"
+                                />
                               </div>
                             </div>
                           </div>
@@ -582,10 +835,19 @@ onMounted(() => {
       >
         <VCardText class="pa-12">
           <div class="empty-state-icon-wrapper mb-6">
-            <VIcon icon="tabler-package" size="64" color="primary" />
+            <VIcon
+              icon="tabler-package"
+              size="64"
+              color="primary"
+            />
           </div>
-          <h3 class="text-h4 font-weight-bold mb-3">No Plans Created</h3>
-          <p class="text-body-1 text-medium-emphasis mb-8 mx-auto" style="max-width: 400px;">
+          <h3 class="text-h4 font-weight-bold mb-3">
+            No Plans Created
+          </h3>
+          <p
+            class="text-body-1 text-medium-emphasis mb-8 mx-auto"
+            style="max-width: 400px;"
+          >
             Start your journey by creating your first subscription plan. Define services, pricing, and capabilities to empower your providers.
           </p>
           <VBtn 
@@ -621,17 +883,33 @@ onMounted(() => {
         >
           <template #expanded-row="{ columns, item }">
             <tr>
-              <td :colspan="columns.length" class="pa-4 bg-background">
+              <td
+                :colspan="columns.length"
+                class="pa-4 bg-background"
+              >
                 <div class="d-flex gap-4">
                   <!-- Features -->
                   <div style="min-width: 200px;">
-                    <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">Features</div>
+                    <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                      Features
+                    </div>
                     <ul class="feature-list pa-0">
-                      <li v-for="(feature, i) in item.features" :key="i" class="d-flex align-center gap-2 mb-1">
-                        <VIcon icon="tabler-check" size="14" color="success" />
+                      <li
+                        v-for="(feature, i) in item.features"
+                        :key="i"
+                        class="d-flex align-center gap-2 mb-1"
+                      >
+                        <VIcon
+                          icon="tabler-check"
+                          size="14"
+                          color="success"
+                        />
                         <span class="text-body-2">{{ feature }}</span>
                       </li>
-                      <li v-if="!item.features || item.features.length === 0" class="text-body-2 text-medium-emphasis italic">
+                      <li
+                        v-if="!item.features || item.features.length === 0"
+                        class="text-body-2 text-medium-emphasis italic"
+                      >
                         No features listed.
                       </li>
                     </ul>
@@ -639,7 +917,9 @@ onMounted(() => {
 
                   <!-- Capabilities -->
                   <div class="flex-grow-1">
-                    <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">Capabilities</div>
+                    <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                      Capabilities
+                    </div>
                     <div class="d-flex flex-wrap gap-4">
                       <VCard
                         v-for="group in groupCapabilities(item.capabilities)"
@@ -649,47 +929,144 @@ onMounted(() => {
                         style="min-width: 250px;"
                       >
                         <div class="d-flex align-center gap-2 mb-2">
-                          <VIcon :icon="group.service.icon || 'tabler-package'" size="18" color="primary" />
+                          <VIcon
+                            :icon="group.service.icon || 'tabler-package'"
+                            size="18"
+                            color="primary"
+                          />
                           <span class="text-body-2 font-weight-bold">{{ group.service.display_name }}</span>
                         </div>
 
                         <!-- Veterinary Labels -->
-                        <div v-if="group.service.name.toUpperCase() === 'VETERINARY' && group.vetCapabilities.length > 0" class="d-flex gap-1 mb-2 flex-wrap">
-                          <VChip v-for="label in group.vetCapabilities" :key="label" size="x-small" color="success" variant="flat">{{ label }}</VChip>
+                        <div
+                          v-if="group.service.name?.toUpperCase() === 'VETERINARY' && group.vetCapabilities.length > 0"
+                          class="d-flex gap-1 mb-2 flex-wrap"
+                        >
+                          <VChip
+                            v-for="label in group.vetCapabilities"
+                            :key="label"
+                            size="x-small"
+                            color="success"
+                            variant="flat"
+                          >
+                            {{ label }}
+                          </VChip>
                         </div>
 
                         <!-- Service Permissions (Non-Veterinary) -->
-                        <div v-else-if="group.permissions" class="d-flex gap-1 mb-2">
-                          <VIcon v-if="group.permissions.can_view" icon="tabler-eye" size="14" color="medium-emphasis" title="View" />
-                          <VIcon v-if="group.permissions.can_create" icon="tabler-plus" size="14" color="medium-emphasis" title="Create" />
-                          <VIcon v-if="group.permissions.can_edit" icon="tabler-pencil" size="14" color="medium-emphasis" title="Edit" />
-                          <VIcon v-if="group.permissions.can_delete" icon="tabler-trash" size="14" color="medium-emphasis" title="Delete" />
+                        <div
+                          v-else-if="group.permissions"
+                          class="d-flex gap-1 mb-2"
+                        >
+                          <VIcon
+                            v-if="group.permissions.can_view"
+                            icon="tabler-eye"
+                            size="14"
+                            color="medium-emphasis"
+                            title="View"
+                          />
+                          <VIcon
+                            v-if="group.permissions.can_create"
+                            icon="tabler-plus"
+                            size="14"
+                            color="medium-emphasis"
+                            title="Create"
+                          />
+                          <VIcon
+                            v-if="group.permissions.can_edit"
+                            icon="tabler-pencil"
+                            size="14"
+                            color="medium-emphasis"
+                            title="Edit"
+                          />
+                          <VIcon
+                            v-if="group.permissions.can_delete"
+                            icon="tabler-trash"
+                            size="14"
+                            color="medium-emphasis"
+                            title="Delete"
+                          />
                         </div>
 
                         <!-- Categories -->
-                        <div v-if="group.categories.length > 0" class="mb-2">
-                          <div class="text-caption font-weight-bold mb-1">Categories</div>
-                          <div v-for="cat in group.categories" :key="cat.category.id" class="d-flex align-center justify-space-between mb-1 pl-2 border-l-2">
+                        <div
+                          v-if="group.categories.length > 0"
+                          class="mb-2"
+                        >
+                          <div class="text-caption font-weight-bold mb-1">
+                            Categories
+                          </div>
+                          <div
+                            v-for="cat in group.categories"
+                            :key="cat.category.id"
+                            class="d-flex align-center justify-space-between mb-1 pl-2 border-l-2"
+                          >
                             <span class="text-caption">{{ cat.category.name }}</span>
                             <div class="d-flex gap-1">
-                              <VIcon v-if="cat.permissions.can_view" icon="tabler-eye" size="12" color="medium-emphasis" />
-                              <VIcon v-if="cat.permissions.can_create" icon="tabler-plus" size="12" color="medium-emphasis" />
-                              <VIcon v-if="cat.permissions.can_edit" icon="tabler-pencil" size="12" color="medium-emphasis" />
-                              <VIcon v-if="cat.permissions.can_delete" icon="tabler-trash" size="12" color="medium-emphasis" />
+                              <VIcon
+                                v-if="cat.permissions.can_view"
+                                icon="tabler-eye"
+                                size="12"
+                                color="medium-emphasis"
+                              />
+                              <VIcon
+                                v-if="cat.permissions.can_create"
+                                icon="tabler-plus"
+                                size="12"
+                                color="medium-emphasis"
+                              />
+                              <VIcon
+                                v-if="cat.permissions.can_edit"
+                                icon="tabler-pencil"
+                                size="12"
+                                color="medium-emphasis"
+                              />
+                              <VIcon
+                                v-if="cat.permissions.can_delete"
+                                icon="tabler-trash"
+                                size="12"
+                                color="medium-emphasis"
+                              />
                             </div>
                           </div>
                         </div>
 
                         <!-- Facilities -->
                         <div v-if="group.facilities.length > 0">
-                          <div class="text-caption font-weight-bold mb-1">Facilities</div>
-                          <div v-for="fac in group.facilities" :key="fac.facility.id" class="d-flex align-center justify-space-between mb-1 pl-2 border-l-2">
+                          <div class="text-caption font-weight-bold mb-1">
+                            Facilities
+                          </div>
+                          <div
+                            v-for="fac in group.facilities"
+                            :key="fac.facility.id"
+                            class="d-flex align-center justify-space-between mb-1 pl-2 border-l-2"
+                          >
                             <span class="text-caption">{{ fac.facility.name }}</span>
                             <div class="d-flex gap-1">
-                              <VIcon v-if="fac.permissions.can_view" icon="tabler-eye" size="12" color="medium-emphasis" />
-                              <VIcon v-if="fac.permissions.can_create" icon="tabler-plus" size="12" color="medium-emphasis" />
-                              <VIcon v-if="fac.permissions.can_edit" icon="tabler-pencil" size="12" color="medium-emphasis" />
-                              <VIcon v-if="fac.permissions.can_delete" icon="tabler-trash" size="12" color="medium-emphasis" />
+                              <VIcon
+                                v-if="fac.permissions.can_view"
+                                icon="tabler-eye"
+                                size="12"
+                                color="medium-emphasis"
+                              />
+                              <VIcon
+                                v-if="fac.permissions.can_create"
+                                icon="tabler-plus"
+                                size="12"
+                                color="medium-emphasis"
+                              />
+                              <VIcon
+                                v-if="fac.permissions.can_edit"
+                                icon="tabler-pencil"
+                                size="12"
+                                color="medium-emphasis"
+                              />
+                              <VIcon
+                                v-if="fac.permissions.can_delete"
+                                icon="tabler-trash"
+                                size="12"
+                                color="medium-emphasis"
+                              />
                             </div>
                           </div>
                         </div>
@@ -703,13 +1080,22 @@ onMounted(() => {
 
           <template #item.title="{ item }">
             <div>
-              <div class="font-weight-bold">{{ item.title }}</div>
-              <div class="text-caption text-medium-emphasis">{{ item.subtitle }}</div>
+              <div class="font-weight-bold">
+                {{ item.title }}
+              </div>
+              <div class="text-caption text-medium-emphasis">
+                {{ item.subtitle }}
+              </div>
             </div>
           </template>
 
           <template #item.target_type="{ item }">
-            <VChip size="small" color="info" variant="tonal" class="uppercase">
+            <VChip
+              size="small"
+              color="info"
+              variant="tonal"
+              class="uppercase"
+            >
               {{ item.target_type }}
             </VChip>
           </template>
@@ -752,9 +1138,24 @@ onMounted(() => {
 
 
 
-    <div v-if="!hideNavigation" class="d-flex justify-space-between mt-8 flex-shrink-0">
-      <VBtn variant="text" prepend-icon="tabler-arrow-left" @click="emit('prev')">Back</VBtn>
-      <VBtn color="success" append-icon="tabler-check" @click="router.push('/superadmin/dashboard')">Finish Builder</VBtn>
+    <div
+      v-if="!hideNavigation"
+      class="d-flex justify-space-between mt-8 flex-shrink-0"
+    >
+      <VBtn
+        variant="text"
+        prepend-icon="tabler-arrow-left"
+        @click="emit('prev')"
+      >
+        Back
+      </VBtn>
+      <VBtn
+        color="success"
+        append-icon="tabler-check"
+        @click="router.push('/superadmin/dashboard')"
+      >
+        Finish Builder
+      </VBtn>
     </div>
 
     <!-- Add/Edit Drawer -->
@@ -768,152 +1169,309 @@ onMounted(() => {
         class="builder-drawer premium-drawer"
         style="z-index: 8888 !important; top: 0 !important; height: 100vh !important; position: fixed !important;"
       >
-      <div class="d-flex flex-column h-100 glass-drawer-content">
-        <div class="pa-6 border-b d-flex justify-space-between align-center bg-surface sticky-header glass-header">
-          <h3 class="text-h6 font-weight-bold">{{ isEdit ? 'Edit Plan' : 'Create Plan' }}</h3>
-          <VBtn icon="tabler-x" variant="text" @click="drawerOpen = false" />
-        </div>
+        <div class="d-flex flex-column h-100 glass-drawer-content">
+          <div class="pa-6 border-b d-flex justify-space-between align-center bg-surface sticky-header glass-header">
+            <h3 class="text-h6 font-weight-bold">
+              {{ isEdit ? 'Edit Plan' : 'Create Plan' }}
+            </h3>
+            <VBtn
+              icon="tabler-x"
+              variant="text"
+              @click="drawerOpen = false"
+            />
+          </div>
 
-        <div class="flex-grow-1 overflow-y-auto pa-6">
-          <VForm id="planForm" @submit.prevent="submit">
-            <AppTextField
-              v-model="form.title"
-              label="Plan Title"
-              placeholder="e.g. Gold Plan"
-              class="mb-4"
-              required
-            />
-            <AppTextField
-              v-model="form.subtitle"
-              label="Subtitle"
-              placeholder="e.g. For growing clinics"
-              class="mb-4"
-            />
+          <div class="flex-grow-1 overflow-y-auto pa-6">
+            <VForm
+              id="planForm"
+              @submit.prevent="submit"
+            >
+              <AppTextField
+                v-model="form.title"
+                label="Plan Title"
+                placeholder="e.g. Gold Plan"
+                class="mb-4"
+                required
+              />
+              <AppTextField
+                v-model="form.subtitle"
+                label="Subtitle"
+                placeholder="e.g. For growing clinics"
+                class="mb-4"
+              />
             
-            <VRow>
-              <VCol cols="6">
-                <AppSelect
-                  v-model="form.target_type"
-                  :items="targetTypes"
-                  label="Target Audience"
-                  class="mb-4"
-                  attach="body"
-                  :menu-props="{
-                    attach: 'body',
-                    zIndex: 10000,
-                    offsetY: true
-                  }"
-                />
-              </VCol>
-              <VCol cols="6">
-                <AppSelect
-                  v-model="form.billing_cycle"
-                  :items="billingCycles"
-                  label="Billing Cycle"
-                  item-title="display_name"
-                  item-value="code"
-                  class="mb-4"
-                  attach="body"
-                  :menu-props="{
-                    attach: 'body',
-                    zIndex: 10000,
-                    offsetY: true
-                  }"
-                />
-              </VCol>
-            </VRow>
+              <VRow>
+                <VCol cols="6">
+                  <AppSelect
+                    v-model="form.target_type"
+                    :items="targetTypes"
+                    label="Target Audience"
+                    class="mb-4"
+                    attach="body"
+                    :menu-props="{
+                      attach: 'body',
+                      zIndex: 10000,
+                      offsetY: true
+                    }"
+                  />
+                </VCol>
+                <VCol cols="6">
+                  <AppSelect
+                    v-model="form.billing_cycle"
+                    :items="billingCycles"
+                    label="Billing Cycle"
+                    item-title="display_name"
+                    item-value="code"
+                    class="mb-4"
+                    attach="body"
+                    :menu-props="{
+                      attach: 'body',
+                      zIndex: 10000,
+                      offsetY: true
+                    }"
+                  />
+                </VCol>
+              </VRow>
 
-            <AppTextField
-              v-model.number="form.price"
-              label="Price (₹)"
-              type="number"
-              placeholder="0.00"
-              class="mb-4"
-              required
-            />
+              <AppTextField
+                v-model.number="form.price"
+                label="Price (₹)"
+                type="number"
+                placeholder="0.00"
+                class="mb-4"
+                required
+              />
 
-            <VDivider class="my-6" />
+              <VDivider class="my-6" />
 
-            <div class="text-subtitle-1 font-weight-bold mb-4">Included Services & Capabilities</div>
-            <div class="d-flex flex-column gap-4 mb-6">
-              <!-- Customer Services Section -->
-              <div v-if="customerServices.length > 0" class="mb-6">
-                <div class="text-overline font-weight-bold text-primary mb-4 d-flex align-center gap-2">
-                  <VIcon icon="tabler-shopping-cart" size="18" />
-                  Customer Services (Revenue)
+              <div class="text-subtitle-1 font-weight-bold mb-4">
+                Included Services & Capabilities
+              </div>
+              <div class="d-flex flex-column gap-4 mb-6">
+                <!-- Customer Services Section -->
+                <div
+                  v-if="customerServices.length > 0"
+                  class="mb-6"
+                >
+                  <div class="text-overline font-weight-bold text-primary mb-4 d-flex align-center gap-2">
+                    <VIcon
+                      icon="tabler-shopping-cart"
+                      size="18"
+                    />
+                    Customer Services (Revenue)
+                  </div>
+                  <div class="d-flex flex-column gap-4">
+                    <VCard
+                      v-for="svc in customerServices"
+                      :key="svc.id"
+                      variant="outlined"
+                      class="pa-4"
+                    >
+                      <!-- Service Level -->
+                      <div class="d-flex align-center justify-space-between mb-2">
+                        <div class="d-flex align-center gap-2">
+                          <VIcon
+                            :icon="svc.icon || 'tabler-package'"
+                            size="20"
+                            color="primary"
+                          />
+                          <span class="font-weight-bold">{{ svc.display_name }}</span>
+                        </div>
+                        <VSwitch
+                          :model-value="!!form.capabilities[`svc_${svc.id}`]?.enabled"
+                          density="compact"
+                          hide-details
+                          color="primary"
+                          @update:model-value="(val) => toggleCapability('svc', svc.id, val)"
+                        />
+                      </div>
+
+                      <VExpandTransition>
+                        <div
+                          v-if="form.capabilities[`svc_${svc.id}`]?.enabled"
+                          class="mt-4 pt-4 border-t"
+                        >
+                          <!-- Categories -->
+                          <div
+                            v-if="categories.filter(c => c.service === svc.id).length > 0"
+                            class="pl-4 border-l-2"
+                          >
+                            <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                              Categories
+                            </div>
+                            <div
+                              v-for="cat in categories.filter(c => c.service === svc.id)"
+                              :key="cat.id"
+                              class="mb-4"
+                            >
+                              <div class="d-flex align-center justify-space-between mb-2">
+                                <span class="text-body-2 font-weight-medium">{{ cat.name }}</span>
+                                <VSwitch
+                                  :model-value="!!form.capabilities[`cat_${cat.id}`]?.enabled"
+                                  density="compact"
+                                  hide-details
+                                  color="info"
+                                  @update:model-value="(val) => toggleCapability('cat', cat.id, val)"
+                                />
+                              </div>
+
+                              <!-- Category Permissions -->
+                              <VExpandTransition>
+                                <div v-if="form.capabilities[`cat_${cat.id}`]?.enabled">
+                                  <div class="d-flex flex-wrap gap-x-6 gap-y-2 mb-3">
+                                    <VCheckbox
+                                      v-model="form.capabilities[`cat_${cat.id}`].permissions.can_view"
+                                      label="View"
+                                      density="compact"
+                                      hide-details
+                                    />
+                                    <VCheckbox
+                                      v-model="form.capabilities[`cat_${cat.id}`].permissions.can_create"
+                                      label="Create"
+                                      density="compact"
+                                      hide-details
+                                    />
+                                    <VCheckbox
+                                      v-model="form.capabilities[`cat_${cat.id}`].permissions.can_edit"
+                                      label="Edit"
+                                      density="compact"
+                                      hide-details
+                                    />
+                                    <VCheckbox
+                                      v-model="form.capabilities[`cat_${cat.id}`].permissions.can_delete"
+                                      label="Delete"
+                                      density="compact"
+                                      hide-details
+                                    />
+                                  </div>
+                                </div>
+                              </VExpandTransition>
+                            </div>
+                          </div>
+
+                          <!-- Facilities (Directly under Service) -->
+                          <div
+                            v-if="facilities.filter(f => f.service === svc.id).length > 0"
+                            class="pl-4 border-l-2 mt-4"
+                          >
+                            <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                              Facilities
+                            </div>
+                            <div
+                              v-for="fac in facilities.filter(f => f.service === svc.id)"
+                              :key="fac.id"
+                              class="mb-2"
+                            >
+                              <div class="d-flex align-center justify-space-between mb-2">
+                                <span class="text-body-2">{{ fac.name }}</span>
+                                <VSwitch
+                                  :model-value="!!form.capabilities[`fac_${fac.id}`]?.enabled"
+                                  density="compact"
+                                  hide-details
+                                  color="warning"
+                                  @update:model-value="(val) => toggleCapability('fac', fac.id, val)"
+                                />
+                              </div>
+                              <VExpandTransition>
+                                <div v-if="form.capabilities[`fac_${fac.id}`]?.enabled">
+                                  <div class="d-flex flex-wrap gap-x-6 gap-y-2 mb-3">
+                                    <VCheckbox
+                                      v-model="form.capabilities[`fac_${fac.id}`].permissions.can_view"
+                                      label="View"
+                                      density="compact"
+                                      hide-details
+                                    />
+                                    <VCheckbox
+                                      v-model="form.capabilities[`fac_${fac.id}`].permissions.can_create"
+                                      label="Create"
+                                      density="compact"
+                                      hide-details
+                                    />
+                                    <VCheckbox
+                                      v-model="form.capabilities[`fac_${fac.id}`].permissions.can_edit"
+                                      label="Edit"
+                                      density="compact"
+                                      hide-details
+                                    />
+                                    <VCheckbox
+                                      v-model="form.capabilities[`fac_${fac.id}`].permissions.can_delete"
+                                      label="Delete"
+                                      density="compact"
+                                      hide-details
+                                    />
+                                  </div>
+                                </div>
+                              </VExpandTransition>
+                            </div>
+                          </div>
+                        </div>
+                      </VExpandTransition>
+                    </VCard>
+                  </div>
                 </div>
-                <div class="d-flex flex-column gap-4">
-                  <VCard v-for="svc in customerServices" :key="svc.id" variant="outlined" class="pa-4">
-                    <!-- Service Level -->
+
+                <!-- Veterinary Operations Section -->
+                <div
+                  v-if="veterinaryService"
+                  class="mb-6"
+                >
+                  <div class="text-overline font-weight-bold text-success mb-4 d-flex align-center gap-2">
+                    <VIcon
+                      icon="tabler-settings-automation"
+                      size="18"
+                    />
+                    Veterinary Operations Access
+                  </div>
+                  <VCard
+                    variant="outlined"
+                    class="pa-4"
+                  >
                     <div class="d-flex align-center justify-space-between mb-2">
                       <div class="d-flex align-center gap-2">
-                        <VIcon :icon="svc.icon || 'tabler-package'" size="20" color="primary" />
-                        <span class="font-weight-bold">{{ svc.display_name }}</span>
+                        <VIcon
+                          :icon="veterinaryService.icon || 'tabler-stethoscope'"
+                          size="20"
+                          color="success"
+                        />
+                        <span class="font-weight-bold">Veterinary Operations</span>
                       </div>
                       <VSwitch
-                        :model-value="!!form.capabilities[`svc_${svc.id}`]?.enabled"
+                        :model-value="!!form.capabilities[`svc_${veterinaryService.id}`]?.enabled"
                         density="compact"
                         hide-details
-                        color="primary"
-                        @update:model-value="(val) => toggleCapability('svc', svc.id, val)"
+                        color="success"
+                        @update:model-value="(val) => toggleCapability('svc', veterinaryService.id, val)"
                       />
                     </div>
 
                     <VExpandTransition>
-                      <div v-if="form.capabilities[`svc_${svc.id}`]?.enabled" class="mt-4 pt-4 border-t">
-                        <!-- Categories -->
-                        <div v-if="categories.filter(c => c.service === svc.id).length > 0" class="pl-4 border-l-2">
-                          <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">Categories</div>
-                          <div v-for="cat in categories.filter(c => c.service === svc.id)" :key="cat.id" class="mb-4">
-                            <div class="d-flex align-center justify-space-between mb-2">
-                              <span class="text-body-2 font-weight-medium">{{ cat.name }}</span>
-                              <VSwitch
-                                :model-value="!!form.capabilities[`cat_${cat.id}`]?.enabled"
-                                density="compact"
-                                hide-details
-                                color="info"
-                                @update:model-value="(val) => toggleCapability('cat', cat.id, val)"
-                              />
-                            </div>
-
-                            <!-- Category Permissions -->
-                            <VExpandTransition>
-                              <div v-if="form.capabilities[`cat_${cat.id}`]?.enabled">
-                                <div class="d-flex flex-wrap gap-x-6 gap-y-2 mb-3">
-                                  <VCheckbox v-model="form.capabilities[`cat_${cat.id}`].permissions.can_view" label="View" density="compact" hide-details />
-                                  <VCheckbox v-model="form.capabilities[`cat_${cat.id}`].permissions.can_create" label="Create" density="compact" hide-details />
-                                  <VCheckbox v-model="form.capabilities[`cat_${cat.id}`].permissions.can_edit" label="Edit" density="compact" hide-details />
-                                  <VCheckbox v-model="form.capabilities[`cat_${cat.id}`].permissions.can_delete" label="Delete" density="compact" hide-details />
-                                </div>
-                              </div>
-                            </VExpandTransition>
+                      <div
+                        v-if="form.capabilities[`svc_${veterinaryService.id}`]?.enabled"
+                        class="mt-4 pt-4 border-t"
+                      >
+                        <div
+                          v-for="(caps, group) in groupedCapabilities"
+                          :key="group"
+                          class="mb-6"
+                        >
+                          <div class="text-caption font-weight-bold text-uppercase text-success mb-2">
+                            {{ group }}
                           </div>
-                        </div>
-
-                        <!-- Facilities (Directly under Service) -->
-                        <div v-if="facilities.filter(f => f.service === svc.id).length > 0" class="pl-4 border-l-2 mt-4">
-                          <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">Facilities</div>
-                          <div v-for="fac in facilities.filter(f => f.service === svc.id)" :key="fac.id" class="mb-2">
-                            <div class="d-flex align-center justify-space-between mb-2">
-                              <span class="text-body-2">{{ fac.name }}</span>
-                              <VSwitch
-                                :model-value="!!form.capabilities[`fac_${fac.id}`]?.enabled"
-                                density="compact"
-                                hide-details
-                                color="warning"
-                                @update:model-value="(val) => toggleCapability('fac', fac.id, val)"
-                              />
-                            </div>
-                            <VExpandTransition>
-                              <div v-if="form.capabilities[`fac_${fac.id}`]?.enabled">
-                                <div class="d-flex flex-wrap gap-x-6 gap-y-2 mb-3">
-                                  <VCheckbox v-model="form.capabilities[`fac_${fac.id}`].permissions.can_view" label="View" density="compact" hide-details />
-                                  <VCheckbox v-model="form.capabilities[`fac_${fac.id}`].permissions.can_create" label="Create" density="compact" hide-details />
-                                  <VCheckbox v-model="form.capabilities[`fac_${fac.id}`].permissions.can_edit" label="Edit" density="compact" hide-details />
-                                  <VCheckbox v-model="form.capabilities[`fac_${fac.id}`].permissions.can_delete" label="Delete" density="compact" hide-details />
+                          <div class="d-flex flex-column gap-4">
+                            <VCheckbox
+                              v-for="cap in caps"
+                              :key="cap.key"
+                              v-model="form.capabilities[`svc_${veterinaryService.id}`].permissions[cap.key]"
+                              density="compact"
+                              hide-details
+                            >
+                              <template #label>
+                                <div class="d-flex flex-column ms-2">
+                                  <span class="text-body-2 font-weight-medium">{{ cap.label }}</span>
+                                  <span class="text-caption text-medium-emphasis">{{ cap.description }}</span>
                                 </div>
-                              </div>
-                            </VExpandTransition>
+                              </template>
+                            </VCheckbox>
                           </div>
                         </div>
                       </div>
@@ -922,84 +1480,75 @@ onMounted(() => {
                 </div>
               </div>
 
-              <!-- Veterinary Operations Section -->
-              <div v-if="veterinaryService" class="mb-6">
-                <div class="text-overline font-weight-bold text-success mb-4 d-flex align-center gap-2">
-                  <VIcon icon="tabler-settings-automation" size="18" />
-                  Veterinary Operations Access
-                </div>
-                <VCard variant="outlined" class="pa-4">
-                  <div class="d-flex align-center justify-space-between mb-2">
-                    <div class="d-flex align-center gap-2">
-                      <VIcon :icon="veterinaryService.icon || 'tabler-stethoscope'" size="20" color="success" />
-                      <span class="font-weight-bold">Veterinary Operations</span>
-                    </div>
-                    <VSwitch
-                      :model-value="!!form.capabilities[`svc_${veterinaryService.id}`]?.enabled"
-                      density="compact"
-                      hide-details
-                      color="success"
-                      @update:model-value="(val) => toggleCapability('svc', veterinaryService.id, val)"
-                    />
-                  </div>
+              <VDivider class="my-6" />
 
-                  <VExpandTransition>
-                    <div v-if="form.capabilities[`svc_${veterinaryService.id}`]?.enabled" class="mt-4 pt-4 border-t">
-                      <div v-for="(caps, group) in groupedCapabilities" :key="group" class="mb-6">
-                        <div class="text-caption font-weight-bold text-uppercase text-success mb-2">{{ group }}</div>
-                        <div class="d-flex flex-column gap-4">
-                          <VCheckbox
-                            v-for="cap in caps"
-                            :key="cap.key"
-                            v-model="form.capabilities[`svc_${veterinaryService.id}`].permissions[cap.key]"
-                            density="compact"
-                            hide-details
-                          >
-                            <template #label>
-                              <div class="d-flex flex-column ms-2">
-                                <span class="text-body-2 font-weight-medium">{{ cap.label }}</span>
-                                <span class="text-caption text-medium-emphasis">{{ cap.description }}</span>
-                              </div>
-                            </template>
-                          </VCheckbox>
-                        </div>
-                      </div>
-                    </div>
-                  </VExpandTransition>
-                </VCard>
+              <div class="text-subtitle-1 font-weight-bold mb-2">
+                Features (Marketing)
               </div>
-            </div>
+            
+              <div class="mb-4">
+                <div class="text-caption text-medium-emphasis mb-2">
+                  Suggestions (Click to add)
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <VChip
+                    v-for="suggested in suggestedFeatures.filter(f => !form.features.includes(f))"
+                    :key="suggested"
+                    size="small"
+                    variant="outlined"
+                    color="secondary"
+                    class="cursor-pointer"
+                    @click="addFeature(suggested)"
+                  >
+                    <VIcon
+                      icon="tabler-plus"
+                      size="14"
+                      start
+                    />
+                    {{ suggested }}
+                  </VChip>
+                  <div
+                    v-if="suggestedFeatures.every(f => form.features.includes(f))"
+                    class="text-caption italic text-medium-emphasis"
+                  >
+                    All suggestions added.
+                  </div>
+                </div>
+              </div>
 
-            <VDivider class="my-6" />
+              <div class="d-flex flex-wrap gap-2 mb-4">
+                <VChip
+                  v-for="(feature, i) in form.features"
+                  :key="i"
+                  closable
+                  size="small"
+                  color="primary"
+                  @click:close="form.features.splice(i, 1)"
+                >
+                  {{ feature }}
+                </VChip>
+              </div>
+              <AppTextField
+                placeholder="Add a feature and press Enter"
+                class="mb-8"
+                @keyup.enter="(e) => { if(e.target.value) { form.features.push(e.target.value); e.target.value = '' } }"
+              />
+            </VForm>
+          </div>
 
-            <div class="text-subtitle-1 font-weight-bold mb-4">Features (Marketing)</div>
-            <div class="d-flex flex-wrap gap-2 mb-4">
-              <VChip
-                v-for="(feature, i) in form.features"
-                :key="i"
-                closable
-                size="small"
-                @click:close="form.features.splice(i, 1)"
+          <div class="pa-6 border-t bg-surface">
+            <div class="d-flex gap-4">
+              <VBtn
+                color="primary"
+                block
+                type="submit"
+                form="planForm"
               >
-                {{ feature }}
-              </VChip>
+                {{ isEdit ? 'Update Plan' : 'Create Plan' }}
+              </VBtn>
             </div>
-            <AppTextField
-              placeholder="Add a feature and press Enter"
-              @keyup.enter="(e) => { if(e.target.value) { form.features.push(e.target.value); e.target.value = '' } }"
-              class="mb-8"
-            />
-          </VForm>
-        </div>
-
-        <div class="pa-6 border-t bg-surface">
-          <div class="d-flex gap-4">
-            <VBtn color="primary" block type="submit" form="planForm">
-              {{ isEdit ? 'Update Plan' : 'Create Plan' }}
-            </VBtn>
           </div>
         </div>
-      </div>
       </VNavigationDrawer>
     </Teleport>
   </div>
@@ -1179,6 +1728,7 @@ onMounted(() => {
   }
 }
 </style>
+
 <route lang="yaml">
 meta:
   pageTitle: null

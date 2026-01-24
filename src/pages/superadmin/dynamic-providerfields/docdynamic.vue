@@ -1,89 +1,150 @@
 <template>
   <section>
     <div class="pa-10 bg-surface min-h-screen">
-
       <!-- HEADER -->
-      <v-row align="center" justify="space-between" class="mb-10">
-        <v-col cols="12" md="8">
-          <h1 class="page-title">Provider Documents</h1>
-          <p class="subtitle">Upload and manage your verification documents.</p>
-        </v-col>
+      <VRow
+        align="center"
+        justify="space-between"
+        class="mb-10"
+      >
+        <VCol
+          cols="12"
+          md="8"
+        >
+          <h1 class="page-title">
+            Provider Documents
+          </h1>
+          <p class="subtitle">
+            Upload and manage your verification documents.
+          </p>
+        </VCol>
 
-        <v-col cols="12" md="4" class="text-right">
-          <v-chip class="role-chip" outlined>{{ displayRole }}</v-chip>
-        </v-col>
-      </v-row>
+        <VCol
+          cols="12"
+          md="4"
+          class="text-right"
+        >
+          <VChip
+            class="role-chip"
+            outlined
+          >
+            {{ displayRole }}
+          </VChip>
+        </VCol>
+      </VRow>
 
       <!-- ACTION BAR -->
-      <v-card class="pa-4 mb-8 elevation-6 action-bar">
-        <v-row justify="end" align="center" dense>
-          <v-btn variant="tonal" color="#6C27FF" class="me-3" @click="fetchDocDefinitions">
+      <VCard class="pa-4 mb-8 elevation-6 action-bar">
+        <VRow
+          justify="end"
+          align="center"
+          dense
+        >
+          <VBtn
+            variant="tonal"
+            color="#6C27FF"
+            class="me-3"
+            @click="fetchDocDefinitions"
+          >
             Refresh definitions
-          </v-btn>
+          </VBtn>
 
-          <v-btn color="primary" :disabled="!authUserId" @click="fetchUploadedDocs">
+          <VBtn
+            color="primary"
+            :disabled="!authUserId"
+            @click="fetchUploadedDocs"
+          >
             Reload uploads
-          </v-btn>
-        </v-row>
-      </v-card>
+          </VBtn>
+        </VRow>
+      </VCard>
 
       <!-- GRID -->
-      <v-row dense>
-
+      <VRow dense>
         <!-- LEFT PANEL: Definitions -->
-        <v-col cols="12" md="6">
-          <h2 class="section-title">Required Documents</h2>
+        <VCol
+          cols="12"
+          md="6"
+        >
+          <h2 class="section-title">
+            Required Documents
+          </h2>
 
-          <div v-if="docLoading" class="centered py-8">
-            <v-progress-circular indeterminate size="44" />
-            <div class="mt-3 text-muted">Loading document definitions...</div>
+          <div
+            v-if="docLoading"
+            class="centered py-8"
+          >
+            <VProgressCircular
+              indeterminate
+              size="44"
+            />
+            <div class="mt-3 text-muted">
+              Loading document definitions...
+            </div>
           </div>
 
-          <div v-else-if="docDefinitions.length === 0" class="empty-state">
-            <div class="empty-icon">📄</div>
-            <div class="empty-text">No document definitions found.</div>
+          <div
+            v-else-if="docDefinitions.length === 0"
+            class="empty-state"
+          >
+            <div class="empty-icon">
+              📄
+            </div>
+            <div class="empty-text">
+              No document definitions found.
+            </div>
           </div>
 
           <div v-else>
-            <v-card
+            <VCard
               v-for="def in sortedDefs"
               :key="def.id"
               class="mb-6 def-card elevation-3"
             >
-              <v-card-title class="d-flex justify-space-between align-center">
+              <VCardTitle class="d-flex justify-space-between align-center">
                 <div>
-                  <div class="def-title">{{ def.label }}</div>
-                  <div class="def-sub mt-1">
-                    <span class="muted">{{ def.key }}</span> • <b>{{ 'Single' }}</b>
+                  <div class="def-title">
+                    {{ def.label }}
                   </div>
-                  <div v-if="def.help_text" class="help-text mt-2">{{ def.help_text }}</div>
-                  <div v-else class="help-text mt-2 muted">
+                  <div class="def-sub mt-1">
+                    <span class="muted">{{ def.key }}</span> • <b>Single</b>
+                  </div>
+                  <div
+                    v-if="def.help_text"
+                    class="help-text mt-2"
+                  >
+                    {{ def.help_text }}
+                  </div>
+                  <div
+                    v-else
+                    class="help-text mt-2 muted"
+                  >
                     Allowed: <b>{{ def.allowed_types?.length ? def.allowed_types.join(', ') : 'Any' }}</b>
                   </div>
                 </div>
 
                 <div class="actions">
-                  <v-btn
+                  <VBtn
                     :color="getUploadedForDef(def.id) ? 'warning' : 'primary'"
                     small
                     @click="onUploadClick(def)"
                   >
                     {{ getUploadedForDef(def.id) ? 'Update' : 'Upload' }}
-                  </v-btn>
+                  </VBtn>
 
                   <!-- hidden input (single) -->
                   <input
-                    type="file"
                     :ref="el => fileInputs[def.id] = el"
+                    type="file"
                     class="d-none"
                     accept="*/*"
-                    @change="(e) => onFileSelectedSingle(def, e)"
                     :multiple="false"
-                  />
+                    @change="(e) => onFileSelectedSingle(def, e)"
+                  >
                 </div>
-              </v-card-title>
+              </VCardTitle>
 
-              <v-card-text>
+              <VCardText>
                 <!-- Dropzone Area -->
                 <div
                   class="dropzone-area mb-4"
@@ -91,93 +152,181 @@
                   @dragover.prevent
                   @drop.prevent="(e) => onDrop(def, e)"
                 >
-                  <v-icon size="40" color="#6C27FF">mdi-cloud-upload-outline</v-icon>
+                  <VIcon
+                    size="40"
+                    color="#6C27FF"
+                  >
+                    mdi-cloud-upload-outline
+                  </VIcon>
                   <div class="dz-text mt-2">
                     Click or drag to {{ getUploadedForDef(def.id) ? 'replace' : 'upload' }}
                   </div>
                 </div>
-                <transition name="fade">
-                  <div v-if="uploading[def.id]" class="upload-progress">
+                <Transition name="fade">
+                  <div
+                    v-if="uploading[def.id]"
+                    class="upload-progress"
+                  >
                     <div class="d-flex justify-space-between mb-2 small muted">
                       <div>{{ uploading[def.id].file }}</div>
                       <div>{{ uploading[def.id].progress }}%</div>
                     </div>
 
-                    <v-progress-linear :model-value="uploading[def.id].progress" height="8" rounded />
+                    <VProgressLinear
+                      :model-value="uploading[def.id].progress"
+                      height="8"
+                      rounded
+                    />
                   </div>
-                </transition>
+                </Transition>
 
-                <div v-if="getUploadedForDef(def.id)" class="existing-block mt-4">
-                  <div class="existing-label">Existing file</div>
+                <div
+                  v-if="getUploadedForDef(def.id)"
+                  class="existing-block mt-4"
+                >
+                  <div class="existing-label">
+                    Existing file
+                  </div>
                   <div class="existing-row d-flex align-center mt-2">
-                    <div v-if="isImage(getUploadedForDef(def.id).content_type)" class="thumb">
-                      <img :src="getUploadedForDef(def.id).file_url" alt="preview" />
+                    <div
+                      v-if="isImage(getUploadedForDef(def.id).content_type)"
+                      class="thumb"
+                    >
+                      <img
+                        :src="getUploadedForDef(def.id).file_url"
+                        alt="preview"
+                      >
                     </div>
                     <div class="meta ms-3">
-                      <div class="filename">{{ getUploadedForDef(def.id).filename }}</div>
-                      <div class="muted small">{{ readableSize(getUploadedForDef(def.id).size) }} • {{ getUploadedForDef(def.id).content_type }}</div>
+                      <div class="filename">
+                        {{ getUploadedForDef(def.id).filename }}
+                      </div>
+                      <div class="muted small">
+                        {{ readableSize(getUploadedForDef(def.id).size) }} • {{ getUploadedForDef(def.id).content_type }}
+                      </div>
                       <div class="mt-2">
-                        <v-btn text small @click="openDocument(getUploadedForDef(def.id))">Open</v-btn>
-                        <v-btn text small color="red" @click="deleteDocument(getUploadedForDef(def.id))">Delete</v-btn>
+                        <VBtn
+                          text
+                          small
+                          @click="openDocument(getUploadedForDef(def.id))"
+                        >
+                          Open
+                        </VBtn>
+                        <VBtn
+                          text
+                          small
+                          color="red"
+                          @click="deleteDocument(getUploadedForDef(def.id))"
+                        >
+                          Delete
+                        </VBtn>
                       </div>
                     </div>
                   </div>
                 </div>
-
-              </v-card-text>
-            </v-card>
+              </VCardText>
+            </VCard>
           </div>
-        </v-col>
+        </VCol>
 
         <!-- RIGHT PANEL: Uploaded Files list -->
-        <v-col cols="12" md="6">
-          <h2 class="section-title">Uploaded Files</h2>
+        <VCol
+          cols="12"
+          md="6"
+        >
+          <h2 class="section-title">
+            Uploaded Files
+          </h2>
 
-          <v-card class="mb-4 elevation-3">
-            <v-card-text>
-              <div v-if="docsLoading" class="centered py-8">
-                <v-progress-circular indeterminate size="44" />
-                <div class="mt-3 text-muted">Loading uploaded files...</div>
+          <VCard class="mb-4 elevation-3">
+            <VCardText>
+              <div
+                v-if="docsLoading"
+                class="centered py-8"
+              >
+                <VProgressCircular
+                  indeterminate
+                  size="44"
+                />
+                <div class="mt-3 text-muted">
+                  Loading uploaded files...
+                </div>
               </div>
 
-              <div v-else-if="uploadedDocs.length === 0" class="empty-state small">
-                <div class="empty-icon">📁</div>
-                <div class="empty-text">No documents uploaded yet.</div>
+              <div
+                v-else-if="uploadedDocs.length === 0"
+                class="empty-state small"
+              >
+                <div class="empty-icon">
+                  📁
+                </div>
+                <div class="empty-text">
+                  No documents uploaded yet.
+                </div>
               </div>
 
               <div v-else>
-                <v-card
+                <VCard
                   v-for="doc in uploadedDocs"
                   :key="doc.id"
                   class="mb-4 pa-4 uploaded-card elevation-1"
                 >
                   <div class="d-flex justify-space-between">
                     <div>
-                      <div v-if="isImage(doc.content_type)" class="u-thumb mb-2">
-                        <img :src="doc.file_url || doc.file_path || doc.file" alt="preview" />
+                      <div
+                        v-if="isImage(doc.content_type)"
+                        class="u-thumb mb-2"
+                      >
+                        <img
+                          :src="doc.file_url || doc.file_path || doc.file"
+                          alt="preview"
+                        >
                       </div>
 
-                      <div class="u-filename">{{ doc.filename }}</div>
-                      <div class="muted small mt-1">{{ readableSize(doc.size) }} • {{ doc.content_type }}</div>
-                      <div class="mt-2 status">Status: <b>{{ doc.status || 'pending' }}</b></div>
+                      <div class="u-filename">
+                        {{ doc.filename }}
+                      </div>
+                      <div class="muted small mt-1">
+                        {{ readableSize(doc.size) }} • {{ doc.content_type }}
+                      </div>
+                      <div class="mt-2 status">
+                        Status: <b>{{ doc.status || 'pending' }}</b>
+                      </div>
                     </div>
 
                     <div class="d-flex flex-column gap-2">
-                      <v-btn small variant="outlined" @click="openDocument(doc)">Open</v-btn>
-                      <v-btn small color="red" @click="deleteDocument(doc)">Delete</v-btn>
+                      <VBtn
+                        small
+                        variant="outlined"
+                        @click="openDocument(doc)"
+                      >
+                        Open
+                      </VBtn>
+                      <VBtn
+                        small
+                        color="red"
+                        @click="deleteDocument(doc)"
+                      >
+                        Delete
+                      </VBtn>
                     </div>
                   </div>
-                </v-card>
+                </VCard>
               </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
+            </VCardText>
+          </VCard>
+        </VCol>
+      </VRow>
 
       <!-- SNACKBAR -->
-      <v-snackbar v-model="snackbar.open" :color="snackbar.color" location="bottom right" timeout="3200">
+      <VSnackbar
+        v-model="snackbar.open"
+        :color="snackbar.color"
+        location="bottom right"
+        timeout="3200"
+      >
         {{ snackbar.message }}
-      </v-snackbar>
+      </VSnackbar>
     </div>
   </section>
 </template>
@@ -189,201 +338,218 @@
    - Uses your existing APIs (DEFS_API / UPLOAD_API / LIST_API / ITEM_API)
 */
 
-import { ref, reactive, computed, onMounted } from 'vue';
-import { api } from '@/plugins/axios';
-import { useCookie } from '@/@core/composable/useCookie';
+import { ref, reactive, computed, onMounted } from 'vue'
+import { api } from '@/plugins/axios'
+import { useCookie } from '@/@core/composable/useCookie'
 
-const DEFS_API = 'http://127.0.0.1:8002/api/provider/documents/definitions/';
-const UPLOAD_API = 'http://127.0.0.1:8002/api/provider/documents/upload/';
-const LIST_API = 'http://127.0.0.1:8002/api/provider/documents/';
-const ITEM_API = (id) => `http://127.0.0.1:8002/api/provider/documents/${id}/`;
+const DEFS_API = 'http://127.0.0.1:8002/api/provider/documents/definitions/'
+const UPLOAD_API = 'http://127.0.0.1:8002/api/provider/documents/upload/'
+const LIST_API = 'http://127.0.0.1:8002/api/provider/documents/'
+const ITEM_API = id => `http://127.0.0.1:8002/api/provider/documents/${id}/`
 
 
-const docDefinitions = ref([]);
-const docLoading = ref(false);
+const docDefinitions = ref([])
+const docLoading = ref(false)
 
-const uploadedDocs = ref([]);
-const docsLoading = ref(false);
+const uploadedDocs = ref([])
+const docsLoading = ref(false)
 
-const uploading = reactive({});         // { defId: {progress, file} }
-const fileInputs = reactive({});        // references to inputs
+const uploading = reactive({})         // { defId: {progress, file} }
+const fileInputs = reactive({})        // references to inputs
 
-const snackbar = reactive({ open: false, message: '', color: 'success', timer: null });
+const snackbar = reactive({ open: false, message: '', color: 'success', timer: null })
 
-const userData = useCookie('userData').value || {};
+const userData = useCookie('userData').value || {}
 
-const rawRole = userData.provider_type || 'individual';
-const normalizedRole = rawRole.toLowerCase().trim();
-const selectedTarget = ref(normalizedRole);
-const authUserId = ref(userData.id || '');
-const displayRole = userData.provider_type || 'unknown';
+const rawRole = userData.provider_type || 'individual'
+const normalizedRole = rawRole.toLowerCase().trim()
+const selectedTarget = ref(normalizedRole)
+const authUserId = ref(userData.id || '')
+const displayRole = userData.provider_type || 'unknown'
 
 function showSnackbar(msg, color = 'success', timeout = 3000) {
-  snackbar.message = msg;
-  snackbar.color = color;
-  snackbar.open = true;
-  clearTimeout(snackbar.timer);
-  snackbar.timer = setTimeout(() => (snackbar.open = false), timeout);
+  snackbar.message = msg
+  snackbar.color = color
+  snackbar.open = true
+  clearTimeout(snackbar.timer)
+  snackbar.timer = setTimeout(() => (snackbar.open = false), timeout)
 }
 
 function readableSize(bytes = 0) {
-  if (!bytes && bytes !== 0) return '0 B';
-  const units = ['B','KB','MB','GB','TB'];
-  let i = 0;
-  let n = Number(bytes || 0);
-  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
-  return `${n.toFixed(1)} ${units[i]}`;
+  if (!bytes && bytes !== 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let i = 0
+  let n = Number(bytes || 0)
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++ }
+  
+  return `${n.toFixed(1)} ${units[i]}`
 }
 
 const sortedDefs = computed(() => {
-  if (!Array.isArray(docDefinitions.value)) return [];
-  return [...docDefinitions.value].sort((a, b) => (Number(a.order || 0) - Number(b.order || 0)) || (a.label || '').localeCompare(b.label || ''));
-});
+  if (!Array.isArray(docDefinitions.value)) return []
+  
+  return [...docDefinitions.value].sort((a, b) => (Number(a.order || 0) - Number(b.order || 0)) || (a.label || '').localeCompare(b.label || ''))
+})
 
 async function fetchDocDefinitions() {
-  if (!selectedTarget.value) return;
-  docLoading.value = true;
+  if (!selectedTarget.value) return
+  docLoading.value = true
   try {
-    const res = await api.get(DEFS_API, { params: { target: selectedTarget.value } });
+    const res = await api.get(DEFS_API, { params: { target: selectedTarget.value } })
+
     // Support different payload shapes
-    if (Array.isArray(res.data)) docDefinitions.value = res.data;
-    else docDefinitions.value = res.data.definitions || res.data || [];
+    if (Array.isArray(res.data)) docDefinitions.value = res.data
+    else docDefinitions.value = res.data.definitions || res.data || []
   } catch (err) {
-    console.error('fetchDocDefinitions', err);
-    docDefinitions.value = [];
-    showSnackbar('Failed to load definitions', 'error');
+    console.error('fetchDocDefinitions', err)
+    docDefinitions.value = []
+    showSnackbar('Failed to load definitions', 'error')
   } finally {
-    docLoading.value = false;
+    docLoading.value = false
   }
 }
 
 async function fetchUploadedDocs() {
   if (!authUserId.value) {
-    uploadedDocs.value = [];
-    return;
+    uploadedDocs.value = []
+    
+    return
   }
-  docsLoading.value = true;
+  docsLoading.value = true
   try {
-    const res = await api.get(LIST_API, { params: { user: authUserId.value } });
-    uploadedDocs.value = res.data.documents || res.data.uploaded_documents || res.data || [];
+    const res = await api.get(LIST_API, { params: { user: authUserId.value } })
+
+    uploadedDocs.value = res.data.documents || res.data.uploaded_documents || res.data || []
   } catch (err) {
-    console.error('fetchUploadedDocs', err);
-    uploadedDocs.value = [];
-    showSnackbar('Failed to load uploaded documents', 'error');
+    console.error('fetchUploadedDocs', err)
+    uploadedDocs.value = []
+    showSnackbar('Failed to load uploaded documents', 'error')
   } finally {
-    docsLoading.value = false;
+    docsLoading.value = false
   }
 }
 
 // Get the first uploaded document for a definition (single)
 function getUploadedForDef(defId) {
-  if (!uploadedDocs.value || !uploadedDocs.value.length) return null;
+  if (!uploadedDocs.value || !uploadedDocs.value.length) return null
+
   // definition_id might be string or number
-  return uploadedDocs.value.find(d => String(d.definition_id) === String(defId)) || null;
+  return uploadedDocs.value.find(d => String(d.definition_id) === String(defId)) || null
 }
 
 // Upload flow (single-file only)
 function onUploadClick(def) {
   // If already uploaded, confirm replace
-  const existing = getUploadedForDef(def.id);
+  const existing = getUploadedForDef(def.id)
   if (existing) {
-    const ok = confirm(`A file already exists for "${def.label}". Choose a new file to replace it.` + '\n\nProceed to pick a file?');
-    if (!ok) return;
+    const ok = confirm(`A file already exists for "${def.label}". Choose a new file to replace it.` + '\n\nProceed to pick a file?')
+    if (!ok) return
   }
+
   // trigger hidden input
-  if (fileInputs[def.id]) fileInputs[def.id].click();
+  if (fileInputs[def.id]) fileInputs[def.id].click()
 }
 
 // Single-file selected handler (force single)
 function onFileSelectedSingle(def, evt) {
-  const files = evt.target.files ? Array.from(evt.target.files) : [];
-  if (!files.length) return;
-  const file = files[0]; // ALWAYS single
-  evt.target.value = ''; // reset for future picks
-  uploadFileForDefinition(def, file);
+  const files = evt.target.files ? Array.from(evt.target.files) : []
+  if (!files.length) return
+  const file = files[0] // ALWAYS single
+
+  evt.target.value = '' // reset for future picks
+  uploadFileForDefinition(def, file)
 }
 
 function onDrop(def, evt) {
-  const files = evt.dataTransfer.files ? Array.from(evt.dataTransfer.files) : [];
-  if (!files.length) return;
-  uploadFileForDefinition(def, files[0]);
+  const files = evt.dataTransfer.files ? Array.from(evt.dataTransfer.files) : []
+  if (!files.length) return
+  uploadFileForDefinition(def, files[0])
 }
 
 // Basic allowed check (uses allowed_types list if present)
 function isAllowed(def, file) {
-  if (!def.allowed_types || !def.allowed_types.length) return true;
-  if (!file) return false;
-  if (def.allowed_types.includes(file.type)) return true;
+  if (!def.allowed_types || !def.allowed_types.length) return true
+  if (!file) return false
+  if (def.allowed_types.includes(file.type)) return true
+
   // fallback by extension check
-  const ext = (file.name || '').split('.').pop().toLowerCase();
-  return def.allowed_types.some(mime => mime.includes(ext));
+  const ext = (file.name || '').split('.').pop().toLowerCase()
+  
+  return def.allowed_types.some(mime => mime.includes(ext))
 }
 
 async function uploadFileForDefinition(def, file) {
-  if (!authUserId.value) { showSnackbar('Set your user id before uploading', 'error'); return; }
-  if (!file) return;
+  if (!authUserId.value) { showSnackbar('Set your user id before uploading', 'error') 
+
+    return }
+  if (!file) return
   if (!isAllowed(def, file)) {
-    showSnackbar(`File type not allowed for ${def.label}`, 'error');
-    return;
+    showSnackbar(`File type not allowed for ${def.label}`, 'error')
+    
+    return
   }
 
   // Show progress UI
-  uploading[def.id] = { progress: 0, file: file.name };
+  uploading[def.id] = { progress: 0, file: file.name }
 
-  const form = new FormData();
-  form.append('file', file);
-  form.append('definition_id', def.id);
+  const form = new FormData()
+
+  form.append('file', file)
+  form.append('definition_id', def.id)
 
   try {
     // POST to upload endpoint; backend will replace (server-side) if needed
     await api.post(`${UPLOAD_API}?user=${encodeURIComponent(authUserId.value)}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: (evt) => {
-        if (!evt.lengthComputable) return;
-        uploading[def.id].progress = Math.round((evt.loaded * 100) / evt.total);
+      onUploadProgress: evt => {
+        if (!evt.lengthComputable) return
+        uploading[def.id].progress = Math.round((evt.loaded * 100) / evt.total)
       },
-    });
+    })
 
-    showSnackbar(`${def.label} uploaded`, 'success');
+    showSnackbar(`${def.label} uploaded`, 'success')
+
     // update list
-    await fetchUploadedDocs();
+    await fetchUploadedDocs()
   } catch (err) {
-    console.error('upload error', err);
-    showSnackbar(err?.response?.data?.error || 'Upload failed', 'error');
+    console.error('upload error', err)
+    showSnackbar(err?.response?.data?.error || 'Upload failed', 'error')
   } finally {
-    setTimeout(() => { delete uploading[def.id]; }, 600);
+    setTimeout(() => { delete uploading[def.id] }, 600)
   }
 }
 
 async function deleteDocument(doc) {
-  if (!authUserId.value) { showSnackbar('User id missing', 'error'); return; }
-  if (!confirm('Delete this uploaded document?')) return;
+  if (!authUserId.value) { showSnackbar('User id missing', 'error') 
+
+    return }
+  if (!confirm('Delete this uploaded document?')) return
   try {
-    await api.delete(`${ITEM_API(doc.id)}?user=${encodeURIComponent(authUserId.value)}`);
-    showSnackbar('Deleted', 'success');
-    await fetchUploadedDocs();
+    await api.delete(`${ITEM_API(doc.id)}?user=${encodeURIComponent(authUserId.value)}`)
+    showSnackbar('Deleted', 'success')
+    await fetchUploadedDocs()
   } catch (err) {
-    console.error('deleteDocument', err);
-    showSnackbar('Delete failed', 'error');
+    console.error('deleteDocument', err)
+    showSnackbar('Delete failed', 'error')
   }
 }
 
 function openDocument(doc) {
-  const url = doc.file_url || doc.file || doc.file_path || null;
-  if (!url) return showSnackbar('No file URL available', 'error');
-  window.open(url, '_blank', 'noopener');
+  const url = doc.file_url || doc.file || doc.file_path || null
+  if (!url) return showSnackbar('No file URL available', 'error')
+  window.open(url, '_blank', 'noopener')
 }
 
 function isImage(contentType) {
-  return contentType && contentType.startsWith('image/');
+  return contentType && contentType.startsWith('image/')
 }
 
 onMounted(async () => {
-  if (!Array.isArray(docDefinitions.value)) docDefinitions.value = [];
-  if (!Array.isArray(uploadedDocs.value)) uploadedDocs.value = [];
-  await fetchDocDefinitions();
-  if (authUserId.value) await fetchUploadedDocs();
-});
+  if (!Array.isArray(docDefinitions.value)) docDefinitions.value = []
+  if (!Array.isArray(uploadedDocs.value)) uploadedDocs.value = []
+  await fetchDocDefinitions()
+  if (authUserId.value) await fetchUploadedDocs()
+})
 </script>
 
 <style scoped>

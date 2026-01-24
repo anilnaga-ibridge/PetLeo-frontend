@@ -4,10 +4,21 @@ import VeterinaryLayout from '@/components/VeterinaryLayout.vue'
 
 <template>
   <VeterinaryLayout>
-    <div class="d-flex flex-column align-center justify-center" style="height: 70vh;">
-      <VIcon icon="tabler-bell" size="64" class="text-disabled mb-4" />
-      <h1 class="text-h4 font-weight-bold text-medium-emphasis">Medicine Reminders</h1>
-      <p class="text-body-1 text-disabled">This feature is under development.</p>
+    <div
+      class="d-flex flex-column align-center justify-center"
+      style="height: 70vh;"
+    >
+      <VIcon
+        icon="tabler-bell"
+        size="64"
+        class="text-disabled mb-4"
+      />
+      <h1 class="text-h4 font-weight-bold text-medium-emphasis">
+        Medicine Reminders
+      </h1>
+      <p class="text-body-1 text-disabled">
+        This feature is under development.
+      </p>
     </div>
   </VeterinaryLayout>
 </template>

@@ -9,8 +9,12 @@ const activeTab = ref('profile')
 <template>
   <div class="onboarding-container">
     <div class="header-section">
-      <h1 class="title">Provider Onboarding</h1>
-      <p class="subtitle">Complete your profile to unlock your potential</p>
+      <h1 class="title">
+        Provider Onboarding
+      </h1>
+      <p class="subtitle">
+        Complete your profile to unlock your potential
+      </p>
     </div>
 
     <div class="tabs-wrapper">
@@ -44,12 +48,22 @@ const activeTab = ref('profile')
       <div v-else-if="activeTab === 'documents'">
         <DocDynamic />
       </div>
-      <div v-else-if="activeTab === 'done'" class="done-section">
+      <div
+        v-else-if="activeTab === 'done'"
+        class="done-section"
+      >
         <div class="done-card">
-          <div class="icon">🎉</div>
+          <div class="icon">
+            🎉
+          </div>
           <h2>All Set!</h2>
           <p>Your profile is under review. You will be notified once approved.</p>
-          <VBtn color="primary" to="/provider/dashboard">Go to Dashboard</VBtn>
+          <VBtn
+            color="primary"
+            to="/provider/dashboard"
+          >
+            Go to Dashboard
+          </VBtn>
         </div>
       </div>
     </div>

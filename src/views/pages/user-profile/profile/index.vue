@@ -1,4 +1,5 @@
 <script setup>
+import { useCookie } from '@/@core/composable/useCookie'
 import About from './About.vue'
 import ActivityTimeline from './ActivityTimeline.vue'
 import Connection from './Connection.vue'
@@ -6,17 +7,23 @@ import ProjectList from './ProjectList.vue'
 import Teams from './Teams.vue'
 
 const router = useRoute('pages-user-profile-tab')
-const profileTabData = ref()
+const userData = useCookie('userData')
 
-const fetchAboutData = async () => {
-  if (router.params.tab === 'profile') {
-    const data = await $api('/pages/profile', { query: { tab: router.params.tab } }).catch(err => console.log(err))
-
-    profileTabData.value = data
+// Mock/Static data to prevent 404s
+const profileTabData = computed(() => {
+  return {
+    fullName: userData.value?.full_name,
+    joined: userData.value?.date_joined,
+    role: userData.value?.role?.name,
+    country: 'India',
+    language: 'English',
+    contacts: { phone: userData.value?.phone_number, email: userData.value?.email },
+    teams: [],
+    projects: [],
+    connections: [],
+    teamsTech: [],
   }
-}
-
-watch(router, fetchAboutData, { immediate: true })
+})
 </script>
 
 <template>

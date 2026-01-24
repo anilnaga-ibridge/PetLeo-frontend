@@ -14,6 +14,7 @@ export const useAuthStore = defineStore('authStore', () => {
   const logout = async () => {
     try {
       const accessToken = useCookie('accessToken').value
+
       const refreshToken =
         localStorage.getItem('refreshToken') ||
         sessionStorage.getItem('refreshToken')
@@ -29,7 +30,7 @@ export const useAuthStore = defineStore('authStore', () => {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
-          }
+          },
         )
       }
     } catch (err) {

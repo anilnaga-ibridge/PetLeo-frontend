@@ -39,7 +39,7 @@ const fetchAllowedServices = async () => {
       status: res.status,
       dataIsArray: Array.isArray(data),
       dataLength: data?.length,
-      rawData: data
+      rawData: data,
     }
 
     console.log("Allowed Services Loaded:", allowedServices.value)
@@ -80,13 +80,20 @@ onMounted(() => {
 
 <template>
   <ProviderLayout>
-    <VContainer fluid class="pa-0">
+    <VContainer
+      fluid
+      class="pa-0"
+    >
       <!-- HEADER & STATS -->
       <div class="mb-8">
         <div class="d-flex justify-space-between align-center mb-6">
           <div>
-            <h1 class="text-h3 font-weight-bold text-primary">Service Dashboard</h1>
-            <p class="text-body-1 text-medium-emphasis">Manage your service offerings and performance</p>
+            <h1 class="text-h3 font-weight-bold text-primary">
+              Service Dashboard
+            </h1>
+            <p class="text-body-1 text-medium-emphasis">
+              Manage your service offerings and performance
+            </p>
           </div>
           <VBtn 
             v-if="permissionStore.hasPermission('create_service')"
@@ -100,15 +107,37 @@ onMounted(() => {
         </div>
 
         <VRow>
-          <VCol v-for="stat in stats" :key="stat.title" cols="12" sm="6" md="4">
-            <VCard elevation="0" class="stat-card border" :class="`border-${stat.color}`">
+          <VCol
+            v-for="stat in stats"
+            :key="stat.title"
+            cols="12"
+            sm="6"
+            md="4"
+          >
+            <VCard
+              elevation="0"
+              class="stat-card border"
+              :class="`border-${stat.color}`"
+            >
               <VCardText class="d-flex align-center">
-                <VAvatar :color="stat.color" variant="tonal" size="48" class="me-4 rounded-lg">
-                  <VIcon :icon="stat.icon" size="28" />
+                <VAvatar
+                  :color="stat.color"
+                  variant="tonal"
+                  size="48"
+                  class="me-4 rounded-lg"
+                >
+                  <VIcon
+                    :icon="stat.icon"
+                    size="28"
+                  />
                 </VAvatar>
                 <div>
-                  <div class="text-overline font-weight-bold text-medium-emphasis">{{ stat.title }}</div>
-                  <div class="text-h4 font-weight-bold">{{ stat.value }}</div>
+                  <div class="text-overline font-weight-bold text-medium-emphasis">
+                    {{ stat.title }}
+                  </div>
+                  <div class="text-h4 font-weight-bold">
+                    {{ stat.value }}
+                  </div>
                 </div>
               </VCardText>
             </VCard>
@@ -117,24 +146,54 @@ onMounted(() => {
       </div>
 
       <!-- LOADING STATE -->
-      <div v-if="loading" class="d-flex justify-center py-12">
-        <VProgressCircular indeterminate color="primary" size="64" />
+      <div
+        v-if="loading"
+        class="d-flex justify-center py-12"
+      >
+        <VProgressCircular
+          indeterminate
+          color="primary"
+          size="64"
+        />
       </div>
 
       <!-- EMPTY STATE -->
-      <div v-else-if="allowedServices.length === 0" class="text-center py-16">
-        <VAvatar color="primary" variant="tonal" size="80" class="mb-4">
-          <VIcon icon="tabler-box-off" size="40" />
+      <div
+        v-else-if="allowedServices.length === 0"
+        class="text-center py-16"
+      >
+        <VAvatar
+          color="primary"
+          variant="tonal"
+          size="80"
+          class="mb-4"
+        >
+          <VIcon
+            icon="tabler-box-off"
+            size="40"
+          />
         </VAvatar>
-        <h3 class="text-h5 font-weight-bold mb-2">No Services Found</h3>
+        <h3 class="text-h5 font-weight-bold mb-2">
+          No Services Found
+        </h3>
         <p class="text-body-1 text-medium-emphasis mb-6">
           You haven't added any services yet. Purchase a plan to get started.
         </p>
-        <div class="bg-grey-lighten-4 pa-4 rounded text-left mb-4" style="max-width: 600px; margin: 0 auto; overflow: auto;">
-            <p class="text-caption font-weight-bold">DEBUG INFO:</p>
-            <pre>{{ debugInfo }}</pre>
+        <div
+          class="bg-grey-lighten-4 pa-4 rounded text-left mb-4"
+          style="max-width: 600px; margin: 0 auto; overflow: auto;"
+        >
+          <p class="text-caption font-weight-bold">
+            DEBUG INFO:
+          </p>
+          <pre>{{ debugInfo }}</pre>
         </div>
-        <VBtn color="primary" :to="{ name: 'provider-home' }">View Plans</VBtn>
+        <VBtn
+          color="primary"
+          :to="{ name: 'provider-home' }"
+        >
+          View Plans
+        </VBtn>
       </div>
 
       <!-- SERVICE GRID -->
@@ -146,12 +205,23 @@ onMounted(() => {
           md="4"
           lg="3"
         >
-          <VCard class="service-card h-100 d-flex flex-column" elevation="2">
+          <VCard
+            class="service-card h-100 d-flex flex-column"
+            elevation="2"
+          >
             <!-- Card Header with Gradient/Image placeholder -->
             <div class="service-header position-relative pa-6 d-flex justify-center align-center bg-grey-lighten-4">
               <div class="service-icon-wrapper">
-                <VAvatar color="white" size="80" class="elevation-3">
-                  <VIcon :icon="service.icon" size="40" color="primary" />
+                <VAvatar
+                  color="white"
+                  size="80"
+                  class="elevation-3"
+                >
+                  <VIcon
+                    :icon="service.icon"
+                    size="40"
+                    color="primary"
+                  />
                 </VAvatar>
               </div>
               <VChip 
@@ -174,13 +244,21 @@ onMounted(() => {
               
               <div class="d-flex justify-center gap-4 mb-4">
                 <div class="text-center">
-                  <div class="text-h6 font-weight-bold">--</div>
-                  <div class="text-caption text-medium-emphasis">Bookings</div>
+                  <div class="text-h6 font-weight-bold">
+                    --
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Bookings
+                  </div>
                 </div>
                 <VDivider vertical />
                 <div class="text-center">
-                  <div class="text-h6 font-weight-bold">--</div>
-                  <div class="text-caption text-medium-emphasis">Revenue</div>
+                  <div class="text-h6 font-weight-bold">
+                    --
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Revenue
+                  </div>
                 </div>
               </div>
             </VCardItem>

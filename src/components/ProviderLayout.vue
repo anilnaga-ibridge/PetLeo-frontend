@@ -21,6 +21,7 @@ const allowedServices = ref([])
 const fetchAllowedServices = async () => {
   try {
     const res = await api.get('http://127.0.0.1:8002/api/provider/allowed-services/')
+
     allowedServices.value = res.data
   } catch (err) {
     console.error('Failed to fetch allowed services for sidebar:', err)
@@ -57,7 +58,10 @@ console.log('ProviderLayout: themeConfig', themeConfig)
         </IconBtn>
 
         <!-- 👉 Search -->
-        <div class="d-flex align-center cursor-pointer" style="user-select: none;">
+        <div
+          class="d-flex align-center cursor-pointer"
+          style="user-select: none;"
+        >
           <IconBtn>
             <VIcon icon="tabler-search" />
           </IconBtn>

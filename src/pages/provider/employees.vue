@@ -4,11 +4,12 @@ import { api } from '@/plugins/axios'
 import ProviderLayout from '@/components/ProviderLayout.vue'
 import { VDataTable } from 'vuetify/components'
 import EmployeePermissionTree from '@/components/provider/EmployeePermissionTree.vue'
+import ClinicAssignmentDialog from '@/components/provider/ClinicAssignmentDialog.vue'
 
 definePage({
   meta: {
     layout: 'blank',
-    permission: 'manage_employees'
+    permission: 'manage_employees',
   },
 })
 
@@ -17,6 +18,8 @@ const employees = ref([])
 const loading = ref(false)
 const search = ref('')
 const dialog = ref(false)
+const assignmentDialog = ref(false)
+const assignmentEmployee = ref(null)
 const registering = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -24,13 +27,22 @@ const editingId = ref(null)
 const providerRoles = ref([])
 const capabilities = ref([])
 
+// ... (existing code)
+
+// Open Assignment Dialog
+const openAssignmentDialog = employee => {
+  assignmentEmployee.value = employee
+  assignmentDialog.value = true
+}
+
+
 // Form
 const form = ref({
   full_name: '',
   email: '',
   phone_number: '',
   role: 'employee',
-  provider_role: null
+  provider_role: null,
 })
 
 const legacyRoles = [
@@ -61,8 +73,9 @@ const fetchEmployees = async () => {
     const [empRes, rolesRes, capsRes] = await Promise.all([
       api.get('http://127.0.0.1:8002/api/provider/employees/'),
       api.get('http://127.0.0.1:8002/api/provider/roles/'),
-      api.get('http://127.0.0.1:8002/api/provider/capabilities/')
+      api.get('http://127.0.0.1:8002/api/provider/capabilities/'),
     ])
+
     employees.value = empRes.data
     providerRoles.value = rolesRes.data
     capabilities.value = capsRes.data
@@ -86,7 +99,7 @@ const openDialog = (employee = null) => {
       email: employee.email || employee.raw?.email,
       phone_number: employee.phone_number || employee.raw?.phone_number,
       role: (employee.role || employee.raw?.role || 'employee').toLowerCase(),
-      provider_role: employee.provider_role || employee.raw?.provider_role
+      provider_role: employee.provider_role || employee.raw?.provider_role,
     }
   } else {
     editingId.value = null
@@ -95,11 +108,13 @@ const openDialog = (employee = null) => {
       email: '',
       phone_number: '',
       role: 'employee',
-      provider_role: null
+      provider_role: null,
     }
   }
   dialog.value = true
 }
+
+
 // Role Permission Preview
 const selectedRolePermissions = computed(() => {
   if (!form.value.provider_role) return []
@@ -109,6 +124,7 @@ const selectedRolePermissions = computed(() => {
   // Map keys to labels
   return (role.capabilities || []).map(key => {
     const cap = capabilities.value.find(c => c.key === key)
+    
     return cap ? cap.label : key
   })
 })
@@ -126,6 +142,7 @@ const handleSubmit = () => {
 const updateEmployee = async () => {
   if (!form.value.phone_number || !form.value.full_name) {
     errorMessage.value = 'Name and Phone are required.'
+    
     return
   }
 
@@ -139,7 +156,7 @@ const updateEmployee = async () => {
       email: form.value.email,
       phone_number: form.value.phone_number,
       role: form.value.role,
-      provider_role: form.value.provider_role
+      provider_role: form.value.provider_role,
     }
 
     await api.patch(`http://127.0.0.1:8002/api/provider/employees/${editingId.value}/`, payload)
@@ -162,6 +179,7 @@ const updateEmployee = async () => {
 const registerEmployee = async () => {
   if (!form.value.phone_number || !form.value.full_name) {
     errorMessage.value = 'Name and Phone are required.'
+    
     return
   }
 
@@ -172,12 +190,13 @@ const registerEmployee = async () => {
   try {
     // Use Provider Service Proxy for registration
     const PROVIDER_API = 'http://127.0.0.1:8002/api/provider/employees/'
+
     const payload = {
       full_name: form.value.full_name,
       email: form.value.email,
       phone_number: form.value.phone_number,
       role: form.value.role,
-      provider_role: form.value.provider_role
+      provider_role: form.value.provider_role,
     }
 
     const res = await api.post(PROVIDER_API, payload)
@@ -206,7 +225,7 @@ const updateStatus = async (id, action) => {
   }
 }
 
-const deleteEmployee = async (id) => {
+const deleteEmployee = async id => {
   if (!confirm('Are you sure you want to remove this employee?')) return
   try {
     await api.delete(`http://127.0.0.1:8002/api/provider/employees/${id}/`)
@@ -216,13 +235,13 @@ const deleteEmployee = async (id) => {
   }
 }
 
-const getStatusColor = (status) => {
+const getStatusColor = status => {
   const s = (status || '').toUpperCase()
   switch (s) {
-    case 'ACTIVE': return 'success'
-    case 'PENDING': return 'warning'
-    case 'DISABLED': return 'error'
-    default: return 'grey'
+  case 'ACTIVE': return 'success'
+  case 'PENDING': return 'warning'
+  case 'DISABLED': return 'error'
+  default: return 'grey'
   }
 }
 
@@ -246,7 +265,10 @@ onMounted(() => {
               hide-details
               style="max-width: 200px;"
             />
-            <VBtn prepend-icon="tabler-user-plus" @click="openDialog()">
+            <VBtn
+              prepend-icon="tabler-user-plus"
+              @click="openDialog"
+            >
               Register Employee
             </VBtn>
           </div>
@@ -263,7 +285,12 @@ onMounted(() => {
         <!-- Employee Column -->
         <template #item.full_name="{ item }">
           <div class="d-flex align-center">
-            <VAvatar color="primary" variant="tonal" size="32" class="me-2">
+            <VAvatar
+              color="primary"
+              variant="tonal"
+              size="32"
+              class="me-2"
+            >
               {{ (item.full_name || item.raw?.full_name || 'E').charAt(0) }}
             </VAvatar>
             <div class="d-flex flex-column">
@@ -277,11 +304,22 @@ onMounted(() => {
         <template #item.contact="{ item }">
           <div class="d-flex flex-column">
             <div class="d-flex align-center mb-1">
-              <VIcon icon="tabler-phone" size="14" class="me-1 text-disabled" />
+              <VIcon
+                icon="tabler-phone"
+                size="14"
+                class="me-1 text-disabled"
+              />
               <span class="text-body-2">{{ item.phone_number || item.raw?.phone_number }}</span>
             </div>
-            <div v-if="item.email || item.raw?.email" class="d-flex align-center">
-              <VIcon icon="tabler-mail" size="14" class="me-1 text-disabled" />
+            <div
+              v-if="item.email || item.raw?.email"
+              class="d-flex align-center"
+            >
+              <VIcon
+                icon="tabler-mail"
+                size="14"
+                class="me-1 text-disabled"
+              />
               <span class="text-caption">{{ item.email || item.raw?.email }}</span>
             </div>
           </div>
@@ -294,7 +332,12 @@ onMounted(() => {
 
         <!-- Status Column -->
         <template #item.status="{ item }">
-          <VChip :color="getStatusColor(item.status || item.raw?.status)" size="small" label class="text-capitalize">
+          <VChip
+            :color="getStatusColor(item.status || item.raw?.status)"
+            size="small"
+            label
+            class="text-capitalize"
+          >
             {{ item.status || item.raw?.status }}
           </VChip>
         </template>
@@ -341,6 +384,14 @@ onMounted(() => {
               title="Delete"
               @click="deleteEmployee(item.id || item.raw?.id)"
             />
+            <VBtn
+              icon="tabler-building-hospital"
+              variant="text"
+              color="info"
+              size="small"
+              title="Assign Clinics"
+              @click="openAssignmentDialog(item.raw || item)"
+            />
           </div>
         </template>
       </VDataTable>
@@ -369,7 +420,11 @@ onMounted(() => {
           
           <div class="d-flex align-center gap-4">
             <div class="header-icon-soft elevation-3">
-              <VIcon icon="tabler-user-plus" size="28" color="primary" />
+              <VIcon
+                icon="tabler-user-plus"
+                size="28"
+                color="primary"
+              />
             </div>
             <div>
               <h2 class="text-h5 font-weight-bold text-high-emphasis">
@@ -386,11 +441,15 @@ onMounted(() => {
         <div class="flex-grow-1 px-8 py-8 overflow-y-auto">
           <VForm @submit.prevent="handleSubmit">
             <div class="d-flex flex-column gap-6">
-              
               <!-- Full Name -->
-              <div class="animate-item" style="animation-delay: 0.1s">
+              <div
+                class="animate-item"
+                style="animation-delay: 0.1s"
+              >
                 <div class="input-group">
-                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">Full Name</VLabel>
+                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">
+                    Full Name
+                  </VLabel>
                   <VTextField
                     v-model="form.full_name"
                     placeholder="e.g. John Doe"
@@ -403,16 +462,25 @@ onMounted(() => {
                     required
                   >
                     <template #prepend-inner>
-                      <VIcon icon="tabler-user" size="20" class="text-primary opacity-70" />
+                      <VIcon
+                        icon="tabler-user"
+                        size="20"
+                        class="text-primary opacity-70"
+                      />
                     </template>
                   </VTextField>
                 </div>
               </div>
               
               <!-- Phone -->
-              <div class="animate-item" style="animation-delay: 0.2s">
+              <div
+                class="animate-item"
+                style="animation-delay: 0.2s"
+              >
                 <div class="input-group">
-                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">Phone Number</VLabel>
+                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">
+                    Phone Number
+                  </VLabel>
                   <VTextField
                     v-model="form.phone_number"
                     placeholder="e.g. +1 234 567 8900"
@@ -425,16 +493,25 @@ onMounted(() => {
                     required
                   >
                     <template #prepend-inner>
-                      <VIcon icon="tabler-phone" size="20" class="text-primary opacity-70" />
+                      <VIcon
+                        icon="tabler-phone"
+                        size="20"
+                        class="text-primary opacity-70"
+                      />
                     </template>
                   </VTextField>
                 </div>
               </div>
               
               <!-- Provider Role Selection -->
-              <div class="animate-item" style="animation-delay: 0.3s">
+              <div
+                class="animate-item"
+                style="animation-delay: 0.3s"
+              >
                 <div class="input-group">
-                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">Provider Role (Custom)</VLabel>
+                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">
+                    Provider Role (Custom)
+                  </VLabel>
                   <VSelect
                     v-model="form.provider_role"
                     :items="providerRoles"
@@ -450,16 +527,25 @@ onMounted(() => {
                     clearable
                   >
                     <template #prepend-inner>
-                      <VIcon icon="tabler-user-shield" size="20" class="text-primary opacity-70" />
+                      <VIcon
+                        icon="tabler-user-shield"
+                        size="20"
+                        class="text-primary opacity-70"
+                      />
                     </template>
                   </VSelect>
                 </div>
               </div>
 
               <!-- Role Selection (Legacy/Type) -->
-              <div class="animate-item" style="animation-delay: 0.35s">
+              <div
+                class="animate-item"
+                style="animation-delay: 0.35s"
+              >
                 <div class="input-group">
-                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">Employee Type</VLabel>
+                  <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">
+                    Employee Type
+                  </VLabel>
                   <VSelect
                     v-model="form.role"
                     :items="legacyRoles"
@@ -473,17 +559,29 @@ onMounted(() => {
                     required
                   >
                     <template #prepend-inner>
-                      <VIcon icon="tabler-user-cog" size="20" class="text-primary opacity-70" />
+                      <VIcon
+                        icon="tabler-user-cog"
+                        size="20"
+                        class="text-primary opacity-70"
+                      />
                     </template>
                   </VSelect>
                 </div>
               </div>
 
               <!-- Permission Preview (Read-Only) -->
-              <div v-if="selectedRolePermissions.length > 0" class="animate-item" style="animation-delay: 0.38s">
+              <div
+                v-if="selectedRolePermissions.length > 0"
+                class="animate-item"
+                style="animation-delay: 0.38s"
+              >
                 <div class="pa-4 rounded-lg bg-primary-lighten-5 border-primary border-opacity-25 border">
                   <div class="d-flex align-center gap-2 mb-2">
-                    <VIcon icon="tabler-shield-check" size="18" color="primary" />
+                    <VIcon
+                      icon="tabler-shield-check"
+                      size="18"
+                      color="primary"
+                    />
                     <span class="text-caption font-weight-bold text-primary text-uppercase">Effective Permissions</span>
                   </div>
                   <div class="d-flex flex-wrap gap-2">
@@ -504,7 +602,10 @@ onMounted(() => {
               </div>
 
               <!-- Email -->
-              <div class="animate-item" style="animation-delay: 0.4s">
+              <div
+                class="animate-item"
+                style="animation-delay: 0.4s"
+              >
                 <div class="input-group">
                   <VLabel class="mb-2 text-caption font-weight-bold text-medium-emphasis text-uppercase">
                     Email Address <span class="text-disabled font-weight-regular text-lowercase ms-1">(optional)</span>
@@ -521,7 +622,11 @@ onMounted(() => {
                     type="email"
                   >
                     <template #prepend-inner>
-                      <VIcon icon="tabler-mail" size="20" class="text-primary opacity-70" />
+                      <VIcon
+                        icon="tabler-mail"
+                        size="20"
+                        class="text-primary opacity-70"
+                      />
                     </template>
                   </VTextField>
                 </div>
@@ -575,12 +680,20 @@ onMounted(() => {
               @click="handleSubmit"
             >
               <span class="font-weight-bold">{{ editingId ? 'Save Changes' : 'Send Invite' }}</span>
-              <VIcon icon="tabler-arrow-right" end class="ms-2" />
+              <VIcon
+                icon="tabler-arrow-right"
+                end
+                class="ms-2"
+              />
             </VBtn>
           </div>
         </div>
       </div>
     </VNavigationDrawer>
 
+    <ClinicAssignmentDialog 
+      v-model="assignmentDialog" 
+      :employee="assignmentEmployee" 
+    />
   </ProviderLayout>
 </template>

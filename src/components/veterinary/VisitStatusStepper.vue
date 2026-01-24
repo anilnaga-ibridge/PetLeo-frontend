@@ -10,11 +10,11 @@ const props = defineProps({
 
 const steps = [
   { status: 'CREATED', label: 'Arrived' },
-  { status: 'CHECKED_IN', label: 'Checked In' },
-  { status: 'VITALS_RECORDED', label: 'Vitals' },
+  { status: 'CHECKED_IN', label: 'Vitals' },
   { status: 'DOCTOR_ASSIGNED', label: 'Consultation' },
+  { status: 'LAB_REQUESTED', label: 'Laboratory' },
   { status: 'PRESCRIPTION_FINALIZED', label: 'Pharmacy' },
-  { status: 'CLOSED', label: 'Completed' },
+  { status: 'TREATMENT_COMPLETED', label: 'Completed' },
 ]
 
 const currentStepIndex = computed(() => {
@@ -26,8 +26,9 @@ const activeStep = computed(() => {
   if (currentStepIndex.value !== -1) return currentStepIndex.value
   
   // Mapping for intermediate statuses
-  if (props.status === 'LAB_ORDERED' || props.status === 'LAB_RESULTS_READY') return 3 // During Consultation
-  if (props.status === 'MEDICINES_DISPENSED') return 4 // Pharmacy
+  if (props.status === 'VITALS_RECORDED') return 2 // Ready for Consultation
+  if (props.status === 'LAB_COMPLETED') return 2 // Back to Consultation
+  if (props.status === 'MEDICINES_DISPENSED') return 4 // In Pharmacy / Instruction stage
   
   return 0
 })

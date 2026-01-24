@@ -27,6 +27,7 @@ const billingCycles = ref([])
 const fetchMetadata = async () => {
   try {
     const res = await superAdminApi.get('/api/superadmin/billing-cycles/')
+
     billingCycles.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch billing cycles:', err)
@@ -44,12 +45,14 @@ const fetchPlan = async () => {
       billing_cycle: 'MONTHLY',
       is_active: true,
     }
+    
     return
   }
 
   loading.value = true
   try {
     const res = await superAdminApi.get(`/api/superadmin/plans/${props.planId}/`)
+
     form.value = res.data
   } catch (err) {
     console.error('Failed to fetch plan:', err)
@@ -87,11 +90,20 @@ watch(() => props.planId, fetchPlan)
   <div class="h-100 d-flex flex-column">
     <div class="pa-6 flex-grow-1 overflow-y-auto">
       <VRow>
-        <VCol cols="12" md="8">
-          <VCard variant="outlined" class="mb-6 overflow-visible">
+        <VCol
+          cols="12"
+          md="8"
+        >
+          <VCard
+            variant="outlined"
+            class="mb-6 overflow-visible"
+          >
             <VCardItem>
               <template #prepend>
-                <VIcon icon="tabler-info-circle" class="text-primary" />
+                <VIcon
+                  icon="tabler-info-circle"
+                  class="text-primary"
+                />
               </template>
               <VCardTitle>Basic Information</VCardTitle>
               <VCardSubtitle>Define the core identity of this plan.</VCardSubtitle>
@@ -126,10 +138,16 @@ watch(() => props.planId, fetchPlan)
             </VCardText>
           </VCard>
 
-          <VCard variant="outlined" class="overflow-visible">
+          <VCard
+            variant="outlined"
+            class="overflow-visible"
+          >
             <VCardItem>
               <template #prepend>
-                <VIcon icon="tabler-settings" class="text-primary" />
+                <VIcon
+                  icon="tabler-settings"
+                  class="text-primary"
+                />
               </template>
               <VCardTitle>Configuration</VCardTitle>
               <VCardSubtitle>Set the target audience and billing frequency.</VCardSubtitle>
@@ -137,7 +155,10 @@ watch(() => props.planId, fetchPlan)
             
             <VCardText class="pt-4">
               <VRow>
-                <VCol cols="12" md="6">
+                <VCol
+                  cols="12"
+                  md="6"
+                >
                   <AppSelect
                     v-model="form.target_type"
                     :items="targetTypes"
@@ -151,7 +172,10 @@ watch(() => props.planId, fetchPlan)
                     }"
                   />
                 </VCol>
-                <VCol cols="12" md="6">
+                <VCol
+                  cols="12"
+                  md="6"
+                >
                   <AppSelect
                     v-model="form.billing_cycle"
                     :items="billingCycles"
@@ -180,21 +204,44 @@ watch(() => props.planId, fetchPlan)
           </VCard>
         </VCol>
 
-        <VCol cols="12" md="4">
-          <VCard color="primary" variant="tonal" class="mb-4">
+        <VCol
+          cols="12"
+          md="4"
+        >
+          <VCard
+            color="primary"
+            variant="tonal"
+            class="mb-4"
+          >
             <VCardText>
-              <h3 class="text-h6 font-weight-bold mb-2">Plan Preview</h3>
-              <p class="text-body-2 mb-4">This is how the plan card might look to users.</p>
+              <h3 class="text-h6 font-weight-bold mb-2">
+                Plan Preview
+              </h3>
+              <p class="text-body-2 mb-4">
+                This is how the plan card might look to users.
+              </p>
               
-              <VCard class="bg-surface" elevation="2">
+              <VCard
+                class="bg-surface"
+                elevation="2"
+              >
                 <VCardText>
                   <div class="d-flex justify-space-between align-start mb-2">
                     <div>
-                      <VChip size="x-small" color="info" variant="tonal" class="mb-2 text-uppercase">
+                      <VChip
+                        size="x-small"
+                        color="info"
+                        variant="tonal"
+                        class="mb-2 text-uppercase"
+                      >
                         {{ form.target_type }}
                       </VChip>
-                      <h4 class="text-h6 font-weight-bold">{{ form.title || 'Plan Title' }}</h4>
-                      <div class="text-caption text-medium-emphasis">{{ form.subtitle || 'Plan Subtitle' }}</div>
+                      <h4 class="text-h6 font-weight-bold">
+                        {{ form.title || 'Plan Title' }}
+                      </h4>
+                      <div class="text-caption text-medium-emphasis">
+                        {{ form.subtitle || 'Plan Subtitle' }}
+                      </div>
                     </div>
                   </div>
                   <div class="text-body-2 text-medium-emphasis mt-2 line-clamp-3">

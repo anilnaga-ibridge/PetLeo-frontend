@@ -12,6 +12,7 @@ const fetchPlans = async () => {
   loading.value = true
   try {
     const res = await superAdminApi.get('/api/superadmin/plans/')
+
     plans.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch plans:', err)
@@ -20,7 +21,7 @@ const fetchPlans = async () => {
   }
 }
 
-const selectPlan = (planId) => {
+const selectPlan = planId => {
   emit('select', planId)
 }
 
@@ -43,11 +44,22 @@ defineExpose({ fetchPlans })
     </div>
 
     <div class="flex-grow-1 overflow-y-auto pa-2">
-      <div v-if="loading" class="d-flex justify-center py-4">
-        <VProgressCircular indeterminate color="primary" />
+      <div
+        v-if="loading"
+        class="d-flex justify-center py-4"
+      >
+        <VProgressCircular
+          indeterminate
+          color="primary"
+        />
       </div>
 
-      <VList v-else lines="two" nav class="bg-transparent">
+      <VList
+        v-else
+        lines="two"
+        nav
+        class="bg-transparent"
+      >
         <VListItem
           v-for="plan in plans"
           :key="plan.id"
@@ -59,8 +71,16 @@ defineExpose({ fetchPlans })
           @click="selectPlan(plan.id)"
         >
           <template #prepend>
-            <VAvatar color="surface-variant" variant="tonal" size="40" class="me-3">
-              <VIcon icon="tabler-package" size="24" />
+            <VAvatar
+              color="surface-variant"
+              variant="tonal"
+              size="40"
+              class="me-3"
+            >
+              <VIcon
+                icon="tabler-package"
+                size="24"
+              />
             </VAvatar>
           </template>
 

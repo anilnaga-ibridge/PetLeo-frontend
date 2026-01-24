@@ -2,12 +2,17 @@
   <section>
     <VCard class="mb-6">
       <VCardItem class="pb-2">
-        <VCardTitle class="text-h5 font-weight-bold">Pricing Rules</VCardTitle>
+        <VCardTitle class="text-h5 font-weight-bold">
+          Pricing Rules
+        </VCardTitle>
       </VCardItem>
 
       <VCardText>
         <VRow>
-          <VCol cols="12" sm="4">
+          <VCol
+            cols="12"
+            sm="4"
+          >
             <AppTextField
               v-model="searchQuery"
               placeholder="Search pricing..."
@@ -15,8 +20,17 @@
             />
           </VCol>
 
-          <VCol cols="12" sm="8" class="d-flex justify-end">
-            <VBtn color="primary" prepend-icon="tabler-plus" class="px-6" @click="openAddDrawer">
+          <VCol
+            cols="12"
+            sm="8"
+            class="d-flex justify-end"
+          >
+            <VBtn
+              color="primary"
+              prepend-icon="tabler-plus"
+              class="px-6"
+              @click="openAddDrawer"
+            >
               Add Pricing Rule
             </VBtn>
           </VCol>
@@ -55,41 +69,93 @@
         </template>
 
         <template #item.billing_unit="{ item }">
-          <VChip size="small" color="info" variant="tonal">{{ item.billing_unit }}</VChip>
+          <VChip
+            size="small"
+            color="info"
+            variant="tonal"
+          >
+            {{ item.billing_unit }}
+          </VChip>
         </template>
 
         <template #item.duration_minutes="{ item }">
-          <div v-if="item.duration_minutes">{{ item.duration_minutes }} min</div>
-          <div v-else class="text-medium-emphasis">-</div>
+          <div v-if="item.duration_minutes">
+            {{ item.duration_minutes }} min
+          </div>
+          <div
+            v-else
+            class="text-medium-emphasis"
+          >
+            -
+          </div>
         </template>
 
         <template #item.is_active="{ item }">
-          <VChip size="small" color="success" v-if="item.is_active">Active</VChip>
-          <VChip size="small" color="error" v-else>Inactive</VChip>
+          <VChip
+            v-if="item.is_active"
+            size="small"
+            color="success"
+          >
+            Active
+          </VChip>
+          <VChip
+            v-else
+            size="small"
+            color="error"
+          >
+            Inactive
+          </VChip>
         </template>
 
         <template #item.actions="{ item }">
           <div class="d-flex gap-x-1">
-            <IconBtn @click="openEditDrawer(item)"><VIcon icon="tabler-edit" /></IconBtn>
-            <IconBtn color="red" @click="openDeleteDialog(item)"><VIcon icon="tabler-trash" /></IconBtn>
+            <IconBtn @click="openEditDrawer(item)">
+              <VIcon icon="tabler-edit" />
+            </IconBtn>
+            <IconBtn
+              color="red"
+              @click="openDeleteDialog(item)"
+            >
+              <VIcon icon="tabler-trash" />
+            </IconBtn>
           </div>
         </template>
 
         <template #bottom>
-          <TablePagination v-model:page="page" :items-per-page="itemsPerPage" :total-items="totalItems" />
+          <TablePagination
+            v-model:page="page"
+            :items-per-page="itemsPerPage"
+            :total-items="totalItems"
+          />
         </template>
       </VDataTableServer>
     </VCard>
 
     <!-- Drawer -->
-    <VNavigationDrawer v-model="drawerOpen" location="end" temporary width="500" class="pa-4" style="border-left:2px solid #E2E8F0;">
-      <div class="pa-3 mb-3 rounded-lg" :style="drawerHeaderStyle">
+    <VNavigationDrawer
+      v-model="drawerOpen"
+      location="end"
+      temporary
+      width="500"
+      class="pa-4"
+      style="border-left:2px solid #E2E8F0;"
+    >
+      <div
+        class="pa-3 mb-3 rounded-lg"
+        :style="drawerHeaderStyle"
+      >
         <div class="d-flex justify-space-between align-center">
           <div>
-            <h3 class="text-h6 font-weight-bold mb-1">{{ isEdit ? 'Update Pricing Rule' : 'Create Pricing Rule' }}</h3>
-            <div class="text-caption opacity-90">Configure pricing for services</div>
+            <h3 class="text-h6 font-weight-bold mb-1">
+              {{ isEdit ? 'Update Pricing Rule' : 'Create Pricing Rule' }}
+            </h3>
+            <div class="text-caption opacity-90">
+              Configure pricing for services
+            </div>
           </div>
-          <IconBtn @click="closeDrawer"><VIcon icon="tabler-x" /></IconBtn>
+          <IconBtn @click="closeDrawer">
+            <VIcon icon="tabler-x" />
+          </IconBtn>
         </div>
       </div>
 
@@ -104,8 +170,8 @@
               item-value="id"
               label="Service *"
               placeholder="Select service"
-              @update:model-value="onServiceChange"
               clearable
+              @update:model-value="onServiceChange"
             />
           </VCol>
 
@@ -152,7 +218,10 @@
           </VCol>
 
           <!-- Base Price -->
-          <VCol cols="12" sm="6">
+          <VCol
+            cols="12"
+            sm="6"
+          >
             <AppTextField
               v-model.number="form.base_price"
               label="Base Price (₹) *"
@@ -162,7 +231,11 @@
           </VCol>
 
           <!-- Duration Minutes -->
-          <VCol cols="12" sm="6" v-if="showDurationInput">
+          <VCol
+            v-if="showDurationInput"
+            cols="12"
+            sm="6"
+          >
             <AppTextField
               v-model.number="form.duration_minutes"
               label="Duration (Minutes)"
@@ -172,38 +245,84 @@
           </VCol>
 
           <!-- Status -->
-          <VCol cols="12" class="d-flex align-center mt-2">
-            <div class="me-3">Active</div>
-            <VSwitch v-model="form.is_active" color="success" />
+          <VCol
+            cols="12"
+            class="d-flex align-center mt-2"
+          >
+            <div class="me-3">
+              Active
+            </div>
+            <VSwitch
+              v-model="form.is_active"
+              color="success"
+            />
           </VCol>
-
         </VRow>
       </VForm>
 
       <div class="d-flex justify-end mt-4 gap-2">
-        <VBtn variant="text" @click="closeDrawer">Cancel</VBtn>
-        <VBtn :loading="loading" color="primary" style="background:linear-gradient(135deg,#42a5f5,#1e88e5);" @click="submit">
+        <VBtn
+          variant="text"
+          @click="closeDrawer"
+        >
+          Cancel
+        </VBtn>
+        <VBtn
+          :loading="loading"
+          color="primary"
+          style="background:linear-gradient(135deg,#42a5f5,#1e88e5);"
+          @click="submit"
+        >
           {{ isEdit ? 'Update' : 'Create' }}
         </VBtn>
       </div>
     </VNavigationDrawer>
 
     <!-- Delete confirm -->
-    <VDialog v-model="deleteDialog" width="420" transition="dialog-bottom-transition" persistent>
-      <VCard class="pa-4 rounded-xl" elevation="12">
+    <VDialog
+      v-model="deleteDialog"
+      width="420"
+      transition="dialog-bottom-transition"
+      persistent
+    >
+      <VCard
+        class="pa-4 rounded-xl"
+        elevation="12"
+      >
         <div class="text-center mb-3">
-          <VAvatar size="60" color="red" variant="tonal" class="mb-3">
-            <VIcon icon="tabler-alert-triangle" size="32" />
+          <VAvatar
+            size="60"
+            color="red"
+            variant="tonal"
+            class="mb-3"
+          >
+            <VIcon
+              icon="tabler-alert-triangle"
+              size="32"
+            />
           </VAvatar>
-          <h2 class="text-h6 font-weight-bold">Delete Pricing Rule?</h2>
+          <h2 class="text-h6 font-weight-bold">
+            Delete Pricing Rule?
+          </h2>
           <p class="text-body-2 mt-1 text-medium-emphasis">
             This action cannot be undone.
           </p>
         </div>
         <VDivider class="my-3" />
         <div class="d-flex justify-end gap-2">
-          <VBtn variant="text" @click="deleteDialog = false">Cancel</VBtn>
-          <VBtn color="red" prepend-icon="tabler-trash" @click="deletePricing">Delete</VBtn>
+          <VBtn
+            variant="text"
+            @click="deleteDialog = false"
+          >
+            Cancel
+          </VBtn>
+          <VBtn
+            color="red"
+            prepend-icon="tabler-trash"
+            @click="deletePricing"
+          >
+            Delete
+          </VBtn>
         </div>
       </VCard>
     </VDialog>
@@ -235,6 +354,7 @@ export default {
 
     // local reactive
     const pricings = ref([])
+
     const headers = [
       { title: 'Service', key: 'service_display' },
       { title: 'Category', key: 'category_display' },
@@ -243,7 +363,7 @@ export default {
       { title: 'Base Price', key: 'base_price' },
       { title: 'Duration', key: 'duration_minutes' },
       { title: 'Active', key: 'is_active' },
-      { title: 'Actions', key: 'actions', sortable: false }
+      { title: 'Actions', key: 'actions', sortable: false },
     ]
 
     const page = ref(1)
@@ -265,22 +385,26 @@ export default {
       billing_unit: 'PER_SESSION',
       base_price: 0,
       duration_minutes: null,
-      is_active: true
+      is_active: true,
     })
 
     // filtered lists
     const filteredCategories = computed(() => {
       if (!form.value.service) return []
+      
       return (categoryStore.categories || []).filter(c => {
         const sId = c.service?.id || c.service
+        
         return sId === form.value.service
       })
     })
 
     const filteredFacilities = computed(() => {
       if (!form.value.service) return []
+      
       return (facilityStore.facilities || []).filter(f => {
         const sId = f.service?.id || f.service
+        
         return sId === form.value.service
       })
     })
@@ -290,7 +414,7 @@ export default {
       { label: 'Daily', value: 'DAILY' },
       { label: 'Weekly', value: 'WEEKLY' },
       { label: 'Per Session', value: 'PER_SESSION' },
-      { label: 'One Time', value: 'ONE_TIME' }
+      { label: 'One Time', value: 'ONE_TIME' },
     ]
 
     const showDurationInput = computed(() => {
@@ -301,10 +425,11 @@ export default {
     const deleteItem = ref(null)
 
     // helpers
-    const formatNumber = (val) => {
+    const formatNumber = val => {
       if (val == null) return '0.00'
       const n = Number(val)
       if (isNaN(n)) return val
+      
       return n.toFixed(2)
     }
 
@@ -313,7 +438,7 @@ export default {
       await Promise.all([
         serviceStore.fetchServices(),
         facilityStore.fetchFacilities(),
-        categoryStore.fetchCategories()
+        categoryStore.fetchCategories(),
       ])
     }
 
@@ -323,6 +448,7 @@ export default {
         const res = await axios.get(BASE_URL + 'pricing-rules/', { params }) // Updated Endpoint
         const data = res.data
         const list = data.results || data || []
+
         pricings.value = list
         totalItems.value = data.count || (Array.isArray(list) ? list.length : 0)
       } catch (err) {
@@ -352,12 +478,12 @@ export default {
         billing_unit: 'PER_SESSION',
         base_price: 0,
         duration_minutes: null,
-        is_active: true
+        is_active: true,
       }
       drawerOpen.value = true
     }
 
-    const openEditDrawer = (item) => {
+    const openEditDrawer = item => {
       isEdit.value = true
       editId.value = item.id
       form.value = {
@@ -367,7 +493,7 @@ export default {
         billing_unit: item.billing_unit,
         base_price: item.base_price,
         duration_minutes: item.duration_minutes,
-        is_active: item.is_active
+        is_active: item.is_active,
       }
       drawerOpen.value = true
     }
@@ -384,7 +510,7 @@ export default {
           billing_unit: form.value.billing_unit,
           base_price: Number(form.value.base_price) || 0,
           duration_minutes: form.value.duration_minutes ? Number(form.value.duration_minutes) : null,
-          is_active: form.value.is_active
+          is_active: form.value.is_active,
         }
 
         if (isEdit.value && editId.value) {
@@ -404,7 +530,7 @@ export default {
     }
 
     // delete
-    const openDeleteDialog = (item) => {
+    const openDeleteDialog = item => {
       deleteItem.value = item
       deleteDialog.value = true
     }
@@ -441,8 +567,8 @@ export default {
       deleteDialog, deleteItem,
       serviceStore, facilityStore, categoryStore,
       updateOptions, openAddDrawer, openEditDrawer, closeDrawer, submit,
-      openDeleteDialog, deletePricing, formatNumber, onServiceChange, drawerHeaderStyle
+      openDeleteDialog, deletePricing, formatNumber, onServiceChange, drawerHeaderStyle,
     }
-  }
+  },
 }
 </script>

@@ -7,12 +7,12 @@ const props = defineProps({
   modelValue: Boolean,
   serviceId: {
     type: String,
-    required: true
+    required: true,
   },
   category: {
     type: Object,
-    default: null // If provided, we are in edit mode
-  }
+    default: null, // If provided, we are in edit mode
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'saved'])
@@ -20,24 +20,25 @@ const emit = defineEmits(['update:modelValue', 'saved'])
 const permissionStore = usePermissionStore()
 const loading = ref(false)
 const error = ref('')
+
 const form = ref({
   name: '',
-  description: ''
+  description: '',
 })
 
 // Reset form when dialog opens
-watch(() => props.modelValue, (val) => {
+watch(() => props.modelValue, val => {
   if (val) {
     error.value = ''
     if (props.category) {
       form.value = {
         name: props.category.name,
-        description: props.category.description || ''
+        description: props.category.description || '',
       }
     } else {
       form.value = {
         name: '',
-        description: ''
+        description: '',
       }
     }
   }
@@ -60,7 +61,7 @@ const save = async () => {
     
     const payload = {
       ...form.value,
-      service_id: props.serviceId
+      service_id: props.serviceId,
     }
 
     await axios({
@@ -68,8 +69,8 @@ const save = async () => {
       url,
       data: payload,
       headers: {
-        'Authorization': `Bearer ${token}`
-      }
+        'Authorization': `Bearer ${token}`,
+      },
     })
     
     emit('saved')
@@ -86,13 +87,20 @@ const save = async () => {
 <template>
   <VDialog
     :model-value="modelValue"
-    @update:model-value="emit('update:modelValue', $event)"
     max-width="500"
+    @update:model-value="emit('update:modelValue', $event)"
   >
     <VCard>
       <VCardTitle>{{ category ? 'Edit Category' : 'Add New Category' }}</VCardTitle>
       <VCardText>
-        <VAlert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</VAlert>
+        <VAlert
+          v-if="error"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+        >
+          {{ error }}
+        </VAlert>
         
         <VTextField
           v-model="form.name"
@@ -109,13 +117,18 @@ const save = async () => {
       </VCardText>
       <VCardActions>
         <VSpacer />
-        <VBtn variant="text" @click="emit('update:modelValue', false)">Cancel</VBtn>
+        <VBtn
+          variant="text"
+          @click="emit('update:modelValue', false)"
+        >
+          Cancel
+        </VBtn>
         <VBtn 
           color="primary" 
           variant="elevated" 
-          @click="save" 
-          :loading="loading"
+          :loading="loading" 
           :disabled="!form.name"
+          @click="save"
         >
           Save
         </VBtn>

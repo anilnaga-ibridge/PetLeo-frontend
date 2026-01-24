@@ -16,7 +16,7 @@ const tabs = [
   { value: 'pricing', title: 'Pricing', icon: 'tabler-currency-dollar' },
 ]
 
-const handlePlanSelect = (id) => {
+const handlePlanSelect = id => {
   selectedPlanId.value = id
 }
 
@@ -25,7 +25,7 @@ const handleCreate = () => {
   activeTab.value = 'overview'
 }
 
-const handleSaved = (plan) => {
+const handleSaved = plan => {
   selectedPlanId.value = plan.id
   planListRef.value?.fetchPlans()
 }
@@ -36,11 +36,22 @@ const handleSaved = (plan) => {
     <VRow class="mb-2">
       <VCol cols="12">
         <div class="d-flex align-center">
-          <VAvatar color="primary" variant="tonal" rounded size="42" class="me-3">
-            <VIcon icon="tabler-package" size="26" />
+          <VAvatar
+            color="primary"
+            variant="tonal"
+            rounded
+            size="42"
+            class="me-3"
+          >
+            <VIcon
+              icon="tabler-package"
+              size="26"
+            />
           </VAvatar>
           <div>
-            <h1 class="text-h4 font-weight-bold">Plans Builder</h1>
+            <h1 class="text-h4 font-weight-bold">
+              Plans Builder
+            </h1>
             <p class="text-body-1 text-medium-emphasis mb-0">
               Create and manage subscription plans.
             </p>
@@ -74,27 +85,41 @@ const handleSaved = (plan) => {
               class="text-body-1"
               :disabled="!selectedPlanId && tab.value !== 'overview'"
             >
-              <VIcon :icon="tab.icon" size="20" class="me-2" />
+              <VIcon
+                :icon="tab.icon"
+                size="20"
+                class="me-2"
+              />
               {{ tab.title }}
             </VTab>
           </VTabs>
 
           <div class="flex-grow-1 overflow-y-auto bg-background">
-            <VWindow v-model="activeTab" class="h-100">
-              <VWindowItem value="overview" class="h-100">
+            <VWindow
+              v-model="activeTab"
+              class="h-100"
+            >
+              <VWindowItem
+                value="overview"
+                class="h-100"
+              >
                 <PlanOverview
                   :plan-id="selectedPlanId"
                   @saved="handleSaved"
                 />
               </VWindowItem>
 
-              <VWindowItem value="services" class="h-100">
-                <PlanServices
-                  :plan-id="selectedPlanId"
-                />
+              <VWindowItem
+                value="services"
+                class="h-100"
+              >
+                <PlanServices :plan-id="selectedPlanId" />
               </VWindowItem>
 
-              <VWindowItem value="pricing" class="h-100">
+              <VWindowItem
+                value="pricing"
+                class="h-100"
+              >
                 <PlanPricing
                   :plan-id="selectedPlanId"
                   @saved="handleSaved"
@@ -107,11 +132,20 @@ const handleSaved = (plan) => {
 
       <template #right>
         <div class="pa-4">
-          <h3 class="text-h6 font-weight-bold mb-4">Plan Summary</h3>
-          <VCard variant="outlined" class="mb-4 bg-surface">
+          <h3 class="text-h6 font-weight-bold mb-4">
+            Plan Summary
+          </h3>
+          <VCard
+            variant="outlined"
+            class="mb-4 bg-surface"
+          >
             <VCardText>
               <div class="d-flex align-center gap-2 mb-2">
-                <VIcon icon="tabler-bulb" size="20" color="warning" />
+                <VIcon
+                  icon="tabler-bulb"
+                  size="20"
+                  color="warning"
+                />
                 <span class="font-weight-bold">Tip</span>
               </div>
               <p class="text-caption mb-0">

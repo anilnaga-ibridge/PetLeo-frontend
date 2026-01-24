@@ -18,6 +18,7 @@ export const useCategoryStore = defineStore('createcategory', () => {
     try {
       const token = useCookie('accessToken').value
       const res = await axios.get(CATEGORY_URL, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+
       categories.value = res.data.results || res.data || []
     } catch (err) {
       error.value = err
@@ -35,17 +36,23 @@ export const useCategoryStore = defineStore('createcategory', () => {
       const token = useCookie('accessToken').value
       if (!token) {
         error.value = 'Authentication required.'
+        
         return false
       }
+
       const res = await axios.post(CATEGORY_URL, payload, {
         headers: { Authorization: `Bearer ${token}` },
       })
+
+
       // push new category into local state for instant UX
       categories.value.unshift(res.data)
+      
       return res.data
     } catch (err) {
       error.value = err.response?.data?.detail || err.response?.data?.message || 'Error creating category'
       console.error('createCategory error', err)
+      
       return false
     } finally {
       loading.value = false

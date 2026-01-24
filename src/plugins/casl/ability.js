@@ -12,33 +12,33 @@ export function defineAbilitiesFor(user) {
   const role = user?.role?.toLowerCase() || 'guest'
 
   switch (role) {
-    case 'superadmin':
-      return [
-        { action: 'manage', subject: 'all' },
-      ]
-    case 'admin':
-      return [
-        { action: 'read', subject: 'dashboard' },
-        { action: 'access', subject: 'logistics' },
-        { action: 'manage', subject: 'all' },
-      ]
-    case 'organization':
-    case 'individual':
-      return [
-        { action: 'manage', subject: 'all' }, // Grant full access for now
-      ]
-    case 'employee':
-      return [
-        { action: 'read', subject: 'dashboard' },
-        { action: 'manage', subject: 'all' }, // Grant full access for now
-      ]
-    case 'client':
-      return [
-        { action: 'read', subject: 'public' },
-      ]
-    default:
-      return [
-        { action: 'read', subject: 'public' },
-      ]
+  case 'superadmin':
+    return [
+      { action: 'manage', subject: 'all' },
+    ]
+  case 'admin':
+    return [
+      { action: 'read', subject: 'dashboard' },
+      { action: 'access', subject: 'logistics' },
+      { action: 'manage', subject: 'all' },
+    ]
+  case 'organization':
+  case 'individual':
+    return [
+      { action: 'manage', subject: 'all' }, // Grant full access for now
+    ]
+  case 'employee':
+    return [
+      { action: 'read', subject: 'dashboard' },
+      { action: 'manage', subject: 'all' }, // Grant full access for now
+    ]
+  case 'client':
+    return [
+      { action: 'read', subject: 'public' },
+    ]
+  default:
+    return [
+      { action: 'read', subject: 'public' },
+    ]
   }
 }

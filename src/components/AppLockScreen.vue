@@ -30,11 +30,11 @@ const cardTransform = computed(() => {
 
 // Parallax for Orbs
 const orb1Style = computed(() => ({
-  transform: `translate(${x.value / 30}px, ${y.value / 30}px)`
+  transform: `translate(${x.value / 30}px, ${y.value / 30}px)`,
 }))
 
 const orb2Style = computed(() => ({
-  transform: `translate(${x.value / -40}px, ${y.value / -40}px)`
+  transform: `translate(${x.value / -40}px, ${y.value / -40}px)`,
 }))
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -53,9 +53,9 @@ const unlock = async () => {
 
     await axios.post(`${API_BASE}/auth/api/auth/login-with-pin/`, {
       pin: pin.value,
-      action: 'reverify'
+      action: 'reverify',
     }, {
-      headers: { Authorization: `Bearer ${useCookie('accessToken').value}` }
+      headers: { Authorization: `Bearer ${useCookie('accessToken').value}` },
     })
     
     // Unlock success with exit animation
@@ -189,14 +189,31 @@ const logout = () => {
 </script>
 
 <template>
-  <div v-if="isLocked" class="lock-overlay">
+  <div
+    v-if="isLocked"
+    class="lock-overlay"
+  >
     <!-- Moderate Animated Particle Background -->
-    <canvas ref="canvasRef" class="particle-canvas"></canvas>
+    <canvas
+      ref="canvasRef"
+      class="particle-canvas"
+    />
 
-    <div class="lock-content" :style="cardTransform">
+    <div
+      class="lock-content"
+      :style="cardTransform"
+    >
       <div class="text-center mb-8">
-        <VAvatar color="primary" size="96" class="mb-6 elevation-10 ring-4 ring-white ring-opacity-20 avatar-pulse">
-          <VIcon icon="tabler-lock" size="48" color="white" />
+        <VAvatar
+          color="primary"
+          size="96"
+          class="mb-6 elevation-10 ring-4 ring-white ring-opacity-20 avatar-pulse"
+        >
+          <VIcon
+            icon="tabler-lock"
+            size="48"
+            color="white"
+          />
         </VAvatar>
         <h2 class="text-h3 font-weight-bold text-white mb-2 tracking-tight typing-effect">
           Welcome Back
@@ -206,7 +223,10 @@ const logout = () => {
         </p>
       </div>
 
-      <VCard width="400" class="pa-8 rounded-xl elevation-24 glass-card">
+      <VCard
+        width="400"
+        class="pa-8 rounded-xl elevation-24 glass-card"
+      >
         <p class="text-center text-body-1 mb-6 text-medium-emphasis font-weight-medium">
           Enter your PIN to unlock screen
         </p>
@@ -237,9 +257,9 @@ const logout = () => {
           size="x-large"
           rounded="lg"
           :loading="loading"
-          @click="unlock"
           class="mb-6 font-weight-bold text-button btn-gradient"
           elevation="4"
+          @click="unlock"
         >
           Unlock
         </VBtn>
@@ -249,8 +269,8 @@ const logout = () => {
             variant="text"
             color="error"
             size="small"
-            @click="logout"
             class="text-caption font-weight-bold opacity-80 hover:opacity-100"
+            @click="logout"
           >
             Forgot PIN? / Logout
           </VBtn>

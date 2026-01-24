@@ -40,6 +40,8 @@ const resolveUserRoleVariant = role => {
     editor: { color: 'info', icon: 'tabler-pencil' },
     admin: { color: 'secondary', icon: 'tabler-server-2' },
   }
+
+  
   return map[role] || { color: 'primary', icon: 'tabler-user' }
 }
 </script>
@@ -57,15 +59,23 @@ const resolveUserRoleVariant = role => {
             :color="!user.avatar ? 'primary' : undefined"
             :variant="!user.avatar ? 'tonal' : undefined"
           >
-            <VImg v-if="user.avatar" :src="user.avatar" />
+            <VImg
+              v-if="user.avatar"
+              :src="user.avatar"
+            />
 
-            <span v-else class="text-5xl font-weight-medium">
+            <span
+              v-else
+              class="text-5xl font-weight-medium"
+            >
               {{ avatarText(user.fullName) }}
             </span>
           </VAvatar>
 
           <!-- Full Name -->
-          <h5 class="text-h5 mt-4">{{ user.fullName }}</h5>
+          <h5 class="text-h5 mt-4">
+            {{ user.fullName }}
+          </h5>
 
           <!-- Role -->
           <VChip
@@ -81,33 +91,55 @@ const resolveUserRoleVariant = role => {
         <VCardText>
           <!-- Task / Project -->
           <div class="d-flex justify-space-around gap-x-6 gap-y-2 flex-wrap mb-6">
-
             <div class="d-flex align-center me-8">
-              <VAvatar size="40" rounded color="primary" variant="tonal" class="me-4">
-                <VIcon icon="tabler-checkbox" size="24" />
+              <VAvatar
+                size="40"
+                rounded
+                color="primary"
+                variant="tonal"
+                class="me-4"
+              >
+                <VIcon
+                  icon="tabler-checkbox"
+                  size="24"
+                />
               </VAvatar>
 
               <div>
-                <h5 class="text-h5">{{ kFormatter(user.taskDone) }}</h5>
+                <h5 class="text-h5">
+                  {{ kFormatter(user.taskDone) }}
+                </h5>
                 <span class="text-sm">Task Done</span>
               </div>
             </div>
 
             <div class="d-flex align-center me-4">
-              <VAvatar size="38" rounded color="primary" variant="tonal" class="me-4">
-                <VIcon icon="tabler-briefcase" size="24" />
+              <VAvatar
+                size="38"
+                rounded
+                color="primary"
+                variant="tonal"
+                class="me-4"
+              >
+                <VIcon
+                  icon="tabler-briefcase"
+                  size="24"
+                />
               </VAvatar>
 
               <div>
-                <h5 class="text-h5">{{ kFormatter(user.projectDone) }}</h5>
+                <h5 class="text-h5">
+                  {{ kFormatter(user.projectDone) }}
+                </h5>
                 <span class="text-sm">Project Done</span>
               </div>
             </div>
-
           </div>
 
           <!-- Details -->
-          <h5 class="text-h5">Details</h5>
+          <h5 class="text-h5">
+            Details
+          </h5>
 
           <VDivider class="my-4" />
 
@@ -164,11 +196,17 @@ const resolveUserRoleVariant = role => {
         </VCardText>
 
         <VCardText class="d-flex justify-center gap-x-4">
-          <VBtn variant="elevated" @click="isUserInfoEditDialogVisible = true">
+          <VBtn
+            variant="elevated"
+            @click="isUserInfoEditDialogVisible = true"
+          >
             Edit
           </VBtn>
 
-          <VBtn variant="tonal" color="error">
+          <VBtn
+            variant="tonal"
+            color="error"
+          >
             Suspend
           </VBtn>
         </VCardText>

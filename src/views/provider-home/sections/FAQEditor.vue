@@ -1,38 +1,57 @@
 <template>
   <div>
-    <v-btn color="primary" @click="openAdd">+ Add FAQ</v-btn>
+    <VBtn
+      color="primary"
+      @click="openAdd"
+    >
+      + Add FAQ
+    </VBtn>
 
-    <v-dialog v-model="dialog" width="600">
-      <v-card class="pa-4">
-        <v-text-field v-model="form.question" label="Question" />
-        <v-textarea v-model="form.answer" label="Answer" />
+    <VDialog
+      v-model="dialog"
+      width="600"
+    >
+      <VCard class="pa-4">
+        <VTextField
+          v-model="form.question"
+          label="Question"
+        />
+        <VTextarea
+          v-model="form.answer"
+          label="Answer"
+        />
 
-        <v-btn color="primary" @click="save">Save</v-btn>
-      </v-card>
-    </v-dialog>
+        <VBtn
+          color="primary"
+          @click="save"
+        >
+          Save
+        </VBtn>
+      </VCard>
+    </VDialog>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
-import api from "../api";
+import { ref } from "vue"
+import api from "../api"
 
 const props = defineProps({
-  homeId: String
-});
+  homeId: String,
+})
 
-const dialog = ref(false);
-const form = ref({});
+const dialog = ref(false)
+const form = ref({})
 
 function openAdd() {
-  dialog.value = true;
-  form.value = {};
+  dialog.value = true
+  form.value = {}
 }
 
 function save() {
   api.addFAQ(props.homeId, form.value).then(() => {
-    dialog.value = false;
-    alert("FAQ added");
-  });
+    dialog.value = false
+    alert("FAQ added")
+  })
 }
 </script>

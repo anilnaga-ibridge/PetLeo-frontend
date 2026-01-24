@@ -6,34 +6,35 @@ const props = defineProps({
   modelValue: Boolean,
   serviceId: {
     type: String,
-    required: true
+    required: true,
   },
   categories: {
     type: Array,
-    required: true
+    required: true,
   },
   facility: {
     type: Object,
-    default: null
+    default: null,
   },
   preselectedCategoryId: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'saved'])
 
 const loading = ref(false)
 const error = ref('')
+
 const form = ref({
   name: '',
   description: '',
   price: 0,
-  category_id: null
+  category_id: null,
 })
 
-watch(() => props.modelValue, (val) => {
+watch(() => props.modelValue, val => {
   if (val) {
     error.value = ''
     if (props.facility) {
@@ -41,14 +42,14 @@ watch(() => props.modelValue, (val) => {
         name: props.facility.name,
         description: props.facility.description || '',
         price: props.facility.price || 0,
-        category_id: props.facility.category // Assuming facility has category ID
+        category_id: props.facility.category, // Assuming facility has category ID
       }
     } else {
       form.value = {
         name: '',
         description: '',
         price: 0,
-        category_id: props.preselectedCategoryId || (props.categories.length > 0 ? props.categories[0].id : null)
+        category_id: props.preselectedCategoryId || (props.categories.length > 0 ? props.categories[0].id : null),
       }
     }
   }
@@ -71,8 +72,9 @@ const save = async () => {
     // ProviderFacility requires 'category' ID
     const payload = {
       ...form.value,
-      category: form.value.category_id
+      category: form.value.category_id,
     }
+
     // Remove service_id as it's not directly on ProviderFacility (it's on Category)
     // But wait, my serializer might not require it if I set it in perform_create?
     // Actually ProviderFacility links to Category.
@@ -82,8 +84,8 @@ const save = async () => {
       url,
       data: payload,
       headers: {
-        'Authorization': `Bearer ${token}`
-      }
+        'Authorization': `Bearer ${token}`,
+      },
     })
     
     emit('saved')
@@ -100,13 +102,20 @@ const save = async () => {
 <template>
   <VDialog
     :model-value="modelValue"
-    @update:model-value="emit('update:modelValue', $event)"
     max-width="500"
+    @update:model-value="emit('update:modelValue', $event)"
   >
     <VCard>
       <VCardTitle>{{ facility ? 'Edit Facility' : 'Add New Facility' }}</VCardTitle>
       <VCardText>
-        <VAlert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</VAlert>
+        <VAlert
+          v-if="error"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+        >
+          {{ error }}
+        </VAlert>
         
         <VSelect
           v-model="form.category_id"
@@ -142,13 +151,18 @@ const save = async () => {
       </VCardText>
       <VCardActions>
         <VSpacer />
-        <VBtn variant="text" @click="emit('update:modelValue', false)">Cancel</VBtn>
+        <VBtn
+          variant="text"
+          @click="emit('update:modelValue', false)"
+        >
+          Cancel
+        </VBtn>
         <VBtn 
           color="primary" 
           variant="elevated" 
-          @click="save" 
-          :loading="loading"
+          :loading="loading" 
           :disabled="!form.name"
+          @click="save"
         >
           Save
         </VBtn>

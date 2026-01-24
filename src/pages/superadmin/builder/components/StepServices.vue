@@ -33,6 +33,7 @@ const fetchServices = async () => {
   loading.value = true
   try {
     const res = await superAdminApi.get('/api/superadmin/services/')
+
     services.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch services:', err)
@@ -53,7 +54,7 @@ const openAddDrawer = () => {
   drawerOpen.value = true
 }
 
-const openEditDrawer = (service) => {
+const openEditDrawer = service => {
   isEdit.value = true
   editId.value = service.id
   form.value = { ...service }
@@ -74,7 +75,7 @@ const submit = async () => {
   }
 }
 
-const toggleStatus = async (service) => {
+const toggleStatus = async service => {
   try {
     await superAdminApi.patch(`/api/superadmin/services/${service.id}/`, {
       is_active: service.is_active,
@@ -85,7 +86,7 @@ const toggleStatus = async (service) => {
   }
 }
 
-const selectService = (serviceId) => {
+const selectService = serviceId => {
   emit('update:state', { ...props.state, selectedServiceId: serviceId })
   emit('next')
 }
@@ -96,7 +97,13 @@ onMounted(fetchServices)
 <template>
   <div>
     <VRow v-if="loading">
-      <VCol v-for="i in 3" :key="i" cols="12" sm="6" md="4">
+      <VCol
+        v-for="i in 3"
+        :key="i"
+        cols="12"
+        sm="6"
+        md="4"
+      >
         <VSkeletonLoader type="card" />
       </VCol>
     </VRow>
@@ -110,7 +117,8 @@ onMounted(fetchServices)
         md="4"
       >
         <VCard
-          :class="['service-card', { 'selected': props.state.selectedServiceId === service.id }]"
+          class="service-card"
+          :class="[{ 'selected': props.state.selectedServiceId === service.id }]"
           @click="selectService(service.id)"
         >
           <VCardText class="d-flex flex-column align-center text-center pa-6">
@@ -120,15 +128,23 @@ onMounted(fetchServices)
               variant="tonal"
               class="mb-4"
             >
-              <VIcon :icon="service.icon || 'tabler-paw'" size="32" />
+              <VIcon
+                :icon="service.icon || 'tabler-paw'"
+                size="32"
+              />
             </VAvatar>
             
-            <h3 class="text-h6 font-weight-bold mb-1">{{ service.display_name }}</h3>
+            <h3 class="text-h6 font-weight-bold mb-1">
+              {{ service.display_name }}
+            </h3>
             <p class="text-body-2 text-medium-emphasis mb-4 line-clamp-2">
               {{ service.description || 'No description provided.' }}
             </p>
 
-            <div class="d-flex align-center gap-2 mt-auto" @click.stop>
+            <div
+              class="d-flex align-center gap-2 mt-auto"
+              @click.stop
+            >
               <VSwitch
                 v-model="service.is_active"
                 density="compact"
@@ -155,10 +171,25 @@ onMounted(fetchServices)
       variant="outlined"
     >
       <VCardText>
-        <VIcon icon="tabler-paw" size="48" color="medium-emphasis" class="mb-4" />
-        <h3 class="text-h6 font-weight-bold mb-2">No Services Found</h3>
-        <p class="text-body-2 text-medium-emphasis mb-6">Create your first service to get started.</p>
-        <VBtn variant="tonal" color="primary" @click="openAddDrawer">Add First Service</VBtn>
+        <VIcon
+          icon="tabler-paw"
+          size="48"
+          color="medium-emphasis"
+          class="mb-4"
+        />
+        <h3 class="text-h6 font-weight-bold mb-2">
+          No Services Found
+        </h3>
+        <p class="text-body-2 text-medium-emphasis mb-6">
+          Create your first service to get started.
+        </p>
+        <VBtn
+          variant="tonal"
+          color="primary"
+          @click="openAddDrawer"
+        >
+          Add First Service
+        </VBtn>
       </VCardText>
     </VCard>
 
@@ -181,8 +212,14 @@ onMounted(fetchServices)
     >
       <div class="d-flex flex-column h-100">
         <div class="pa-6 border-b d-flex justify-space-between align-center bg-surface sticky-header">
-          <h3 class="text-h6 font-weight-bold">{{ isEdit ? 'Edit Service' : 'Add Service' }}</h3>
-          <VBtn icon="tabler-x" variant="text" @click="drawerOpen = false" />
+          <h3 class="text-h6 font-weight-bold">
+            {{ isEdit ? 'Edit Service' : 'Add Service' }}
+          </h3>
+          <VBtn
+            icon="tabler-x"
+            variant="text"
+            @click="drawerOpen = false"
+          />
         </div>
 
         <div class="flex-grow-1 overflow-y-auto pa-6">
@@ -212,12 +249,18 @@ onMounted(fetchServices)
             >
               <template #selection="{ item }">
                 <div class="d-flex align-center">
-                  <VIcon :icon="item.raw.value" class="me-2" />
+                  <VIcon
+                    :icon="item.raw.value"
+                    class="me-2"
+                  />
                   {{ item.raw.title }}
                 </div>
               </template>
               <template #item="{ props, item }">
-                <VListItem v-bind="props" :prepend-icon="item.raw.value" />
+                <VListItem
+                  v-bind="props"
+                  :prepend-icon="item.raw.value"
+                />
               </template>
             </VSelect>
             <AppTextarea
@@ -228,7 +271,11 @@ onMounted(fetchServices)
             />
 
             <div class="d-flex gap-4">
-              <VBtn color="primary" block type="submit">
+              <VBtn
+                color="primary"
+                block
+                type="submit"
+              >
                 {{ isEdit ? 'Update Service' : 'Create Service' }}
               </VBtn>
             </div>

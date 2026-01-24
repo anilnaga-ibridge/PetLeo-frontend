@@ -1,77 +1,81 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useCookie } from '@/@core/composable/useCookie';
-import { api } from '@/plugins/axios';
+import { ref, onMounted, computed } from 'vue'
+import { useCookie } from '@/@core/composable/useCookie'
+import { api } from '@/plugins/axios'
 
-const userData = useCookie('userData');
+const userData = useCookie('userData')
 
 // Avatar
-const avatarFile = ref(null);
+const avatarFile = ref(null)
+
 const accountDataLocal = ref({
   avatarImg: userData.value?.avatar || '',
-});
+})
 
 const avatarUrl = computed(() => {
   if (avatarFile.value) {
-    return URL.createObjectURL(avatarFile.value);
+    return URL.createObjectURL(avatarFile.value)
   }
-  return accountDataLocal.value.avatarImg;
-});
+  
+  return accountDataLocal.value.avatarImg
+})
 
-const onAvatarChange = (e) => {
-  const file = e.target.files[0];
+const onAvatarChange = e => {
+  const file = e.target.files[0]
   if (file) {
-    avatarFile.value = file;
+    avatarFile.value = file
   }
-};
+}
 
 const resetAvatar = () => {
-  avatarFile.value = null;
-  accountDataLocal.value.avatarImg = userData.value?.avatar || '';
-};
+  avatarFile.value = null
+  accountDataLocal.value.avatarImg = userData.value?.avatar || ''
+}
 
 // Dynamic fields
-const fields = ref([]);
-const loading = ref(false);
+const fields = ref([])
+const loading = ref(false)
 
 const fetchProfile = async () => {
-  loading.value = true;
+  loading.value = true
   try {
-    const target = userData.value?.provider_type || 'individual';
+    const target = userData.value?.provider_type || 'individual'
+
     const res = await api.get(`/api/provider/profile/`, {
       params: { 
         user: userData.value.id,
-        target: target
-      }
-    });
+        target: target,
+      },
+    })
     
     // The API returns fields with their definitions and values
     // We map them to ensure reactivity
     fields.value = (res.data.fields || []).map(f => ({
       ...f,
-      value: f.value || '' // Ensure value is not null for v-model
-    }));
+      value: f.value || '', // Ensure value is not null for v-model
+    }))
     
     // Update avatar if provided
     if (res.data.avatar) {
-      accountDataLocal.value.avatarImg = res.data.avatar;
+      accountDataLocal.value.avatarImg = res.data.avatar
+
       // Update cookie
-      userData.value.avatar = res.data.avatar;
+      userData.value.avatar = res.data.avatar
     }
 
   } catch (err) {
-    console.error('Failed to fetch profile', err);
+    console.error('Failed to fetch profile', err)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const submitForm = async () => {
-  const fd = new FormData();
+  const fd = new FormData()
   
   // Append static avatar if selected
   if (avatarFile.value) {
-    fd.append('avatar', avatarFile.value);
+    fd.append('avatar', avatarFile.value)
   }
 
   // Construct fields JSON
@@ -79,34 +83,36 @@ const submitForm = async () => {
   const fieldsData = fields.value.map(field => ({
     field_id: field.id,
     value: field.value,
-    metadata: field.metadata || {}
-  }));
+    metadata: field.metadata || {},
+  }))
 
-  fd.append('fields', JSON.stringify(fieldsData));
+  fd.append('fields', JSON.stringify(fieldsData))
   
   try {
-    const res = await api.post(`/api/provider/profile/?user=${userData.value.id}`, fd);
+    const res = await api.post(`/api/provider/profile/?user=${userData.value.id}`, fd)
+
     // Update cookie with new avatar
     if (res.data.avatar) {
-      userData.value.avatar = res.data.avatar;
-      accountDataLocal.value.avatarImg = res.data.avatar;
+      userData.value.avatar = res.data.avatar
+      accountDataLocal.value.avatarImg = res.data.avatar
     }
+
     // Refresh profile to show saved data
-    fetchProfile();
+    fetchProfile()
   } catch (err) {
-    console.error('Failed to save profile', err);
+    console.error('Failed to save profile', err)
   }
-};
+}
 
 const resetForm = () => {
-  fetchProfile();
-};
+  fetchProfile()
+}
 
 onMounted(() => {
   if (userData.value) {
-    fetchProfile();
+    fetchProfile()
   }
-});
+})
 </script>
 
 <template>
@@ -169,9 +175,11 @@ onMounted(() => {
 
         <VCardText>
           <!-- 👉 Form -->
-          <VForm class="mt-6" @submit.prevent="submitForm">
+          <VForm
+            class="mt-6"
+            @submit.prevent="submitForm"
+          >
             <VRow>
-              
               <!-- 👉 Dynamic Fields Loop -->
               <VCol
                 v-for="field in fields"
@@ -243,7 +251,10 @@ onMounted(() => {
                 cols="12"
                 class="d-flex flex-wrap gap-4"
               >
-                <VBtn type="submit" :loading="loading">
+                <VBtn
+                  type="submit"
+                  :loading="loading"
+                >
                   Save changes
                 </VBtn>
 

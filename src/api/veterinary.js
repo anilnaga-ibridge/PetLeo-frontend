@@ -1,52 +1,70 @@
+import { veterinaryApi as api } from '@/plugins/axios'
 
-import { api } from '@/plugins/axios';
+// The veterinaryApi from axios already has the baseURL and interceptors.
+// We decorate it with our semantic methods.
 
-// Base URL for Veterinary Service
-// In production, this should be via Kong Gateway. For now, direct port 8004.
-const VET_API_URL = 'http://localhost:8004/api/v1';
+export const veterinaryApi = api
 
-export const veterinaryApi = {
-    // --- Field Definitions (Admin) ---
-    getFields(params) {
-        return api.get(`${VET_API_URL}/field-definitions/`, { params });
-    },
-    createField(data) {
-        return api.post(`${VET_API_URL}/field-definitions/`, data);
-    },
+// --- Field Definitions (Admin) ---
+veterinaryApi.getFields = params => {
+  return api.get('/veterinary/field-definitions/', { params })
+}
+veterinaryApi.createField = data => {
+  return api.post('/veterinary/field-definitions/', data)
+}
+veterinaryApi.updateField = (id, data) => {
+  return api.put(`/veterinary/field-definitions/${id}/`, data)
+}
+veterinaryApi.deleteField = id => {
+  return api.delete(`/veterinary/field-definitions/${id}/`)
+}
 
-    // --- Clinic & Reception ---
-    getClinics() {
-        return api.get(`${VET_API_URL}/clinics/`);
-    },
-    createOwner(data) {
-        return api.post(`${VET_API_URL}/owners/`, data);
-    },
-    createPet(data) {
-        return api.post(`${VET_API_URL}/pets/`, data);
-    },
-    savePetDynamicData(petId, data) {
-        return api.post(`${VET_API_URL}/pets/${petId}/dynamic_data/`, data);
-    },
+// --- Clinic & Reception ---
+veterinaryApi.getClinics = () => {
+  return api.get('/veterinary/clinics/')
+}
+veterinaryApi.createOwner = data => {
+  return api.post('/veterinary/owners/', data)
+}
+veterinaryApi.createPet = data => {
+  return api.post('/veterinary/pets/', data)
+}
+veterinaryApi.savePetDynamicData = (petId, data) => {
+  return api.post(`/veterinary/pets/${petId}/dynamic_data/`, data)
+}
 
-    // --- Visits ---
-    createVisit(data) {
-        return api.post(`${VET_API_URL}/visits/`, data);
-    },
-    getVisits(params) {
-        return api.get(`${VET_API_URL}/visits/`, { params });
-    },
-    getVisit(id) {
-        return api.get(`${VET_API_URL}/visits/${id}/`);
-    },
-    transitionVisit(id, status) {
-        return api.post(`${VET_API_URL}/visits/${id}/transition/`, { status });
-    },
-    saveVitals(visitId, data) {
-        return api.post(`${VET_API_URL}/visits/${visitId}/vitals/`, data);
-    },
+// --- Visits ---
+veterinaryApi.createVisit = data => {
+  return api.post('/veterinary/visits/', data)
+}
+veterinaryApi.getVisits = params => {
+  return api.get('/veterinary/visits/', { params })
+}
+veterinaryApi.getVisit = id => {
+  return api.get(`/veterinary/visits/${id}/`)
+}
+veterinaryApi.transitionVisit = (id, status) => {
+  return api.post(`/veterinary/visits/${id}/transition/`, { status })
+}
+veterinaryApi.saveVitals = (visitId, data) => {
+  return api.post(`/veterinary/visits/${visitId}/vitals/`, data)
+}
 
-    // --- Virtual Entities (Prescriptions, Labs, etc.) ---
-    createEntity(data) {
-        return api.post(`${VET_API_URL}/entities/`, data);
-    }
-};
+// --- Form Definitions (Global/Schema) ---
+veterinaryApi.getForms = () => {
+  return api.get('/veterinary/forms/definitions/')
+}
+veterinaryApi.createForm = data => {
+  return api.post('/veterinary/forms/definitions/', data)
+}
+veterinaryApi.updateForm = (code, data) => {
+  return api.put(`/veterinary/forms/definitions/${code}/`, data)
+}
+veterinaryApi.deleteForm = code => {
+  return api.delete(`/veterinary/forms/definitions/${code}/`)
+}
+
+// --- Virtual Entities (Prescriptions, Labs, etc.) ---
+veterinaryApi.createEntity = data => {
+  return api.post('/veterinary/entities/', data)
+}

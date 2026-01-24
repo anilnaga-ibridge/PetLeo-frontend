@@ -19,6 +19,7 @@ const fetchPlan = async () => {
   loading.value = true
   try {
     const res = await superAdminApi.get(`/api/superadmin/plans/${props.planId}/`)
+
     form.value.price = res.data.price
     form.value.features = res.data.features || []
   } catch (err) {
@@ -34,8 +35,9 @@ const save = async () => {
   try {
     const res = await superAdminApi.patch(`/api/superadmin/plans/${props.planId}/`, {
       price: form.value.price,
-      features: form.value.features
+      features: form.value.features,
     })
+
     emit('saved', res.data)
   } catch (err) {
     console.error('Failed to save pricing:', err)
@@ -50,9 +52,19 @@ watch(() => props.planId, fetchPlan)
 
 <template>
   <div class="h-100 d-flex flex-column">
-    <div v-if="!props.planId" class="d-flex flex-column align-center justify-center h-100 text-center pa-12">
-      <VIcon icon="tabler-arrow-left" size="48" color="medium-emphasis" class="mb-4" />
-      <h3 class="text-h5 font-weight-bold mb-2">Select a Plan</h3>
+    <div
+      v-if="!props.planId"
+      class="d-flex flex-column align-center justify-center h-100 text-center pa-12"
+    >
+      <VIcon
+        icon="tabler-arrow-left"
+        size="48"
+        color="medium-emphasis"
+        class="mb-4"
+      />
+      <h3 class="text-h5 font-weight-bold mb-2">
+        Select a Plan
+      </h3>
       <p class="text-body-1 text-medium-emphasis">
         Please create or select a plan to configure its pricing.
       </p>
@@ -61,11 +73,20 @@ watch(() => props.planId, fetchPlan)
     <template v-else>
       <div class="pa-6 flex-grow-1 overflow-y-auto">
         <VRow>
-          <VCol cols="12" md="8">
-            <VCard variant="outlined" class="mb-6">
+          <VCol
+            cols="12"
+            md="8"
+          >
+            <VCard
+              variant="outlined"
+              class="mb-6"
+            >
               <VCardItem>
                 <template #prepend>
-                  <VIcon icon="tabler-currency-dollar" class="text-primary" />
+                  <VIcon
+                    icon="tabler-currency-dollar"
+                    class="text-primary"
+                  />
                 </template>
                 <VCardTitle>Pricing Strategy</VCardTitle>
                 <VCardSubtitle>Set the price for this plan.</VCardSubtitle>
@@ -90,7 +111,10 @@ watch(() => props.planId, fetchPlan)
             <VCard variant="outlined">
               <VCardItem>
                 <template #prepend>
-                  <VIcon icon="tabler-list-check" class="text-primary" />
+                  <VIcon
+                    icon="tabler-list-check"
+                    class="text-primary"
+                  />
                 </template>
                 <VCardTitle>Marketing Features</VCardTitle>
                 <VCardSubtitle>List features to display on the pricing page.</VCardSubtitle>

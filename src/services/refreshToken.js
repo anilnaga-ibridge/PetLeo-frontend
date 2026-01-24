@@ -4,15 +4,17 @@ async function refreshAccessIfExpired() {
 
   try {
     const res = await axios.post("http://127.0.0.1:8000/auth/api/auth/refresh-token/", {
-      refresh: refresh
+      refresh: refresh,
     })
 
     const newAccess = res.data.access
+
     localStorage.setItem("accessToken", newAccess)
 
     return newAccess
   } catch (e) {
     console.log("❌ Refresh token expired or invalid", e)
+    
     return null
   }
 }

@@ -15,7 +15,7 @@ const fetchDashboardData = async () => {
     // Note: Using the pet-owner specific endpoints we created earlier
     const [petsRes, visitsRes] = await Promise.all([
       axios.get('http://127.0.0.1:8001/api/pet-owner/pets/'),
-      axios.get('http://127.0.0.1:8001/api/pet-owner/visits/')
+      axios.get('http://127.0.0.1:8001/api/pet-owner/visits/'),
     ])
     
     pets.value = petsRes.data
@@ -41,42 +41,107 @@ onMounted(fetchDashboardData)
     <div class="dashboard-container">
       <!-- Welcome Header -->
       <div class="mb-6">
-        <h1 class="text-h4 font-weight-bold mb-1">Hello, {{ userData.full_name || 'Pet Parent' }}! 👋</h1>
-        <p class="text-body-1 text-medium-emphasis">Welcome back to PetLeo. Here's what's happening with your pets.</p>
+        <h1 class="text-h4 font-weight-bold mb-1">
+          Hello, {{ userData.full_name || 'Pet Parent' }}! 👋
+        </h1>
+        <p class="text-body-1 text-medium-emphasis">
+          Welcome back to PetLeo. Here's what's happening with your pets.
+        </p>
       </div>
 
       <!-- Quick Actions -->
       <VRow class="mb-6">
-        <VCol cols="6" sm="3">
-          <VCard to="/pet-owner/pets" class="text-center pa-4 rounded-xl elevation-2 hover-card">
-            <VAvatar color="primary-lighten-5" size="56" class="mb-2">
-              <VIcon icon="tabler-paw" color="primary" size="32" />
+        <VCol
+          cols="6"
+          sm="3"
+        >
+          <VCard
+            to="/pet-owner/pets"
+            class="text-center pa-4 rounded-xl elevation-2 hover-card"
+          >
+            <VAvatar
+              color="primary-lighten-5"
+              size="56"
+              class="mb-2"
+            >
+              <VIcon
+                icon="tabler-paw"
+                color="primary"
+                size="32"
+              />
             </VAvatar>
-            <div class="text-subtitle-2 font-weight-bold">My Pets</div>
+            <div class="text-subtitle-2 font-weight-bold">
+              My Pets
+            </div>
           </VCard>
         </VCol>
-        <VCol cols="6" sm="3">
-          <VCard to="/pet-owner/visits" class="text-center pa-4 rounded-xl elevation-2 hover-card">
-            <VAvatar color="info-lighten-5" size="56" class="mb-2">
-              <VIcon icon="tabler-calendar-event" color="info" size="32" />
+        <VCol
+          cols="6"
+          sm="3"
+        >
+          <VCard
+            to="/pet-owner/visits"
+            class="text-center pa-4 rounded-xl elevation-2 hover-card"
+          >
+            <VAvatar
+              color="info-lighten-5"
+              size="56"
+              class="mb-2"
+            >
+              <VIcon
+                icon="tabler-calendar-event"
+                color="info"
+                size="32"
+              />
             </VAvatar>
-            <div class="text-subtitle-2 font-weight-bold">Visits</div>
+            <div class="text-subtitle-2 font-weight-bold">
+              Visits
+            </div>
           </VCard>
         </VCol>
-        <VCol cols="6" sm="3">
+        <VCol
+          cols="6"
+          sm="3"
+        >
           <VCard class="text-center pa-4 rounded-xl elevation-2 hover-card opacity-50">
-            <VAvatar color="success-lighten-5" size="56" class="mb-2">
-              <VIcon icon="tabler-plus" color="success" size="32" />
+            <VAvatar
+              color="success-lighten-5"
+              size="56"
+              class="mb-2"
+            >
+              <VIcon
+                icon="tabler-plus"
+                color="success"
+                size="32"
+              />
             </VAvatar>
-            <div class="text-subtitle-2 font-weight-bold">Book</div>
+            <div class="text-subtitle-2 font-weight-bold">
+              Book
+            </div>
           </VCard>
         </VCol>
-        <VCol cols="6" sm="3">
-          <VCard to="/pet-owner/profile" class="text-center pa-4 rounded-xl elevation-2 hover-card">
-            <VAvatar color="warning-lighten-5" size="56" class="mb-2">
-              <VIcon icon="tabler-settings" color="warning" size="32" />
+        <VCol
+          cols="6"
+          sm="3"
+        >
+          <VCard
+            to="/pet-owner/profile"
+            class="text-center pa-4 rounded-xl elevation-2 hover-card"
+          >
+            <VAvatar
+              color="warning-lighten-5"
+              size="56"
+              class="mb-2"
+            >
+              <VIcon
+                icon="tabler-settings"
+                color="warning"
+                size="32"
+              />
             </VAvatar>
-            <div class="text-subtitle-2 font-weight-bold">Settings</div>
+            <div class="text-subtitle-2 font-weight-bold">
+              Settings
+            </div>
           </VCard>
         </VCol>
       </VRow>
@@ -91,10 +156,19 @@ onMounted(fetchDashboardData)
       >
         <div class="d-flex align-center justify-space-between flex-wrap gap-2">
           <div>
-            <div class="font-weight-bold">Pending Payments</div>
-            <div class="text-caption">You have {{ unpaidInvoices.length }} unpaid invoices.</div>
+            <div class="font-weight-bold">
+              Pending Payments
+            </div>
+            <div class="text-caption">
+              You have {{ unpaidInvoices.length }} unpaid invoices.
+            </div>
           </div>
-          <VBtn color="warning" size="small" variant="flat" to="/pet-owner/visits">
+          <VBtn
+            color="warning"
+            size="small"
+            variant="flat"
+            to="/pet-owner/visits"
+          >
             Pay Now
           </VBtn>
         </div>
@@ -103,20 +177,50 @@ onMounted(fetchDashboardData)
       <!-- My Pets Section -->
       <div class="mb-6">
         <div class="d-flex align-center justify-space-between mb-4">
-          <h2 class="text-h5 font-weight-bold">My Pets</h2>
-          <VBtn variant="text" color="primary" to="/pet-owner/pets">View All</VBtn>
+          <h2 class="text-h5 font-weight-bold">
+            My Pets
+          </h2>
+          <VBtn
+            variant="text"
+            color="primary"
+            to="/pet-owner/pets"
+          >
+            View All
+          </VBtn>
         </div>
         
-        <div v-if="loading" class="d-flex gap-4 overflow-x-auto pb-2">
-          <VSkeletonLoader v-for="i in 2" :key="i" width="200" height="120" class="rounded-xl" />
+        <div
+          v-if="loading"
+          class="d-flex gap-4 overflow-x-auto pb-2"
+        >
+          <VSkeletonLoader
+            v-for="i in 2"
+            :key="i"
+            width="200"
+            height="120"
+            class="rounded-xl"
+          />
         </div>
         
-        <div v-else-if="pets.length === 0" class="text-center py-8 bg-white rounded-xl border border-dashed">
-          <VIcon icon="tabler-paw" size="48" color="medium-emphasis" class="mb-2" />
-          <p class="text-medium-emphasis">No pets registered yet.</p>
+        <div
+          v-else-if="pets.length === 0"
+          class="text-center py-8 bg-white rounded-xl border border-dashed"
+        >
+          <VIcon
+            icon="tabler-paw"
+            size="48"
+            color="medium-emphasis"
+            class="mb-2"
+          />
+          <p class="text-medium-emphasis">
+            No pets registered yet.
+          </p>
         </div>
 
-        <div v-else class="d-flex gap-4 overflow-x-auto pb-2">
+        <div
+          v-else
+          class="d-flex gap-4 overflow-x-auto pb-2"
+        >
           <VCard
             v-for="pet in pets"
             :key="pet.id"
@@ -129,8 +233,12 @@ onMounted(fetchDashboardData)
               cover
             />
             <VCardText class="pa-3">
-              <div class="font-weight-bold text-truncate">{{ pet.name }}</div>
-              <div class="text-caption text-medium-emphasis">{{ pet.breed || pet.species }}</div>
+              <div class="font-weight-bold text-truncate">
+                {{ pet.name }}
+              </div>
+              <div class="text-caption text-medium-emphasis">
+                {{ pet.breed || pet.species }}
+              </div>
             </VCardText>
           </VCard>
         </div>
@@ -139,16 +247,34 @@ onMounted(fetchDashboardData)
       <!-- Recent Visits Section -->
       <div>
         <div class="d-flex align-center justify-space-between mb-4">
-          <h2 class="text-h5 font-weight-bold">Recent Visits</h2>
-          <VBtn variant="text" color="primary" to="/pet-owner/visits">History</VBtn>
+          <h2 class="text-h5 font-weight-bold">
+            Recent Visits
+          </h2>
+          <VBtn
+            variant="text"
+            color="primary"
+            to="/pet-owner/visits"
+          >
+            History
+          </VBtn>
         </div>
 
         <div v-if="loading">
-          <VSkeletonLoader v-for="i in 2" :key="i" type="list-item-avatar-two-line" class="mb-2" />
+          <VSkeletonLoader
+            v-for="i in 2"
+            :key="i"
+            type="list-item-avatar-two-line"
+            class="mb-2"
+          />
         </div>
 
-        <div v-else-if="recentVisits.length === 0" class="text-center py-8 bg-white rounded-xl border border-dashed">
-          <p class="text-medium-emphasis">No recent visits.</p>
+        <div
+          v-else-if="recentVisits.length === 0"
+          class="text-center py-8 bg-white rounded-xl border border-dashed"
+        >
+          <p class="text-medium-emphasis">
+            No recent visits.
+          </p>
         </div>
 
         <div v-else>
@@ -160,7 +286,11 @@ onMounted(fetchDashboardData)
           >
             <VListItem class="pa-4">
               <template #prepend>
-                <VAvatar color="primary" variant="tonal" size="48">
+                <VAvatar
+                  color="primary"
+                  variant="tonal"
+                  size="48"
+                >
                   <VIcon icon="tabler-calendar-event" />
                 </VAvatar>
               </template>
@@ -173,7 +303,10 @@ onMounted(fetchDashboardData)
               </VListItemSubtitle>
 
               <template #append>
-                <VIcon icon="tabler-chevron-right" color="medium-emphasis" />
+                <VIcon
+                  icon="tabler-chevron-right"
+                  color="medium-emphasis"
+                />
               </template>
             </VListItem>
           </VCard>

@@ -1,218 +1,222 @@
-<!-- <script setup>
-import { ref } from 'vue'
-import axios from 'axios'
-import { useRouter } from 'vue-router'
-import { VForm } from 'vuetify/components/VForm'
-import AuthProvider from '@/views/pages/authentication/AuthProvider.vue'
-import { VNodeRenderer } from '@layouts/components/VNodeRenderer'
-import { themeConfig } from '@themeConfig'
-import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
+<!--
+  <script setup>
+  import { ref } from 'vue'
+  import axios from 'axios'
+  import { useRouter } from 'vue-router'
+  import { VForm } from 'vuetify/components/VForm'
+  import AuthProvider from '@/views/pages/authentication/AuthProvider.vue'
+  import { VNodeRenderer } from '@layouts/components/VNodeRenderer'
+  import { themeConfig } from '@themeConfig'
+  import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
 
-import authV2RegisterIllustrationBorderedDark from '@images/pages/auth-v2-register-illustration-bordered-dark.png'
-import authV2RegisterIllustrationBorderedLight from '@images/pages/auth-v2-register-illustration-bordered-light.png'
-import authV2RegisterIllustrationDark from '@images/pages/auth-v2-register-illustration-dark.png'
-import authV2RegisterIllustrationLight from '@images/pages/auth-v2-register-illustration-light.png'
-import authV2MaskDark from '@images/pages/misc-mask-dark.png'
-import authV2MaskLight from '@images/pages/misc-mask-light.png'
+  import authV2RegisterIllustrationBorderedDark from '@images/pages/auth-v2-register-illustration-bordered-dark.png'
+  import authV2RegisterIllustrationBorderedLight from '@images/pages/auth-v2-register-illustration-bordered-light.png'
+  import authV2RegisterIllustrationDark from '@images/pages/auth-v2-register-illustration-dark.png'
+  import authV2RegisterIllustrationLight from '@images/pages/auth-v2-register-illustration-light.png'
+  import authV2MaskDark from '@images/pages/misc-mask-dark.png'
+  import authV2MaskLight from '@images/pages/misc-mask-light.png'
 
-const router = useRouter()
+  const router = useRouter()
 
-const imageVariant = useGenerateImageVariant(
+  const imageVariant = useGenerateImageVariant(
   authV2RegisterIllustrationLight,
   authV2RegisterIllustrationDark,
   authV2RegisterIllustrationBorderedLight,
   authV2RegisterIllustrationBorderedDark,
   true
-)
-const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
+  )
+  const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
 
-definePage({
+  definePage({
   meta: {
-    layout: 'blank',
-    unauthenticatedOnly: true,
+  layout: 'blank',
+  unauthenticatedOnly: true,
   },
-})
+  })
 
-// 🧾 Form data
-const form = ref({
+  // 🧾 Form data
+  const form = ref({
   full_name: '',
   email: '',
   phone_number: '',
   role: 'individual', // default role
   privacyPolicies: false,
-})
+  })
 
-const successMessage = ref('')
-const errorMessage = ref('')
-const loading = ref(false)
+  const successMessage = ref('')
+  const errorMessage = ref('')
+  const loading = ref(false)
 
-// 📤 Submit handler
-const registerUser = async () => {
+  // 📤 Submit handler
+  const registerUser = async () => {
   if (!form.value.privacyPolicies) {
-    errorMessage.value = 'Please accept privacy policy to continue.'
-    return
+  errorMessage.value = 'Please accept privacy policy to continue.'
+  return
   }
 
   try {
-    loading.value = true
-    errorMessage.value = ''
-    successMessage.value = ''
+  loading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
 
-    const payload = {
-      phone_number: form.value.phone_number,
-      full_name: form.value.full_name,
-      email: form.value.email,
-      role: form.value.role,
-    }
-
-    const r = await axios.post('http://localhost:8000/auth/api/auth/register/', payload)
-console.log('Registration response:', r)
-    console.log('Response data:', r.data)
-    if (r.data?.session_id) {
-      localStorage.setItem('session_id', r.data.session_id)
-      successMessage.value = 'OTP sent successfully!'
-      setTimeout(async () => {
-        await router.replace('/verifyotp')
-      }, 1000)
-    } else {
-      errorMessage.value = 'Registration failed. Please try again.'
-    }
-  } catch (err) {
-    errorMessage.value = err.response?.data?.message || 'Something went wrong. Try again!'
-  } finally {
-    loading.value = false
+  const payload = {
+  phone_number: form.value.phone_number,
+  full_name: form.value.full_name,
+  email: form.value.email,
+  role: form.value.role,
   }
-}
-</script> -->
 
-<!-- <script setup>
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
-import { useRouter } from 'vue-router'
-import { VForm } from 'vuetify/components/VForm'
-import AuthProvider from '@/views/pages/authentication/AuthProvider.vue'
-import { VNodeRenderer } from '@layouts/components/VNodeRenderer'
-import { themeConfig } from '@themeConfig'
-import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
+  const r = await axios.post('http://localhost:8000/auth/api/auth/register/', payload)
+  console.log('Registration response:', r)
+  console.log('Response data:', r.data)
+  if (r.data?.session_id) {
+  localStorage.setItem('session_id', r.data.session_id)
+  successMessage.value = 'OTP sent successfully!'
+  setTimeout(async () => {
+  await router.replace('/verifyotp')
+  }, 1000)
+  } else {
+  errorMessage.value = 'Registration failed. Please try again.'
+  }
+  } catch (err) {
+  errorMessage.value = err.response?.data?.message || 'Something went wrong. Try again!'
+  } finally {
+  loading.value = false
+  }
+  }
+  </script> 
+-->
 
-import authV2RegisterIllustrationBorderedDark from '@images/pages/auth-v2-register-illustration-bordered-dark.png'
-import authV2RegisterIllustrationBorderedLight from '@images/pages/auth-v2-register-illustration-bordered-light.png'
-import authV2RegisterIllustrationDark from '@images/pages/auth-v2-register-illustration-dark.png'
-import authV2RegisterIllustrationLight from '@images/pages/auth-v2-register-illustration-light.png'
-import authV2MaskDark from '@images/pages/misc-mask-dark.png'
-import authV2MaskLight from '@images/pages/misc-mask-light.png'
+<!--
+  <script setup>
+  import { ref, onMounted } from 'vue'
+  import axios from 'axios'
+  import { useRouter } from 'vue-router'
+  import { VForm } from 'vuetify/components/VForm'
+  import AuthProvider from '@/views/pages/authentication/AuthProvider.vue'
+  import { VNodeRenderer } from '@layouts/components/VNodeRenderer'
+  import { themeConfig } from '@themeConfig'
+  import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
 
-const router = useRouter()
+  import authV2RegisterIllustrationBorderedDark from '@images/pages/auth-v2-register-illustration-bordered-dark.png'
+  import authV2RegisterIllustrationBorderedLight from '@images/pages/auth-v2-register-illustration-bordered-light.png'
+  import authV2RegisterIllustrationDark from '@images/pages/auth-v2-register-illustration-dark.png'
+  import authV2RegisterIllustrationLight from '@images/pages/auth-v2-register-illustration-light.png'
+  import authV2MaskDark from '@images/pages/misc-mask-dark.png'
+  import authV2MaskLight from '@images/pages/misc-mask-light.png'
 
-// ============================
-// 🔹 Dynamic Theme Images
-// ============================
-const imageVariant = useGenerateImageVariant(
+  const router = useRouter()
+
+  // ============================
+  // 🔹 Dynamic Theme Images
+  // ============================
+  const imageVariant = useGenerateImageVariant(
   authV2RegisterIllustrationLight,
   authV2RegisterIllustrationDark,
   authV2RegisterIllustrationBorderedLight,
   authV2RegisterIllustrationBorderedDark,
   true
-)
+  )
 
-const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
+  const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
 
-// ============================
-// 🔹 Page Meta
-// ============================
-definePage({
+  // ============================
+  // 🔹 Page Meta
+  // ============================
+  definePage({
   meta: {
-    layout: 'blank',
-    unauthenticatedOnly: true,
+  layout: 'blank',
+  unauthenticatedOnly: true,
   },
-})
+  })
 
-// ============================
-// 🔹 Form State
-// ============================
-const form = ref({
+  // ============================
+  // 🔹 Form State
+  // ============================
+  const form = ref({
   full_name: '',
   email: '',
   phone_number: '',
   role: '',              // dynamic role ID
   privacyPolicies: false,
-})
+  })
 
-// ============================
-// 🔹 Role Fetching
-// ============================
-const roles = ref([])
+  // ============================
+  // 🔹 Role Fetching
+  // ============================
+  const roles = ref([])
 
-const fetchRoles = async () => {
+  const fetchRoles = async () => {
   try {
-    const res = await axios.get('http://127.0.0.1:8000/auth/roles/public/')
+  const res = await axios.get('http://127.0.0.1:8000/auth/roles/public/')
 
-    roles.value = res.data.map(role => ({
-      title: role.name.charAt(0).toUpperCase() + role.name.slice(1),
-      value: role.id,           // 🔥 send ID to backend
-    }))
+  roles.value = res.data.map(role => ({
+  title: role.name.charAt(0).toUpperCase() + role.name.slice(1),
+  value: role.id,           // 🔥 send ID to backend
+  }))
 
-    // Auto-select first role
-    if (roles.value.length > 0) {
-      form.value.role = roles.value[0].value
-    }
+  // Auto-select first role
+  if (roles.value.length > 0) {
+  form.value.role = roles.value[0].value
+  }
 
   } catch (err) {
-    console.error("❌ Failed to fetch roles:", err)
+  console.error("❌ Failed to fetch roles:", err)
   }
-}
+  }
 
-// ============================
-// 🔹 Register User
-// ============================
-const successMessage = ref('')
-const errorMessage = ref('')
-const loading = ref(false)
+  // ============================
+  // 🔹 Register User
+  // ============================
+  const successMessage = ref('')
+  const errorMessage = ref('')
+  const loading = ref(false)
 
-const registerUser = async () => {
+  const registerUser = async () => {
   if (!form.value.privacyPolicies) {
-    errorMessage.value = 'Please accept privacy policy to continue.'
-    return
+  errorMessage.value = 'Please accept privacy policy to continue.'
+  return
   }
 
   try {
-    loading.value = true
-    successMessage.value = ''
-    errorMessage.value = ''
+  loading.value = true
+  successMessage.value = ''
+  errorMessage.value = ''
 
-    const payload = {
-      phone_number: form.value.phone_number,
-      full_name: form.value.full_name,
-      email: form.value.email,
-      role: form.value.role,          // 🔥 sending ID, correct for backend + Kafka
-    }
+  const payload = {
+  phone_number: form.value.phone_number,
+  full_name: form.value.full_name,
+  email: form.value.email,
+  role: form.value.role,          // 🔥 sending ID, correct for backend + Kafka
+  }
 
-    const r = await axios.post('http://127.0.0.1:8000/auth/api/auth/register/', payload)
+  const r = await axios.post('http://127.0.0.1:8000/auth/api/auth/register/', payload)
 
-    if (r.data?.session_id) {
-      localStorage.setItem('session_id', r.data.session_id)
-      successMessage.value = 'OTP sent successfully!'
+  if (r.data?.session_id) {
+  localStorage.setItem('session_id', r.data.session_id)
+  successMessage.value = 'OTP sent successfully!'
 
-      setTimeout(() => router.replace('/verifyotp'), 1000)
-    } else {
-      errorMessage.value = 'Registration failed.'
-    }
+  setTimeout(() => router.replace('/verifyotp'), 1000)
+  } else {
+  errorMessage.value = 'Registration failed.'
+  }
 
   } catch (err) {
-    errorMessage.value =
-      err.response?.data?.detail ||
-      err.response?.data?.message ||
-      'Something went wrong.'
+  errorMessage.value =
+  err.response?.data?.detail ||
+  err.response?.data?.message ||
+  'Something went wrong.'
   } finally {
-    loading.value = false
+  loading.value = false
   }
-}
+  }
 
-// Load roles when page opens
-onMounted(() => {
+  // Load roles when page opens
+  onMounted(() => {
   fetchRoles()
-})
-</script> -->
+  })
+  </script> 
+-->
 
 
 <script setup>
@@ -241,7 +245,7 @@ const imageVariant = useGenerateImageVariant(
   authV2RegisterIllustrationDark,
   authV2RegisterIllustrationBorderedLight,
   authV2RegisterIllustrationBorderedDark,
-  true
+  true,
 )
 
 const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
@@ -297,6 +301,7 @@ const loading = ref(false)
 const registerUser = async () => {
   if (!form.value.privacyPolicies) {
     errorMessage.value = 'Please accept privacy policy to continue.'
+    
     return
   }
 
@@ -335,23 +340,51 @@ onMounted(fetchRoles)
 
 
 <template>
-  <VRow no-gutters class="auth-wrapper bg-surface h-screen">
-    
+  <VRow
+    no-gutters
+    class="auth-wrapper bg-surface h-screen"
+  >
     <!-- LEFT SIDE IMAGE Section -->
-    <VCol md="6" class="d-none d-md-flex align-center justify-center bg-background">
+    <VCol
+      md="6"
+      class="d-none d-md-flex align-center justify-center bg-background"
+    >
       <div class="text-center px-6">
-        <VImg :src="imageVariant" max-width="500" class="auth-illustration mb-4" />
-        <img :src="authThemeMask" height="140" width="150%" />
+        <VImg
+          :src="imageVariant"
+          max-width="500"
+          class="auth-illustration mb-4"
+        />
+        <img
+          :src="authThemeMask"
+          height="140"
+          width="150%"
+        >
       </div>
     </VCol>
 
     <!-- RIGHT CARD FORM Section -->
-    <VCol cols="12" md="6" class="d-flex justify-center align-center">
-      <VCard flat class="pa-8 w-100 rounded-xl glass-login-card" style="max-width:480px;">
-        
+    <VCol
+      cols="12"
+      md="6"
+      class="d-flex justify-center align-center"
+    >
+      <VCard
+        flat
+        class="pa-8 w-100 rounded-xl glass-login-card"
+        style="max-width:480px;"
+      >
         <div class="text-center mb-6">
-          <VAvatar color="primary" variant="tonal" size="64" class="mb-4">
-            <VIcon icon="tabler-user-plus" size="32" />
+          <VAvatar
+            color="primary"
+            variant="tonal"
+            size="64"
+            class="mb-4"
+          >
+            <VIcon
+              icon="tabler-user-plus"
+              size="32"
+            />
           </VAvatar>
           <h4 class="text-h4 font-weight-bold text-primary mb-2">
             Register here... 🚀
@@ -363,9 +396,12 @@ onMounted(fetchRoles)
 
         <VForm @submit.prevent="registerUser">
           <VRow>
-
             <!-- Full Name -->
-            <VCol cols="12" class="stagger-item" style="--delay: 0.1s">
+            <VCol
+              cols="12"
+              class="stagger-item"
+              style="--delay: 0.1s"
+            >
               <AppTextField
                 v-model="form.full_name"
                 label="Full Name"
@@ -377,7 +413,11 @@ onMounted(fetchRoles)
             </VCol>
 
             <!-- Email -->
-            <VCol cols="12" class="stagger-item" style="--delay: 0.2s">
+            <VCol
+              cols="12"
+              class="stagger-item"
+              style="--delay: 0.2s"
+            >
               <AppTextField
                 v-model="form.email"
                 label="Email"
@@ -390,7 +430,11 @@ onMounted(fetchRoles)
             </VCol>
 
             <!-- Phone -->
-            <VCol cols="12" class="stagger-item" style="--delay: 0.3s">
+            <VCol
+              cols="12"
+              class="stagger-item"
+              style="--delay: 0.3s"
+            >
               <AppTextField
                 v-model="form.phone_number"
                 label="Phone Number"
@@ -402,7 +446,11 @@ onMounted(fetchRoles)
             </VCol>
 
             <!-- Dynamic Role Selection Cards -->
-            <VCol cols="12" class="stagger-item" style="--delay: 0.4s">
+            <VCol
+              cols="12"
+              class="stagger-item"
+              style="--delay: 0.4s"
+            >
               <label class="text-body-2 font-weight-medium mb-2 d-block text-high-emphasis">Select Role</label>
 
               <div class="d-flex gap-4">
@@ -419,7 +467,10 @@ onMounted(fetchRoles)
                     class="mb-2"
                     :color="form.role === r.value ? 'primary' : 'medium-emphasis'"
                   />
-                  <span class="text-body-2 font-weight-bold" :class="form.role === r.value ? 'text-primary' : 'text-medium-emphasis'">
+                  <span
+                    class="text-body-2 font-weight-bold"
+                    :class="form.role === r.value ? 'text-primary' : 'text-medium-emphasis'"
+                  >
                     {{ r.title }}
                   </span>
                   <VIcon 
@@ -434,43 +485,93 @@ onMounted(fetchRoles)
             </VCol>
 
             <!-- Privacy Policy -->
-            <VCol cols="12" class="stagger-item" style="--delay: 0.5s">
+            <VCol
+              cols="12"
+              class="stagger-item"
+              style="--delay: 0.5s"
+            >
               <div class="d-flex align-center my-2">
-                <VCheckbox id="privacy-policy" v-model="form.privacyPolicies" inline density="compact" hide-details />
-                <VLabel for="privacy-policy" class="ms-2" style="opacity: 1;">
+                <VCheckbox
+                  id="privacy-policy"
+                  v-model="form.privacyPolicies"
+                  inline
+                  density="compact"
+                  hide-details
+                />
+                <VLabel
+                  for="privacy-policy"
+                  class="ms-2"
+                  style="opacity: 1;"
+                >
                   <span class="text-body-2 text-medium-emphasis">I agree to</span>
-                  <a class="text-primary text-body-2 font-weight-bold ms-1 text-decoration-none" href="#">privacy policy & terms</a>
+                  <a
+                    class="text-primary text-body-2 font-weight-bold ms-1 text-decoration-none"
+                    href="#"
+                  >privacy policy & terms</a>
                 </VLabel>
               </div>
             </VCol>
 
             <!-- Submit -->
-            <VCol cols="12" class="stagger-item" style="--delay: 0.6s">
-              <VBtn block size="large" type="submit" :loading="loading" class="btn-gradient font-weight-bold">
+            <VCol
+              cols="12"
+              class="stagger-item"
+              style="--delay: 0.6s"
+            >
+              <VBtn
+                block
+                size="large"
+                type="submit"
+                :loading="loading"
+                class="btn-gradient font-weight-bold"
+              >
                 Sign Up
               </VBtn>
             </VCol>
 
             <!-- Success / Error Messages -->
-            <VCol cols="12" v-if="successMessage || errorMessage" class="stagger-item" style="--delay: 0.7s">
-              <VAlert v-if="successMessage" type="success" variant="tonal" density="compact">{{ successMessage }}</VAlert>
-              <VAlert v-if="errorMessage" type="error" variant="tonal" density="compact">{{ errorMessage }}</VAlert>
+            <VCol
+              v-if="successMessage || errorMessage"
+              cols="12"
+              class="stagger-item"
+              style="--delay: 0.7s"
+            >
+              <VAlert
+                v-if="successMessage"
+                type="success"
+                variant="tonal"
+                density="compact"
+              >
+                {{ successMessage }}
+              </VAlert>
+              <VAlert
+                v-if="errorMessage"
+                type="error"
+                variant="tonal"
+                density="compact"
+              >
+                {{ errorMessage }}
+              </VAlert>
             </VCol>
 
             <!-- Already have an account -->
-            <VCol cols="12" class="text-center mt-4 stagger-item" style="--delay: 0.8s">
+            <VCol
+              cols="12"
+              class="text-center mt-4 stagger-item"
+              style="--delay: 0.8s"
+            >
               <span class="text-body-2 text-medium-emphasis">Already have an account?</span>
-              <RouterLink class="text-primary font-weight-bold ms-1 text-decoration-none" :to="{ name: 'login' }">
+              <RouterLink
+                class="text-primary font-weight-bold ms-1 text-decoration-none"
+                :to="{ name: 'login' }"
+              >
                 Sign in instead
               </RouterLink>
             </VCol>
-
           </VRow>
         </VForm>
-
       </VCard>
     </VCol>
-
   </VRow>
 </template>
 

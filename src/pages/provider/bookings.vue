@@ -6,7 +6,9 @@ import ProviderLayout from '@/components/ProviderLayout.vue'
   <ProviderLayout>
     <VRow>
       <VCol cols="12">
-        <h2 class="text-h4 mb-4">Bookings</h2>
+        <h2 class="text-h4 mb-4">
+          Bookings
+        </h2>
         <p>Manage your bookings here.</p>
       </VCol>
     </VRow>

@@ -24,13 +24,14 @@ const inputRefs = ref([])
 // Initialize digits array based on length
 const initDigits = () => {
   digits.value = new Array(props.length).fill('')
+
   // If modelValue exists, pre-fill
   if (props.modelValue && props.modelValue.length === props.length) {
     digits.value = props.modelValue.split('')
   }
 }
 
-watch(() => props.modelValue, (newVal) => {
+watch(() => props.modelValue, newVal => {
   if (newVal !== digits.value.join('')) {
     if (!newVal) {
       digits.value = new Array(props.length).fill('')
@@ -40,13 +41,15 @@ watch(() => props.modelValue, (newVal) => {
   }
 })
 
-watch(() => props.length, (newLength) => {
+watch(() => props.length, newLength => {
   // Resize digits array, preserving existing values if possible
   const newDigits = new Array(newLength).fill('')
+
   digits.value.forEach((val, i) => {
     if (i < newLength) newDigits[i] = val
   })
   digits.value = newDigits
+
   // Emit update if value changed (truncated)
   emit('update:modelValue', digits.value.join(''))
 })
@@ -57,15 +60,18 @@ const handleInput = (index, event) => {
   // Ensure only numbers
   if (!/^\d*$/.test(val)) {
     digits.value[index] = ''
+    
     return
   }
 
   // Take only the last character if multiple entered (though maxlength is 1)
   const lastChar = val.slice(-1)
+
   digits.value[index] = lastChar
 
   // Emit update
   const newValue = digits.value.join('')
+
   emit('update:modelValue', newValue)
 
   if (newValue.length === props.length) {
@@ -97,15 +103,18 @@ const handleKeyDown = (index, event) => {
   }
 }
 
-const handlePaste = (event) => {
+const handlePaste = event => {
   event.preventDefault()
+
   const pastedData = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, props.length)
   
   if (pastedData) {
     pastedData.split('').forEach((char, i) => {
       digits.value[i] = char
     })
+
     const newValue = digits.value.join('')
+
     emit('update:modelValue', newValue)
     
     if (newValue.length === props.length) {
@@ -114,6 +123,7 @@ const handlePaste = (event) => {
     
     // Focus the last filled input or the next empty one
     const nextIndex = Math.min(pastedData.length, props.length - 1)
+
     nextTick(() => {
       inputRefs.value[nextIndex]?.focus()
     })
@@ -136,12 +146,13 @@ onMounted(() => {
         inputmode="numeric"
         maxlength="1"
         :value="digits[index]"
-        :class="['pin-box', { 'has-error': error, 'is-filled': digits[index] }]"
+        class="pin-box"
+        :class="[{ 'has-error': error, 'is-filled': digits[index] }]"
+        autocomplete="one-time-code"
         @input="event => handleInput(index, event)"
         @keydown="event => handleKeyDown(index, event)"
         @paste="handlePaste"
-        autocomplete="one-time-code"
-      />
+      >
     </div>
   </div>
 </template>

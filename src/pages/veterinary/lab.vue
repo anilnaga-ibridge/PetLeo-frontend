@@ -17,7 +17,7 @@ const fetchPending = async () => {
   try {
     // Mock data
     pendingOrders.value = [
-        { id: '1', visit_id: '101', pet_name: 'Max', owner_name: 'John Doe', order_details: { test: 'Blood Count' }, order_date: '2025-12-30 10:30' }
+      { id: '1', visit_id: '101', pet_name: 'Max', owner_name: 'John Doe', order_details: { test: 'Blood Count' }, order_date: '2025-12-30 10:30' },
     ]
   } catch (e) {
     console.error(e)
@@ -28,7 +28,7 @@ const fetchPending = async () => {
 
 onMounted(fetchPending)
 
-const openResultForm = (order) => {
+const openResultForm = order => {
   selectedOrder.value = order
   showResultDialog.value = true
 }
@@ -42,7 +42,9 @@ const onResultSubmitted = () => {
 <template>
   <component :is="currentLayout">
     <div class="lab-page">
-      <h1 class="text-h3 font-weight-bold text-primary mb-6">Lab Orders</h1>
+      <h1 class="text-h3 font-weight-bold text-primary mb-6">
+        Lab Orders
+      </h1>
 
       <VCard>
         <VDataTable
@@ -68,11 +70,19 @@ const onResultSubmitted = () => {
         </VDataTable>
       </VCard>
 
-      <VDialog v-model="showResultDialog" max-width="800" persistent>
+      <VDialog
+        v-model="showResultDialog"
+        max-width="800"
+        persistent
+      >
         <VCard v-if="selectedOrder">
           <VCardTitle class="d-flex justify-space-between align-center">
             <span>Enter Results for {{ selectedOrder.pet_name }}</span>
-            <VBtn icon="tabler-x" variant="text" @click="showResultDialog = false" />
+            <VBtn
+              icon="tabler-x"
+              variant="text"
+              @click="showResultDialog = false"
+            />
           </VCardTitle>
           <VCardText>
             <DynamicFormRenderer

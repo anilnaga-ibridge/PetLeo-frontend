@@ -30,6 +30,7 @@ const fetchCycles = async () => {
   loading.value = true
   try {
     const res = await superAdminApi.get('/api/superadmin/billing-cycles/')
+
     cycles.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch billing cycles:', err)
@@ -49,7 +50,7 @@ const openAdd = () => {
   dialog.value = true
 }
 
-const openEdit = (item) => {
+const openEdit = item => {
   isEdit.value = true
   editId.value = item.id
   form.value = { ...item }
@@ -71,7 +72,7 @@ const submit = async () => {
   }
 }
 
-const deleteCycle = async (id) => {
+const deleteCycle = async id => {
   if (!confirm('Are you sure you want to delete this billing cycle?')) return
   try {
     await superAdminApi.delete(`/api/superadmin/billing-cycles/${id}/`)
@@ -91,7 +92,12 @@ onMounted(() => {
   <VCard class="mb-6">
     <VCardTitle class="d-flex justify-space-between align-center pa-4">
       <span>Billing Cycles</span>
-      <VBtn color="primary" size="small" prepend-icon="tabler-plus" @click="openAdd">
+      <VBtn
+        color="primary"
+        size="small"
+        prepend-icon="tabler-plus"
+        @click="openAdd"
+      >
         Add Cycle
       </VBtn>
     </VCardTitle>
@@ -102,17 +108,35 @@ onMounted(() => {
       class="text-no-wrap"
     >
       <template #item.is_active="{ item }">
-        <VChip :color="item.is_active ? 'success' : 'error'" size="small">
+        <VChip
+          :color="item.is_active ? 'success' : 'error'"
+          size="small"
+        >
           {{ item.is_active ? 'Active' : 'Inactive' }}
         </VChip>
       </template>
       <template #item.actions="{ item }">
-        <VBtn icon="tabler-edit" variant="text" size="small" color="primary" @click="openEdit(item)" />
-        <VBtn icon="tabler-trash" variant="text" size="small" color="error" @click="deleteCycle(item.id)" />
+        <VBtn
+          icon="tabler-edit"
+          variant="text"
+          size="small"
+          color="primary"
+          @click="openEdit(item)"
+        />
+        <VBtn
+          icon="tabler-trash"
+          variant="text"
+          size="small"
+          color="error"
+          @click="deleteCycle(item.id)"
+        />
       </template>
     </VDataTable>
 
-    <VDialog v-model="dialog" max-width="500">
+    <VDialog
+      v-model="dialog"
+      max-width="500"
+    >
       <VCard>
         <VCardTitle>{{ isEdit ? 'Edit Billing Cycle' : 'Add Billing Cycle' }}</VCardTitle>
         <VCardText>
@@ -144,8 +168,18 @@ onMounted(() => {
               color="success"
             />
             <div class="d-flex justify-end gap-2 mt-4">
-              <VBtn variant="text" @click="dialog = false">Cancel</VBtn>
-              <VBtn color="primary" type="submit">Save</VBtn>
+              <VBtn
+                variant="text"
+                @click="dialog = false"
+              >
+                Cancel
+              </VBtn>
+              <VBtn
+                color="primary"
+                type="submit"
+              >
+                Save
+              </VBtn>
             </div>
           </VForm>
         </VCardText>

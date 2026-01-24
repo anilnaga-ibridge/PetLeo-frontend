@@ -44,13 +44,26 @@ const logout = () => {
 <template>
   <VApp>
     <!-- App Bar -->
-    <VAppBar app flat border class="px-4">
+    <VAppBar
+      app
+      flat
+      border
+      class="px-4"
+    >
       <div class="d-flex align-center gap-2">
-        <VIcon icon="tabler-paw" color="primary" size="28" />
+        <VIcon
+          icon="tabler-paw"
+          color="primary"
+          size="28"
+        />
         <span class="text-h6 font-weight-bold text-primary">PetLeo</span>
       </div>
       <VSpacer />
-      <VBtn icon size="small" @click="theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark'">
+      <VBtn
+        icon
+        size="small"
+        @click="theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark'"
+      >
         <VIcon :icon="theme.global.current.value.dark ? 'tabler-sun' : 'tabler-moon'" />
       </VBtn>
     </VAppBar>
@@ -87,7 +100,10 @@ const logout = () => {
       class="d-none d-md-block"
       width="260"
     >
-      <VList nav class="mt-4">
+      <VList
+        nav
+        class="mt-4"
+      >
         <VListItem
           v-for="item in navigation"
           :key="item.title"
@@ -101,7 +117,13 @@ const logout = () => {
 
       <template #append>
         <div class="pa-4">
-          <VBtn block color="error" variant="tonal" prepend-icon="tabler-logout" @click="logout">
+          <VBtn
+            block
+            color="error"
+            variant="tonal"
+            prepend-icon="tabler-logout"
+            @click="logout"
+          >
             Logout
           </VBtn>
         </div>

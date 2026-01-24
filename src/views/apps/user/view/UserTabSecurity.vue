@@ -18,11 +18,13 @@ const changePin = async () => {
   if (!oldPin.value || !newPin.value || !confirmPin.value) {
     // You might want to add a toast notification here
     alert("Please fill all fields")
+    
     return
   }
 
   if (newPin.value !== confirmPin.value) {
     alert("New PINs do not match")
+    
     return
   }
 
@@ -33,8 +35,8 @@ const changePin = async () => {
       body: {
         old_pin: oldPin.value,
         new_pin: newPin.value,
-        confirm_new_pin: confirmPin.value
-      }
+        confirm_new_pin: confirmPin.value,
+      },
     })
 
     if (error.value) {

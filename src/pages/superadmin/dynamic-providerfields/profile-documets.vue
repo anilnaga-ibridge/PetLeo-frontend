@@ -1,50 +1,116 @@
 <template>
-  <v-container class="py-10" max-width="980">
-    <v-card class="pa-6 elevation-12 premium-card">
-
+  <VContainer
+    class="py-10"
+    max-width="980"
+  >
+    <VCard class="pa-6 elevation-12 premium-card">
       <!-- Header -->
-      <v-row align="center" justify="space-between" class="mb-6">
-        <v-col cols="12" sm="8">
+      <VRow
+        align="center"
+        justify="space-between"
+        class="mb-6"
+      >
+        <VCol
+          cols="12"
+          sm="8"
+        >
           <div class="title-wrap">
-            <h1 class="page-title">{{ pageTitle }}</h1>
-            <div class="subtitle">Complete your profile — fields marked <span class="text-danger">*</span> are required</div>
+            <h1 class="page-title">
+              {{ pageTitle }}
+            </h1>
+            <div class="subtitle">
+              Complete your profile — fields marked <span class="text-danger">*</span> are required
+            </div>
           </div>
-        </v-col>
-        <v-col cols="12" sm="4" class="d-flex justify-end">
-          <v-chip v-if="dynamicTarget" class="role-chip" outlined>{{ dynamicTarget.toUpperCase() }}</v-chip>
-        </v-col>
-      </v-row>
+        </VCol>
+        <VCol
+          cols="12"
+          sm="4"
+          class="d-flex justify-end"
+        >
+          <VChip
+            v-if="dynamicTarget"
+            class="role-chip"
+            outlined
+          >
+            {{ dynamicTarget.toUpperCase() }}
+          </VChip>
+        </VCol>
+      </VRow>
 
       <!-- Alerts -->
-      <transition name="fade-down">
-        <v-alert v-if="successMessage" type="success" dense class="mb-4">{{ successMessage }}</v-alert>
-      </transition>
-      <transition name="fade-down">
-        <v-alert v-if="errorMessage" type="error" dense class="mb-4">{{ errorMessage }}</v-alert>
-      </transition>
+      <Transition name="fade-down">
+        <VAlert
+          v-if="successMessage"
+          type="success"
+          dense
+          class="mb-4"
+        >
+          {{ successMessage }}
+        </VAlert>
+      </Transition>
+      <Transition name="fade-down">
+        <VAlert
+          v-if="errorMessage"
+          type="error"
+          dense
+          class="mb-4"
+        >
+          {{ errorMessage }}
+        </VAlert>
+      </Transition>
 
       <!-- Loading -->
-      <div v-if="loading" class="loading-wrap">
-        <v-progress-circular indeterminate size="48"></v-progress-circular>
+      <div
+        v-if="loading"
+        class="loading-wrap"
+      >
+        <VProgressCircular
+          indeterminate
+          size="48"
+        />
       </div>
 
       <!-- Form -->
-      <v-form v-else @submit.prevent="submitForm" ref="formRef" class="form-surface">
-        <v-row dense>
-          <v-col cols="12" md="6" v-for="field in fields" :key="field.id" class="pb-4">
-            <v-sheet elevation="0" class="field-card pa-4">
+      <VForm
+        v-else
+        ref="formRef"
+        class="form-surface"
+        @submit.prevent="submitForm"
+      >
+        <VRow dense>
+          <VCol
+            v-for="field in fields"
+            :key="field.id"
+            cols="12"
+            md="6"
+            class="pb-4"
+          >
+            <VSheet
+              elevation="0"
+              class="field-card pa-4"
+            >
               <div class="field-header mb-3">
                 <div>
-                  <div class="field-label">{{ field.label }}
-                    <span v-if="field.is_required" class="text-danger">*</span>
+                  <div class="field-label">
+                    {{ field.label }}
+                    <span
+                      v-if="field.is_required"
+                      class="text-danger"
+                    >*</span>
                   </div>
-                  <div class="field-help" v-if="field.help_text">{{ field.help_text }}</div>
+                  <div
+                    v-if="field.help_text"
+                    class="field-help"
+                  >
+                    {{ field.help_text }}
+                  </div>
                 </div>
               </div>
 
               <!-- TEXT / NUMBER / DATE -->
               <div v-if="['text','number','date'].includes(field.field_type)">
-                <v-text-field
+                <VTextField
                   v-model="formData[fieldKey(field.id)]"
                   :type="field.field_type"
                   dense
@@ -56,7 +122,7 @@
 
               <!-- TEXTAREA -->
               <div v-else-if="field.field_type === 'textarea'">
-                <v-textarea
+                <VTextarea
                   v-model="formData[fieldKey(field.id)]"
                   dense
                   outlined
@@ -68,7 +134,7 @@
 
               <!-- DROPDOWN -->
               <div v-else-if="field.field_type === 'dropdown'">
-                <v-select
+                <VSelect
                   v-model="formData[fieldKey(field.id)]"
                   :items="field.options || []"
                   dense
@@ -81,112 +147,185 @@
               <!-- MULTISELECT -->
               <div v-else-if="field.field_type === 'multiselect'">
                 <div class="multi-grid">
-                  <v-chip
+                  <VChip
                     v-for="opt in field.options"
                     :key="opt"
                     class="option-chip"
                     outlined
-                    @click="toggleMulti(field.id, opt, !((formData[fieldKey(field.id)] || []).includes(opt)))"
                     :class="{ 'chip-selected': (formData[fieldKey(field.id)] || []).includes(opt) }"
+                    @click="toggleMulti(field.id, opt, !((formData[fieldKey(field.id)] || []).includes(opt)))"
                   >
                     {{ opt }}
-                  </v-chip>
+                  </VChip>
                 </div>
-                <div v-if="errors[fieldKey(field.id)]" class="field-error">{{ errors[fieldKey(field.id)] }}</div>
+                <div
+                  v-if="errors[fieldKey(field.id)]"
+                  class="field-error"
+                >
+                  {{ errors[fieldKey(field.id)] }}
+                </div>
               </div>
 
               <!-- FILE FIELD -->
               <div v-else-if="field.field_type === 'file'">
                 <!-- Avatar style (profile image) -->
-                <div v-if="isProfileImageField(field)" class="avatar-wrap">
-                  <label class="avatar-drop" :title="'Upload ' + field.label">
+                <div
+                  v-if="isProfileImageField(field)"
+                  class="avatar-wrap"
+                >
+                  <label
+                    class="avatar-drop"
+                    :title="'Upload ' + field.label"
+                  >
                     <input
                       ref="avatarInputs"
                       type="file"
                       accept="image/*"
                       class="d-none"
                       @change="ev => onFileChange(field.id, ev.target.files ? ev.target.files[0] : ev)"
-                    />
-                    <div class="avatar-frame" :class="{ 'has-preview': !!fileMetadata[fieldKey(field.id)]?.objectUrl || !!fileMetadata[fieldKey(field.id)]?.file_url }">
-                      <img v-if="fileMetadata[fieldKey(field.id)]?.objectUrl || fileMetadata[fieldKey(field.id)]?.file_url"
-                           :src="fileMetadata[fieldKey(field.id)]?.objectUrl || fileMetadata[fieldKey(field.id)]?.file_url"
-                           class="avatar-img" />
-                      <v-avatar v-else size="96" class="avatar-placeholder">
-                        <v-icon large>mdi-camera</v-icon>
-                      </v-avatar>
+                    >
+                    <div
+                      class="avatar-frame"
+                      :class="{ 'has-preview': !!fileMetadata[fieldKey(field.id)]?.objectUrl || !!fileMetadata[fieldKey(field.id)]?.file_url }"
+                    >
+                      <img
+                        v-if="fileMetadata[fieldKey(field.id)]?.objectUrl || fileMetadata[fieldKey(field.id)]?.file_url"
+                        :src="fileMetadata[fieldKey(field.id)]?.objectUrl || fileMetadata[fieldKey(field.id)]?.file_url"
+                        class="avatar-img"
+                      >
+                      <VAvatar
+                        v-else
+                        size="96"
+                        class="avatar-placeholder"
+                      >
+                        <VIcon large>mdi-camera</VIcon>
+                      </VAvatar>
 
                       <div class="avatar-overlay">
-                        <v-btn icon small class="icon-btn" @click.stop="$refs.avatarInputs[fields.indexOf(field)].click()">
-                          <v-icon>mdi-pencil</v-icon>
-                        </v-btn>
+                        <VBtn
+                          icon
+                          small
+                          class="icon-btn"
+                          @click.stop="$refs.avatarInputs[fields.indexOf(field)].click()"
+                        >
+                          <VIcon>mdi-pencil</VIcon>
+                        </VBtn>
                       </div>
                     </div>
                   </label>
                   <div class="avatar-meta mt-3">
-                    <div class="file-name">{{ fileMetadata[fieldKey(field.id)]?.name || 'No file selected' }}</div>
-                    <div class="file-sub">{{ formatBytes(fileMetadata[fieldKey(field.id)]?.size) }}</div>
+                    <div class="file-name">
+                      {{ fileMetadata[fieldKey(field.id)]?.name || 'No file selected' }}
+                    </div>
+                    <div class="file-sub">
+                      {{ formatBytes(fileMetadata[fieldKey(field.id)]?.size) }}
+                    </div>
                   </div>
                 </div>
 
                 <!-- Minimal pill picker (for other file fields) -->
-                <div v-else class="picker-wrap">
+                <div
+                  v-else
+                  class="picker-wrap"
+                >
                   <input
                     :ref="'picker-' + field.id"
                     type="file"
                     class="d-none"
                     @change="ev => onFileChange(field.id, ev.target.files ? ev.target.files[0] : ev)"
-                  />
-                  <v-row align="center" no-gutters>
-                    <v-col cols="auto">
-                      <v-btn
+                  >
+                  <VRow
+                    align="center"
+                    no-gutters
+                  >
+                    <VCol cols="auto">
+                      <VBtn
                         depressed
                         class="picker-btn"
                         @click="$refs['picker-' + field.id].click()"
                       >
-                        <v-icon left>mdi-paperclip</v-icon>
+                        <VIcon left>
+                          mdi-paperclip
+                        </VIcon>
                         Choose file
-                      </v-btn>
-                    </v-col>
-                    <v-col>
+                      </VBtn>
+                    </VCol>
+                    <VCol>
                       <div class="picker-info">
-                        <div class="file-name">{{ fileMetadata[fieldKey(field.id)]?.name || 'No file selected' }}</div>
-                        <div class="file-sub">{{ fileMetadata[fieldKey(field.id)]?.file_url ? 'Uploaded' : formatBytes(fileMetadata[fieldKey(field.id)]?.size) }}</div>
+                        <div class="file-name">
+                          {{ fileMetadata[fieldKey(field.id)]?.name || 'No file selected' }}
+                        </div>
+                        <div class="file-sub">
+                          {{ fileMetadata[fieldKey(field.id)]?.file_url ? 'Uploaded' : formatBytes(fileMetadata[fieldKey(field.id)]?.size) }}
+                        </div>
                       </div>
-                    </v-col>
-                  </v-row>
+                    </VCol>
+                  </VRow>
                 </div>
 
-                <div v-if="errors[fieldKey(field.id)]" class="field-error mt-2">{{ errors[fieldKey(field.id)] }}</div>
+                <div
+                  v-if="errors[fieldKey(field.id)]"
+                  class="field-error mt-2"
+                >
+                  {{ errors[fieldKey(field.id)] }}
+                </div>
               </div>
-
-            </v-sheet>
-          </v-col>
-        </v-row>
+            </VSheet>
+          </VCol>
+        </VRow>
 
         <!-- Requested Documents Section (dropzone) -->
-        <v-divider class="my-6"></v-divider>
+        <VDivider class="my-6" />
         <div class="requested-section">
-          <h3 class="section-title">Upload Required Documents</h3>
+          <h3 class="section-title">
+            Upload Required Documents
+          </h3>
 
-          <v-row dense>
-            <v-col cols="12" md="6" v-for="doc in requestedDocuments" :key="doc.id" class="pb-4">
-              <v-sheet class="doc-card pa-4" elevation="1">
+          <VRow dense>
+            <VCol
+              v-for="doc in requestedDocuments"
+              :key="doc.id"
+              cols="12"
+              md="6"
+              class="pb-4"
+            >
+              <VSheet
+                class="doc-card pa-4"
+                elevation="1"
+              >
                 <div class="doc-header d-flex justify-space-between align-center mb-3">
                   <div>
-                    <div class="doc-label">{{ doc.label }}</div>
-                    <div class="doc-help" v-if="doc.help_text">{{ doc.help_text }}</div>
+                    <div class="doc-label">
+                      {{ doc.label }}
+                    </div>
+                    <div
+                      v-if="doc.help_text"
+                      class="doc-help"
+                    >
+                      {{ doc.help_text }}
+                    </div>
                   </div>
                   <div class="doc-actions">
                     <!-- If single and existing file -> show Update (premium purple) -->
                     <template v-if="existingRequestedByDefinition[doc.id] && existingRequestedByDefinition[doc.id].length">
-                      <v-btn small class="update-btn" @click="$refs['docInput-' + doc.id].click()">
+                      <VBtn
+                        small
+                        class="update-btn"
+                        @click="$refs['docInput-' + doc.id].click()"
+                      >
                         Update
-                      </v-btn>
+                      </VBtn>
                     </template>
 
                     <!-- Choose -->
                     <template v-else>
-                      <v-btn small text @click="$refs['docInput-' + doc.id].click()">Choose</v-btn>
+                      <VBtn
+                        small
+                        text
+                        @click="$refs['docInput-' + doc.id].click()"
+                      >
+                        Choose
+                      </VBtn>
                     </template>
 
                     <!-- Hidden file input (SINGLE file always) -->
@@ -195,216 +334,280 @@
                       type="file"
                       class="d-none"
                       @change="ev => onRequestedFileChange(doc.id, ev.target.files ? Array.from(ev.target.files) : ev, doc)"
-                    />
+                    >
                   </div>
                 </div>
 
                 <!-- Dropzone area -->
                 <div
                   class="dropzone"
+                  :class="{ 'drop-active': dropHover === doc.id }"
                   @click="$refs['docInput-' + doc.id].click()"
                   @dragover.prevent="onDropZoneDrag($event, doc.id)"
                   @dragenter.prevent="onDropZoneEnter($event, doc.id)"
                   @dragleave.prevent="onDropZoneLeave($event, doc.id)"
                   @drop.prevent="onDropZoneDrop($event, doc)"
-                  :class="{ 'drop-active': dropHover === doc.id }"
                 >
                   <div class="dz-inner">
-                    <v-icon size="36">mdi-cloud-upload-outline</v-icon>
-                    <div class="dz-text">Drag & drop here, or click {{ existingRequestedByDefinition[doc.id] && existingRequestedByDefinition[doc.id].length ? 'Update' : 'Choose' }}</div>
-                    <div class="dz-sub">Accepted: {{ (doc.allowed_types || []).join(', ') || 'any' }}</div>
+                    <VIcon size="36">
+                      mdi-cloud-upload-outline
+                    </VIcon>
+                    <div class="dz-text">
+                      Drag & drop here, or click {{ existingRequestedByDefinition[doc.id] && existingRequestedByDefinition[doc.id].length ? 'Update' : 'Choose' }}
+                    </div>
+                    <div class="dz-sub">
+                      Accepted: {{ (doc.allowed_types || []).join(', ') || 'any' }}
+                    </div>
                   </div>
                 </div>
 
                 <!-- Newly selected preview (single) -->
-                <div v-if="requestedFiles[doc.id] && requestedFiles[doc.id].length" class="preview-grid mt-3">
-                  <v-chip
+                <div
+                  v-if="requestedFiles[doc.id] && requestedFiles[doc.id].length"
+                  class="preview-grid mt-3"
+                >
+                  <VChip
                     v-for="(f, i) in requestedFiles[doc.id]"
                     :key="i"
                     class="preview-chip"
                     outlined
+                  >
+                    <VAvatar
+                      v-if="isImage(f.objectUrl)"
+                      size="36"
+                      class="me-2"
                     >
-                    <v-avatar v-if="isImage(f.objectUrl)" size="36" class="me-2">
-                      <img :src="f.objectUrl" />
-                    </v-avatar>
+                      <img :src="f.objectUrl">
+                    </VAvatar>
                     <div class="preview-meta">
-                      <div class="pname">{{ f.name }}</div>
-                      <div class="psize">{{ formatBytes(f.size) }}</div>
+                      <div class="pname">
+                        {{ f.name }}
+                      </div>
+                      <div class="psize">
+                        {{ formatBytes(f.size) }}
+                      </div>
                     </div>
-                  </v-chip>
+                  </VChip>
                 </div>
 
                 <!-- Existing uploaded (server) -->
-                <div v-if="existingRequestedByDefinition[doc.id] && existingRequestedByDefinition[doc.id].length" class="existing-grid mt-3">
-                  <v-chip
+                <div
+                  v-if="existingRequestedByDefinition[doc.id] && existingRequestedByDefinition[doc.id].length"
+                  class="existing-grid mt-3"
+                >
+                  <VChip
                     v-for="(file, idx) in existingRequestedByDefinition[doc.id]"
                     :key="file.id || idx"
                     class="existing-chip"
                     outlined
                   >
-                    <v-avatar v-if="isImage(file.file_url)" size="36" class="me-2">
-                      <img :src="file.file_url" />
-                    </v-avatar>
+                    <VAvatar
+                      v-if="isImage(file.file_url)"
+                      size="36"
+                      class="me-2"
+                    >
+                      <img :src="file.file_url">
+                    </VAvatar>
                     <div class="existing-meta">
-                      <a :href="file.file_url" target="_blank" class="existing-name">{{ file.filename }}</a>
-                      <div class="existing-sub">Status: {{ file.status || 'pending' }}</div>
+                      <a
+                        :href="file.file_url"
+                        target="_blank"
+                        class="existing-name"
+                      >{{ file.filename }}</a>
+                      <div class="existing-sub">
+                        Status: {{ file.status || 'pending' }}
+                      </div>
                     </div>
-                  </v-chip>
+                  </VChip>
                 </div>
-
-              </v-sheet>
-            </v-col>
-          </v-row>
+              </VSheet>
+            </VCol>
+          </VRow>
         </div>
 
         <!-- Submit -->
-        <v-row class="mt-6">
-          <v-col cols="12" class="d-flex justify-space-between">
-            <v-btn :loading="submitting" :disabled="submitting" color="primary" class="save-btn" type="submit">
-              {{ submitting ? 'Saving...' : 'Save' }}
-            </v-btn>
-            <v-btn text @click="resetForm" v-if="!submitting">Reset</v-btn>
-          </v-col>
-        </v-row>
-      </v-form>
-<!-- Uploaded Documents -->
-<v-card class="uploaded-section mt-12 pa-8">
-  <div class="uploaded-header mb-8">
-    <h2 class="uploaded-title">Uploaded Documents</h2>
-    <p class="uploaded-subtitle">Review your submitted files</p>
-  </div>
-
-  <v-row dense>
-    <v-col
-      cols="12"
-      sm="6"
-      md="4"
-      lg="3"
-      v-for="doc in uploadedDocuments"
-      :key="doc.id"
-      class="mb-6"
-    >
-      <v-sheet class="uploaded-card" elevation="0">
-
-        <!-- Premium Thumbnail -->
-        <div class="doc-preview">
-
-          <!-- IMAGE preview -->
-          <img
-            v-if="isImage(doc.file_url)"
-            :src="doc.file_url"
-            class="preview-img"
-          />
-
-          <!-- Non-image preview -->
-          <div v-else class="doc-icon">
-            <v-icon size="46" color="#6C27FF">mdi-file-document-outline</v-icon>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="doc-actions">
-          <v-btn
-            icon
-            size="small"
-            class="open-btn"
-            variant="text"
-            :href="doc.file_url"
-            target="_blank"
+        <VRow class="mt-6">
+          <VCol
+            cols="12"
+            class="d-flex justify-space-between"
           >
-            <v-icon size="22">mdi-open-in-new</v-icon>
-          </v-btn>
+            <VBtn
+              :loading="submitting"
+              :disabled="submitting"
+              color="primary"
+              class="save-btn"
+              type="submit"
+            >
+              {{ submitting ? 'Saving...' : 'Save' }}
+            </VBtn>
+            <VBtn
+              v-if="!submitting"
+              text
+              @click="resetForm"
+            >
+              Reset
+            </VBtn>
+          </VCol>
+        </VRow>
+      </VForm>
+      <!-- Uploaded Documents -->
+      <VCard class="uploaded-section mt-12 pa-8">
+        <div class="uploaded-header mb-8">
+          <h2 class="uploaded-title">
+            Uploaded Documents
+          </h2>
+          <p class="uploaded-subtitle">
+            Review your submitted files
+          </p>
         </div>
 
-      </v-sheet>
-    </v-col>
-  </v-row>
-</v-card>
+        <VRow dense>
+          <VCol
+            v-for="doc in uploadedDocuments"
+            :key="doc.id"
+            cols="12"
+            sm="6"
+            md="4"
+            lg="3"
+            class="mb-6"
+          >
+            <VSheet
+              class="uploaded-card"
+              elevation="0"
+            >
+              <!-- Premium Thumbnail -->
+              <div class="doc-preview">
+                <!-- IMAGE preview -->
+                <img
+                  v-if="isImage(doc.file_url)"
+                  :src="doc.file_url"
+                  class="preview-img"
+                >
 
-    </v-card>
-  </v-container>
+                <!-- Non-image preview -->
+                <div
+                  v-else
+                  class="doc-icon"
+                >
+                  <VIcon
+                    size="46"
+                    color="#6C27FF"
+                  >
+                    mdi-file-document-outline
+                  </VIcon>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="doc-actions">
+                <VBtn
+                  icon
+                  size="small"
+                  class="open-btn"
+                  variant="text"
+                  :href="doc.file_url"
+                  target="_blank"
+                >
+                  <VIcon size="22">
+                    mdi-open-in-new
+                  </VIcon>
+                </VBtn>
+              </div>
+            </VSheet>
+          </VCol>
+        </VRow>
+      </VCard>
+    </VCard>
+  </VContainer>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue';
-import { api } from '@/plugins/axios';
-import { useCookie } from '@/@core/composable/useCookie';
+import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue'
+import { api } from '@/plugins/axios'
+import { useCookie } from '@/@core/composable/useCookie'
 
-const GET_PROFILE_API = "http://127.0.0.1:8002/api/provider/profile/";
+const GET_PROFILE_API = "http://127.0.0.1:8002/api/provider/profile/"
 
 // --- state ---
-const fields = ref([]);
-const uploadedDocuments = ref([]);
-const requestedDocuments = ref([]);
-const requestedFiles = reactive({});
-const existingRequestedByDefinition = reactive({});
-const loading = ref(false);
-const submitting = ref(false);
-const formData = reactive({});
-const fileMetadata = reactive({});
-const errors = reactive({});
-const successMessage = ref('');
-const errorMessage = ref('');
-const dropHover = ref(null);
+const fields = ref([])
+const uploadedDocuments = ref([])
+const requestedDocuments = ref([])
+const requestedFiles = reactive({})
+const existingRequestedByDefinition = reactive({})
+const loading = ref(false)
+const submitting = ref(false)
+const formData = reactive({})
+const fileMetadata = reactive({})
+const errors = reactive({})
+const successMessage = ref('')
+const errorMessage = ref('')
+const dropHover = ref(null)
 
 // user cookie
-const userData = useCookie('userData').value || {};
-const userId = userData.id;
-const dynamicTarget = userData.provider_type || null;
+const userData = useCookie('userData').value || {}
+const userId = userData.id
+const dynamicTarget = userData.provider_type || null
 
 const pageTitle = computed(() =>
   dynamicTarget === 'employee' ? 'Employee Profile'
-  : dynamicTarget === 'organization' ? 'Organization Profile' : 'Individual Profile'
-);
+    : dynamicTarget === 'organization' ? 'Organization Profile' : 'Individual Profile',
+)
 
 // object url tracking for cleanup
-const _objectUrls = [];
+const _objectUrls = []
 
 /* -------------------------
    Helper functions (UI only)
    ------------------------- */
-function fieldKey(id){ return String(id); }
+function fieldKey(id){ return String(id) }
 
 function isProfileImageField(field){
-  const name = (field.name||'').toLowerCase();
-  const label = (field.label||'').toLowerCase();
-  return name.includes('profile') || name.includes('avatar') || label.includes('profile') || label.includes('avatar') || name.includes('image') || label.includes('image');
+  const name = (field.name||'').toLowerCase()
+  const label = (field.label||'').toLowerCase()
+  
+  return name.includes('profile') || name.includes('avatar') || label.includes('profile') || label.includes('avatar') || name.includes('image') || label.includes('image')
 }
 
 function isImage(url){
-  if(!url) return false;
-  return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+  if(!url) return false
+  
+  return /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
 }
 
 function formatBytes(bytes){
-  if(bytes === null || bytes === undefined) return '0 KB';
-  if(bytes === 0) return '0 KB';
-  const sizes = ['B','KB','MB','GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const val = bytes / Math.pow(1024, i);
-  return `${val.toFixed(1)} ${sizes[i]}`;
+  if(bytes === null || bytes === undefined) return '0 KB'
+  if(bytes === 0) return '0 KB'
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  const val = bytes / Math.pow(1024, i)
+  
+  return `${val.toFixed(1)} ${sizes[i]}`
 }
 
 /* -------------------------
    Robust file extraction & safe objectURL
    ------------------------- */
 function extractSingleFile(value){
-  if(!value) return null;
-  if(value instanceof File) return value;
-  if(Array.isArray(value) && value.length && value[0] instanceof File) return value[0];
-  if(value.target && value.target.files && value.target.files.length) return value.target.files[0];
-  if(value.files && Array.isArray(value.files) && value.files.length) return value.files[0];
-  return null;
+  if(!value) return null
+  if(value instanceof File) return value
+  if(Array.isArray(value) && value.length && value[0] instanceof File) return value[0]
+  if(value.target && value.target.files && value.target.files.length) return value.target.files[0]
+  if(value.files && Array.isArray(value.files) && value.files.length) return value.files[0]
+  
+  return null
 }
 function safeCreateObjectURL(file){
   try{
-    if(!file) return null;
-    const u = URL.createObjectURL(file);
-    _objectUrls.push(u);
-    return u;
+    if(!file) return null
+    const u = URL.createObjectURL(file)
+
+    _objectUrls.push(u)
+    
+    return u
   }catch(e){
-    console.warn('createObjectURL failed', e);
-    return null;
+    console.warn('createObjectURL failed', e)
+    
+    return null
   }
 }
 
@@ -412,28 +615,29 @@ function safeCreateObjectURL(file){
    File handlers (profile file fields)
    ------------------------- */
 function onFileChange(fieldId, value){
-  const k = fieldKey(fieldId);
+  const k = fieldKey(fieldId)
 
   // revoke previous blob
   if(fileMetadata[k]?.objectUrl && fileMetadata[k].objectUrl.startsWith('blob:')){
-    try{ URL.revokeObjectURL(fileMetadata[k].objectUrl); }catch(e){}
+    try{ URL.revokeObjectURL(fileMetadata[k].objectUrl) }catch(e){}
   }
 
-  const file = extractSingleFile(value);
+  const file = extractSingleFile(value)
 
   if(!file){
     // user cleared — keep server file if present
     if(fileMetadata[k]?.file_url){
-      formData[k] = fileMetadata[k].name || '';
-      fileMetadata[k] = {...fileMetadata[k]};
+      formData[k] = fileMetadata[k].name || ''
+      fileMetadata[k] = { ...fileMetadata[k] }
     } else {
-      formData[k] = '';
-      fileMetadata[k] = {};
+      formData[k] = ''
+      fileMetadata[k] = {}
     }
-    return;
+    
+    return
   }
 
-  const url = safeCreateObjectURL(file);
+  const url = safeCreateObjectURL(file)
 
   fileMetadata[k] = {
     name: file.name,
@@ -441,10 +645,10 @@ function onFileChange(fieldId, value){
     type: file.type || '',
     file,
     objectUrl: url,
-    file_url: null
-  };
+    file_url: null,
+  }
 
-  formData[k] = file.name;
+  formData[k] = file.name
 }
 
 /* -------------------------
@@ -456,36 +660,37 @@ function onRequestedFileChange(defId, files, docObj = null){
   if(requestedFiles[defId]){
     requestedFiles[defId].forEach(f => {
       if(f.objectUrl && f.objectUrl.startsWith('blob:')){
-        try{ URL.revokeObjectURL(f.objectUrl); }catch(e){}
+        try{ URL.revokeObjectURL(f.objectUrl) }catch(e){}
       }
-    });
+    })
   }
-  requestedFiles[defId] = [];
+  requestedFiles[defId] = []
 
-  if(!files) return;
+  if(!files) return
 
   // Normalize to array
-  let arr = [];
-  if(files instanceof File) arr = [files];
-  else if(Array.isArray(files)) arr = files.slice();
-  else if(files.target && files.target.files) arr = Array.from(files.target.files);
-  else if(files.files && Array.isArray(files.files)) arr = files.files.slice();
+  let arr = []
+  if(files instanceof File) arr = [files]
+  else if(Array.isArray(files)) arr = files.slice()
+  else if(files.target && files.target.files) arr = Array.from(files.target.files)
+  else if(files.files && Array.isArray(files.files)) arr = files.files.slice()
 
   // Enforce single-file always
-  if(arr.length) arr = [arr[0]];
+  if(arr.length) arr = [arr[0]]
 
   requestedFiles[defId] = arr.map(f => {
-    const url = safeCreateObjectURL(f);
-    return { name: f.name, size: f.size || 0, type: f.type || '', file: f, objectUrl: url };
-  });
+    const url = safeCreateObjectURL(f)
+    
+    return { name: f.name, size: f.size || 0, type: f.type || '', file: f, objectUrl: url }
+  })
 
   // Auto-upload replacement if there is an existing uploaded doc for this definition
-  const docDefinition = docObj || (requestedDocuments.value.find(d => String(d.id) === String(defId)) || null);
-  const hasExisting = (existingRequestedByDefinition[defId] && existingRequestedByDefinition[defId].length);
+  const docDefinition = docObj || (requestedDocuments.value.find(d => String(d.id) === String(defId)) || null)
+  const hasExisting = (existingRequestedByDefinition[defId] && existingRequestedByDefinition[defId].length)
 
   if(requestedFiles[defId].length && hasExisting){
     // upload first file immediately and replace on server (backend removes old if necessary)
-    uploadRequestedSingle(defId, requestedFiles[defId][0].file, docDefinition);
+    uploadRequestedSingle(defId, requestedFiles[defId][0].file, docDefinition)
   }
 }
 
@@ -493,287 +698,299 @@ function onRequestedFileChange(defId, files, docObj = null){
    Upload requested single file immediately (replacement flow)
    ------------------------- */
 async function uploadRequestedSingle(defId, file, docDef = null){
-  if(!file) return;
-  successMessage.value = "";
-  errorMessage.value = "";
+  if(!file) return
+  successMessage.value = ""
+  errorMessage.value = ""
 
   // client-side check for allowed types if doc definition present
   if(docDef && docDef.allowed_types && docDef.allowed_types.length){
     if(!isFileAllowedByDef(file, docDef)){
-      errorMessage.value = `File type not allowed for ${docDef.label}`;
+      errorMessage.value = `File type not allowed for ${docDef.label}`
+
       // clear local selection (keep existing server file)
-      requestedFiles[defId] = [];
-      return;
+      requestedFiles[defId] = []
+      
+      return
     }
   }
 
-  const fd = new FormData();
-  fd.append(String(defId), file, file.name);
+  const fd = new FormData()
+
+  fd.append(String(defId), file, file.name)
 
   try{
     const res = await api.post(`${GET_PROFILE_API}?user=${userId}`, fd, {
       headers: {},
-      onUploadProgress: (evt) => {
+      onUploadProgress: evt => {
         // optional progress UI hook
-      }
-    });
+      },
+    })
 
-    successMessage.value = `${docDef ? docDef.label : 'Document'} updated successfully`;
+    successMessage.value = `${docDef ? docDef.label : 'Document'} updated successfully`
 
     // Update uploadedDocuments from response if provided
-    const uploadedFilesResp = res.data.uploaded_files || res.data.uploaded_documents || [];
+    const uploadedFilesResp = res.data.uploaded_files || res.data.uploaded_documents || []
     if(Array.isArray(uploadedFilesResp) && uploadedFilesResp.length){
-      uploadedDocuments.value = uploadedFilesResp;
+      uploadedDocuments.value = uploadedFilesResp
     }
 
     // rebuild existingRequestedByDefinition mapping
     Object.keys(existingRequestedByDefinition).forEach(k => delete existingRequestedByDefinition[k]);
     (uploadedDocuments.value || []).forEach(d => {
-      const def = d.definition_id || d.definitionId || null;
-      if(!def) return;
-      if(!existingRequestedByDefinition[def]) existingRequestedByDefinition[def] = [];
-      existingRequestedByDefinition[def].push(d);
-    });
+      const def = d.definition_id || d.definitionId || null
+      if(!def) return
+      if(!existingRequestedByDefinition[def]) existingRequestedByDefinition[def] = []
+      existingRequestedByDefinition[def].push(d)
+    })
 
     // clear preview for this defId
-    requestedFiles[defId] = [];
+    requestedFiles[defId] = []
 
     // re-fetch profile to ensure full sync
-    await fetchProfile();
+    await fetchProfile()
   }catch(err){
-    console.error('uploadRequestedSingle error', err);
-    errorMessage.value = err?.response?.data?.error || err?.message || 'Upload failed';
+    console.error('uploadRequestedSingle error', err)
+    errorMessage.value = err?.response?.data?.error || err?.message || 'Upload failed'
+
     // keep preview so user can retry
   }
 }
 
 function isFileAllowedByDef(file, def){
-  if(!def || !file) return true;
-  if(!def.allowed_types || def.allowed_types.length === 0) return true;
-  if(def.allowed_types.includes(file.type)) return true;
-  const ext = (file.name || '').split('.').pop().toLowerCase();
-  return def.allowed_types.some(mime => mime.includes(ext));
+  if(!def || !file) return true
+  if(!def.allowed_types || def.allowed_types.length === 0) return true
+  if(def.allowed_types.includes(file.type)) return true
+  const ext = (file.name || '').split('.').pop().toLowerCase()
+  
+  return def.allowed_types.some(mime => mime.includes(ext))
 }
 
 /* -------------------------
    Dropzone visual handlers
    ------------------------- */
 function onDropZoneDrag(e, docId){ /* prevent default only */ }
-function onDropZoneEnter(e, docId){ dropHover.value = docId; }
-function onDropZoneLeave(e, docId){ if(dropHover.value === docId) dropHover.value = null; }
+function onDropZoneEnter(e, docId){ dropHover.value = docId }
+function onDropZoneLeave(e, docId){ if(dropHover.value === docId) dropHover.value = null }
 function onDropZoneDrop(e, doc){
-  dropHover.value = null;
-  let dtFiles = [];
-  if(e.dataTransfer && e.dataTransfer.files) dtFiles = Array.from(e.dataTransfer.files);
-  if(!dtFiles.length) return;
+  dropHover.value = null
+  let dtFiles = []
+  if(e.dataTransfer && e.dataTransfer.files) dtFiles = Array.from(e.dataTransfer.files)
+  if(!dtFiles.length) return
+
   // ALWAYS enforce single-file: only first file is used
-  dtFiles = [dtFiles[0]];
-  onRequestedFileChange(doc.id, dtFiles, doc);
+  dtFiles = [dtFiles[0]]
+  onRequestedFileChange(doc.id, dtFiles, doc)
 }
 
 /* -------------------------
    Validation & API
    ------------------------- */
 function validateFields(){
-  Object.keys(errors).forEach(k => delete errors[k]);
-  let ok = true;
+  Object.keys(errors).forEach(k => delete errors[k])
+  let ok = true
   fields.value.forEach(f => {
-    const k = fieldKey(f.id);
-    const v = formData[k];
+    const k = fieldKey(f.id)
+    const v = formData[k]
     if(f.is_required){
       if(f.field_type === 'file'){
-        const hasExisting = !!(fileMetadata[k] && fileMetadata[k].file_url);
-        const hasNew = !!(fileMetadata[k] && fileMetadata[k].file instanceof File);
+        const hasExisting = !!(fileMetadata[k] && fileMetadata[k].file_url)
+        const hasNew = !!(fileMetadata[k] && fileMetadata[k].file instanceof File)
         if(!hasExisting && !hasNew){
-          errors[k] = `${f.label} is required`;
-          ok = false;
+          errors[k] = `${f.label} is required`
+          ok = false
         }
       } else {
         if(v === null || v === undefined || (Array.isArray(v) && !v.length) || v === ''){
-          errors[k] = `${f.label} is required`;
-          ok = false;
+          errors[k] = `${f.label} is required`
+          ok = false
         }
       }
     }
-  });
-  return ok;
+  })
+  
+  return ok
 }
 
 async function fetchProfile(){
-  loading.value = true;
-  successMessage.value = '';
-  errorMessage.value = '';
+  loading.value = true
+  successMessage.value = ''
+  errorMessage.value = ''
   try{
-    const res = await api.get(GET_PROFILE_API, { params: { user: userId, target: dynamicTarget } });
-    fields.value = res.data.fields || [];
-    uploadedDocuments.value = res.data.uploaded_documents || res.data.uploaded_files || [];
-    requestedDocuments.value = res.data.requested_documents || [];
+    const res = await api.get(GET_PROFILE_API, { params: { user: userId, target: dynamicTarget } })
+
+    fields.value = res.data.fields || []
+    uploadedDocuments.value = res.data.uploaded_documents || res.data.uploaded_files || []
+    requestedDocuments.value = res.data.requested_documents || []
 
     // rebuild mapping
     Object.keys(existingRequestedByDefinition).forEach(k => delete existingRequestedByDefinition[k]);
     (uploadedDocuments.value || []).forEach(d => {
-      const defId = d.definition_id || d.definitionId || null;
-      if(!defId) return;
-      if(!existingRequestedByDefinition[defId]) existingRequestedByDefinition[defId] = [];
-      existingRequestedByDefinition[defId].push(d);
-    });
+      const defId = d.definition_id || d.definitionId || null
+      if(!defId) return
+      if(!existingRequestedByDefinition[defId]) existingRequestedByDefinition[defId] = []
+      existingRequestedByDefinition[defId].push(d)
+    })
 
     // init formData and fileMetadata
     fields.value.forEach(f => {
-      const k = fieldKey(f.id);
+      const k = fieldKey(f.id)
       if(f.field_type === 'file'){
         if(f.metadata && f.metadata.file_url){
-          formData[k] = f.metadata.name || f.value || '';
+          formData[k] = f.metadata.name || f.value || ''
           fileMetadata[k] = {
             name: f.metadata.name || (f.value && typeof f.value === 'string' ? f.value : ''),
             size: f.metadata.size || null,
             type: f.metadata.content_type || '',
             file: null,
             objectUrl: f.metadata.file_url,
-            file_url: f.metadata.file_url
-          };
+            file_url: f.metadata.file_url,
+          }
         } else {
-          formData[k] = '';
-          fileMetadata[k] = {};
+          formData[k] = ''
+          fileMetadata[k] = {}
         }
       } else if(f.field_type === 'multiselect'){
-        formData[k] = Array.isArray(f.value) ? f.value : (f.value ? [f.value] : []);
+        formData[k] = Array.isArray(f.value) ? f.value : (f.value ? [f.value] : [])
       } else {
-        formData[k] = f.value ?? '';
+        formData[k] = f.value ?? ''
       }
-    });
+    })
 
     requestedDocuments.value.forEach(d => {
-      if(!requestedFiles[d.id]) requestedFiles[d.id] = [];
-      if(!existingRequestedByDefinition[d.id]) existingRequestedByDefinition[d.id] = [];
-    });
+      if(!requestedFiles[d.id]) requestedFiles[d.id] = []
+      if(!existingRequestedByDefinition[d.id]) existingRequestedByDefinition[d.id] = []
+    })
 
   }catch(err){
-    console.error('fetchProfile error', err);
-    errorMessage.value = err?.response?.data?.error || 'Failed to load profile';
+    console.error('fetchProfile error', err)
+    errorMessage.value = err?.response?.data?.error || 'Failed to load profile'
   }finally{
-    loading.value = false;
+    loading.value = false
   }
 }
 
 async function submitForm(){
-  successMessage.value = '';
-  errorMessage.value = '';
-  if(!validateFields()) return;
-  submitting.value = true;
+  successMessage.value = ''
+  errorMessage.value = ''
+  if(!validateFields()) return
+  submitting.value = true
 
-  const fd = new FormData();
+  const fd = new FormData()
+
   const payload = fields.value.map(f => {
-    const k = fieldKey(f.id);
+    const k = fieldKey(f.id)
+
     const meta = fileMetadata[k] ? {
       name: fileMetadata[k].name || null,
       size: fileMetadata[k].size || null,
       file_url: fileMetadata[k].file_url || (fileMetadata[k].objectUrl && !fileMetadata[k].objectUrl.startsWith('blob:') ? fileMetadata[k].objectUrl : null),
-      content_type: fileMetadata[k].type || null
-    } : {};
-    return { field_id: f.id, value: formData[k], metadata: meta };
-  });
+      content_type: fileMetadata[k].type || null,
+    } : {}
 
-  fd.append('fields', JSON.stringify(payload));
+    
+    return { field_id: f.id, value: formData[k], metadata: meta }
+  })
+
+  fd.append('fields', JSON.stringify(payload))
 
   // profile file fields
   fields.value.forEach(f => {
     if(f.field_type === 'file'){
-      const k = fieldKey(f.id);
+      const k = fieldKey(f.id)
       if(fileMetadata[k] && fileMetadata[k].file instanceof File){
-        fd.append(String(f.id), fileMetadata[k].file, fileMetadata[k].name);
+        fd.append(String(f.id), fileMetadata[k].file, fileMetadata[k].name)
       }
     }
-  });
+  })
 
   // requested documents: only single files per def
   Object.keys(requestedFiles).forEach(defId => {
-    const arr = requestedFiles[defId] || [];
+    const arr = requestedFiles[defId] || []
     if(arr.length){
-      const obj = arr[0];
+      const obj = arr[0]
       if(obj && obj.file instanceof File){
-        fd.append(String(defId), obj.file, obj.name);
+        fd.append(String(defId), obj.file, obj.name)
       }
     }
-  });
+  })
 
   try{
-    const res = await api.post(`${GET_PROFILE_API}?user=${userId}`, fd, { headers: {} });
+    const res = await api.post(`${GET_PROFILE_API}?user=${userId}`, fd, { headers: {} })
 
-    successMessage.value = 'Saved successfully!';
+    successMessage.value = 'Saved successfully!'
 
     if(Array.isArray(res.data.uploaded_profile_files)){
       res.data.uploaded_profile_files.forEach(pf => {
-        const k = fieldKey(pf.field_id);
+        const k = fieldKey(pf.field_id)
+
         fileMetadata[k] = {
           name: pf.filename,
           size: pf.size || null,
           type: pf.content_type || '',
           file: null,
           objectUrl: pf.file_url,
-          file_url: pf.file_url
-        };
-        formData[k] = pf.filename;
-      });
+          file_url: pf.file_url,
+        }
+        formData[k] = pf.filename
+      })
     }
 
     if(Array.isArray(res.data.uploaded_files)){
-      uploadedDocuments.value = res.data.uploaded_files;
+      uploadedDocuments.value = res.data.uploaded_files
     } else if(Array.isArray(res.data.uploaded_documents)){
-      uploadedDocuments.value = res.data.uploaded_documents;
+      uploadedDocuments.value = res.data.uploaded_documents
     }
 
     // remap requested-doc mapping
     Object.keys(existingRequestedByDefinition).forEach(k => delete existingRequestedByDefinition[k]);
     (uploadedDocuments.value || []).forEach(d => {
-      const def = d.definition_id;
-      if(!existingRequestedByDefinition[def]) existingRequestedByDefinition[def] = [];
-      existingRequestedByDefinition[def].push(d);
-    });
+      const def = d.definition_id
+      if(!existingRequestedByDefinition[def]) existingRequestedByDefinition[def] = []
+      existingRequestedByDefinition[def].push(d)
+    })
 
-    Object.keys(requestedFiles).forEach(k => (requestedFiles[k] = []));
-    await fetchProfile();
+    Object.keys(requestedFiles).forEach(k => (requestedFiles[k] = []))
+    await fetchProfile()
 
   }catch(err){
-    console.error('submitForm error', err);
-    errorMessage.value = err?.response?.data?.error || err?.message || 'Submit failed';
+    console.error('submitForm error', err)
+    errorMessage.value = err?.response?.data?.error || err?.message || 'Submit failed'
   }finally{
-    submitting.value = false;
+    submitting.value = false
   }
 }
 
 function resetForm(){
-  Object.keys(formData).forEach(k => (formData[k] = null));
-  Object.keys(requestedFiles).forEach(k => (requestedFiles[k] = []));
+  Object.keys(formData).forEach(k => (formData[k] = null))
+  Object.keys(requestedFiles).forEach(k => (requestedFiles[k] = []))
   _objectUrls.forEach(u => {
-    try{ URL.revokeObjectURL(u); }catch(e){}
-  });
-  _objectUrls.length = 0;
+    try{ URL.revokeObjectURL(u) }catch(e){}
+  })
+  _objectUrls.length = 0
 }
 
 /* -------------------------
    small helpers (multi-select)
    ------------------------- */
 function toggleMulti(fieldId, option, next){
-  const k = fieldKey(fieldId);
-  if(!formData[k]) formData[k] = [];
-  if(next && !formData[k].includes(option)) formData[k].push(option);
-  if(!next && formData[k].includes(option)) formData[k] = formData[k].filter(x => x !== option);
+  const k = fieldKey(fieldId)
+  if(!formData[k]) formData[k] = []
+  if(next && !formData[k].includes(option)) formData[k].push(option)
+  if(!next && formData[k].includes(option)) formData[k] = formData[k].filter(x => x !== option)
 }
 
 /* -------------------------
    Lifecycle
    ------------------------- */
-onMounted(fetchProfile);
+onMounted(fetchProfile)
 onBeforeUnmount(() => {
   _objectUrls.forEach(u => {
-    try{ URL.revokeObjectURL(u); }catch(e){}
-  });
-});
+    try{ URL.revokeObjectURL(u) }catch(e){}
+  })
+})
 </script>
 
 <style scoped>
-
 /* PREMIUM Uploaded Documents Section */
 .uploaded-section {
   border-radius: 18px;

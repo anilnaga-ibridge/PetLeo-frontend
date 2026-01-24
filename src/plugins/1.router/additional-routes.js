@@ -1,6 +1,7 @@
 import { useCookie } from '@/@core/composable/useCookie'
 import { getPostLoginRoute } from '@/utils/routeHelpers'
-const emailRouteComponent = () => import("@/pages/apps/email/index.vue");
+
+const emailRouteComponent = () => import("@/pages/apps/email/index.vue")
 
 // 👉 Redirects
 export const redirects = [
@@ -9,20 +10,20 @@ export const redirects = [
   {
     path: "/",
     name: "index",
-    redirect: (to) => {
+    redirect: to => {
       const userData = useCookie("userData").value || JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || 'null')
       const token = useCookie("accessToken").value || localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 
       if (userData && token) {
-        const targetRoute = getPostLoginRoute(userData)
         // Convert path to route name if possible, or return path (redirect function supports path)
         // But additional-routes uses name usually. 
         // Let's check if getPostLoginRoute returns a path. It does.
         // We can return the path directly or map it.
         // The redirect function in Vue Router can return a string path.
-        return targetRoute
+        return getPostLoginRoute(userData)
       }
-      return { name: "login", query: to.query };
+      
+      return { name: "login", query: to.query }
     },
   },
   {
@@ -41,7 +42,7 @@ export const redirects = [
       params: { tab: "account" },
     }),
   },
-];
+]
 export const routes = [
   // Email filter
   {
@@ -134,4 +135,16 @@ export const routes = [
     component: () => import('@/pages/provider/providerhome.vue'),
     meta: { layout: 'blank' },
   },
-];
+  {
+    path: '/provider/home',
+    name: 'provider-home',
+    component: () => import('@/pages/provider/providerhome.vue'),
+    meta: { layout: 'blank' },
+  },
+  {
+    path: '/provider/subscription',
+    name: 'provider-subscription',
+    component: () => import('@/pages/provider/subscription.vue'),
+    meta: { layout: 'blank' },
+  },
+]

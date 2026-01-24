@@ -1,103 +1,104 @@
-<!-- <script setup>
-import { ref, onMounted } from 'vue'
-import { useServiceStore } from '@/stores/servicestore'
-import { useCategoryStore } from '@/stores/createcategory'
-import { useRouter } from 'vue-router'
+<!--
+  <script setup>
+  import { ref, onMounted } from 'vue'
+  import { useServiceStore } from '@/stores/servicestore'
+  import { useCategoryStore } from '@/stores/createcategory'
+  import { useRouter } from 'vue-router'
 
-const router = useRouter()
-const serviceStore = useServiceStore()
-const categoryStore = useCategoryStore()
+  const router = useRouter()
+  const serviceStore = useServiceStore()
+  const categoryStore = useCategoryStore()
 
-onMounted(serviceStore.fetchServices)
+  onMounted(serviceStore.fetchServices)
 
-const form = ref({
+  const form = ref({
   service: null,
   name: '',
   description: '',
   is_active: true,
-})
+  })
 
-const successMessage = ref('')
-const errorMessage = ref('')
+  const successMessage = ref('')
+  const errorMessage = ref('')
 
-const submitCategory = async () => {
+  const submitCategory = async () => {
   successMessage.value = ''
   errorMessage.value = ''
 
   const success = await categoryStore.createCategory(form.value)
 
   if (success) {
-    successMessage.value = "✅ Category created successfully!"
-    form.value = { service: null, name: '', description: '', is_active: true }
+  successMessage.value = "✅ Category created successfully!"
+  form.value = { service: null, name: '', description: '', is_active: true }
   } else {
-    errorMessage.value = categoryStore.error
+  errorMessage.value = categoryStore.error
   }
-}
-const goToCategories = () => {
+  }
+  const goToCategories = () => {
   router.push('dynamicservices')  // 👈 your route path here
-}
+  }
 
-// ===========================================================
-</script>
+  // ===========================================================
+  </script>
 
-<template>
- <div class="flex min-h-screen justify-center items-start bg-grey-lighten-4 relative pa-6 mt-16">
+  <template>
+  <div class="flex min-h-screen justify-center items-start bg-grey-lighten-4 relative pa-6 mt-16">
 
-    <button @click="goToCategories" class="redirect-btn">
+  <button @click="goToCategories" class="redirect-btn">
   ➕ Add Service
-</button>
+  </button>
 
-    <VCard class="pa-4" max-width="600" outlined>
-      <h3 class="mb-4 text-h5 font-weight-medium text-center">Create Category</h3>
+  <VCard class="pa-4" max-width="600" outlined>
+  <h3 class="mb-4 text-h5 font-weight-medium text-center">Create Category</h3>
 
-      <VAlert v-if="successMessage" type="success" variant="tonal" class="mb-2">
-        {{ successMessage }}
-      </VAlert>
+  <VAlert v-if="successMessage" type="success" variant="tonal" class="mb-2">
+  {{ successMessage }}
+  </VAlert>
 
-      <VAlert v-if="categoryStore.error" type="error" variant="tonal" class="mb-2">
-        {{ categoryStore.error }}
-      </VAlert>
+  <VAlert v-if="categoryStore.error" type="error" variant="tonal" class="mb-2">
+  {{ categoryStore.error }}
+  </VAlert>
 
-      <VForm @submit.prevent="submitCategory">
-        <VSelect
-          label="Select Service"
-          :items="serviceStore.services"
-          item-title="display_name"
-          item-value="id"
-          v-model="form.service"
-          class="mb-3"
-        />
+  <VForm @submit.prevent="submitCategory">
+  <VSelect
+  label="Select Service"
+  :items="serviceStore.services"
+  item-title="display_name"
+  item-value="id"
+  v-model="form.service"
+  class="mb-3"
+  />
 
-        <AppTextField
-          label="Category Name"
-          v-model="form.name"
-          class="mb-3"
-        />
+  <AppTextField
+  label="Category Name"
+  v-model="form.name"
+  class="mb-3"
+  />
 
-        <AppTextField
-          label="Description"
-          v-model="form.description"
-          class="mb-3"
-          type="textarea"
-          rows="3"
-        />
+  <AppTextField
+  label="Description"
+  v-model="form.description"
+  class="mb-3"
+  type="textarea"
+  rows="3"
+  />
 
-        <VCheckbox
-          label="Active"
-          v-model="form.is_active"
-          class="mb-3"
-        />
+  <VCheckbox
+  label="Active"
+  v-model="form.is_active"
+  class="mb-3"
+  />
 
-        <VBtn class="mt-2" type="submit" :loading="categoryStore.loading" block>
-          Save Category
-        </VBtn>
-      </VForm>
-    </VCard>
+  <VBtn class="mt-2" type="submit" :loading="categoryStore.loading" block>
+  Save Category
+  </VBtn>
+  </VForm>
+  </VCard>
   </div>
-</template>
+  </template>
 
-<style>
-.redirect-btn {
+  <style>
+  .redirect-btn {
   position: absolute;
   top: 80px;
   right: 50px;
@@ -109,12 +110,13 @@ const goToCategories = () => {
   cursor: pointer;
   transition: background-color 0.3s ease;
   
-}
-.redirect-btn:hover {
+  }
+  .redirect-btn:hover {
   background-color: #5107ef;
-}
+  }
 
-</style> -->
+  </style> 
+-->
 
 
 <template>
@@ -122,13 +124,18 @@ const goToCategories = () => {
     <!-- HEADER CARD -->
     <VCard class="mb-6">
       <VCardItem class="pb-2">
-        <VCardTitle class="text-h5 font-weight-bold">Categories</VCardTitle>
+        <VCardTitle class="text-h5 font-weight-bold">
+          Categories
+        </VCardTitle>
       </VCardItem>
 
       <VCardText>
         <VRow>
           <!-- SEARCH -->
-          <VCol cols="12" sm="4">
+          <VCol
+            cols="12"
+            sm="4"
+          >
             <AppTextField
               v-model="searchQuery"
               placeholder="Search categories..."
@@ -137,7 +144,10 @@ const goToCategories = () => {
           </VCol>
 
           <!-- SERVICE FILTER -->
-          <VCol cols="12" sm="4">
+          <VCol
+            cols="12"
+            sm="4"
+          >
             <VSelect
               v-model="selectedService"
               :items="services"
@@ -151,7 +161,11 @@ const goToCategories = () => {
           </VCol>
 
           <!-- ADD BUTTON -->
-          <VCol cols="12" sm="4" class="d-flex justify-end">
+          <VCol
+            cols="12"
+            sm="4"
+            class="d-flex justify-end"
+          >
             <VBtn
               color="primary"
               prepend-icon="tabler-plus"
@@ -199,8 +213,20 @@ const goToCategories = () => {
 
         <!-- STATUS -->
         <template #item.is_active="{ item }">
-          <VChip size="small" color="success" v-if="item.is_active">Active</VChip>
-          <VChip size="small" color="error" v-else>Inactive</VChip>
+          <VChip
+            v-if="item.is_active"
+            size="small"
+            color="success"
+          >
+            Active
+          </VChip>
+          <VChip
+            v-else
+            size="small"
+            color="error"
+          >
+            Inactive
+          </VChip>
         </template>
 
         <!-- ACTIONS -->
@@ -209,7 +235,10 @@ const goToCategories = () => {
             <VIcon icon="tabler-edit" />
           </IconBtn>
 
-          <IconBtn color="red" @click="openDeleteDialog(item)">
+          <IconBtn
+            color="red"
+            @click="openDeleteDialog(item)"
+          >
             <VIcon icon="tabler-trash" />
           </IconBtn>
         </template>
@@ -249,8 +278,15 @@ const goToCategories = () => {
 
       <!-- FORM -->
       <VForm class="px-1">
-        <VCard elevation="3" class="pa-4 rounded-lg mb-4" style="background:#F8FAFF;">
-          <h4 class="text-h6 font-weight-medium mb-4" style="color:#1E88E5;">
+        <VCard
+          elevation="3"
+          class="pa-4 rounded-lg mb-4"
+          style="background:#F8FAFF;"
+        >
+          <h4
+            class="text-h6 font-weight-medium mb-4"
+            style="color:#1E88E5;"
+          >
             Category Information
           </h4>
 
@@ -282,6 +318,22 @@ const goToCategories = () => {
               />
             </VCol>
 
+            <!-- Linked Capability -->
+            <VCol cols="12">
+              <VCombobox
+                v-model="form.linked_capability"
+                :items="capabilities"
+                label="Linked Capability *"
+                placeholder="Select or Create new"
+                hint="Required for system workflow integration"
+                persistent-hint
+                color="primary"
+                variant="outlined"
+                rounded
+                clearable
+              />
+            </VCol>
+
             <!-- Description -->
             <VCol cols="12">
               <AppTextField
@@ -298,24 +350,39 @@ const goToCategories = () => {
         </VCard>
 
         <!-- Status -->
-        <VCard elevation="3" class="pa-4 rounded-lg" style="background:#FFF8F7;">
-          <h4 class="text-h6 font-weight-medium mb-3" style="color:#D81B60;">
+        <VCard
+          elevation="3"
+          class="pa-4 rounded-lg"
+          style="background:#FFF8F7;"
+        >
+          <h4
+            class="text-h6 font-weight-medium mb-3"
+            style="color:#D81B60;"
+          >
             Status Options
           </h4>
 
           <div class="d-flex flex-column gap-3">
             <div class="d-flex justify-space-between align-center">
               <span class="text-body-2">Active</span>
-              <VSwitch v-model="form.is_active" color="green" inset />
+              <VSwitch
+                v-model="form.is_active"
+                color="green"
+                inset
+              />
             </div>
           </div>
-
         </VCard>
       </VForm>
 
       <!-- SAVE BUTTONS -->
       <div class="d-flex justify-end mt-5 gap-2">
-        <VBtn variant="outlined" color="red" class="px-5" @click="closeDrawer">
+        <VBtn
+          variant="outlined"
+          color="red"
+          class="px-5"
+          @click="closeDrawer"
+        >
           Cancel
         </VBtn>
 
@@ -332,11 +399,28 @@ const goToCategories = () => {
     </VNavigationDrawer>
 
     <!-- DELETE CONFIRMATION -->
-    <VDialog v-model="deleteDialog" width="420" transition="dialog-bottom-transition" persistent>
-      <VCard class="pa-4 rounded-xl" elevation="12">
+    <VDialog
+      v-model="deleteDialog"
+      width="420"
+      transition="dialog-bottom-transition"
+      persistent
+    >
+      <VCard
+        class="pa-4 rounded-xl"
+        elevation="12"
+      >
         <div class="text-center mb-3">
-          <VAvatar size="60" color="red" variant="tonal" class="mb-3">
-            <VIcon icon="tabler-alert-triangle" size="32" color="red-darken-2" />
+          <VAvatar
+            size="60"
+            color="red"
+            variant="tonal"
+            class="mb-3"
+          >
+            <VIcon
+              icon="tabler-alert-triangle"
+              size="32"
+              color="red-darken-2"
+            />
           </VAvatar>
 
           <h2 class="text-h6 font-weight-bold text-high-emphasis">
@@ -351,8 +435,17 @@ const goToCategories = () => {
         <VDivider class="my-3" />
 
         <div class="d-flex justify-end gap-2">
-          <VBtn variant="text" @click="deleteDialog = false">Cancel</VBtn>
-          <VBtn color="red" prepend-icon="tabler-trash" @click="deleteCategory">
+          <VBtn
+            variant="text"
+            @click="deleteDialog = false"
+          >
+            Cancel
+          </VBtn>
+          <VBtn
+            color="red"
+            prepend-icon="tabler-trash"
+            @click="deleteCategory"
+          >
             Delete
           </VBtn>
         </div>
@@ -362,24 +455,24 @@ const goToCategories = () => {
 </template>
 
 <script>
-import axios from "axios";
-import { ref, watch, onMounted, computed } from "vue";
-import { useCookie } from "@/@core/composable/useCookie";
+import axios from "axios"
+import { ref, watch, onMounted, computed } from "vue"
+import { useCookie } from "@/@core/composable/useCookie"
 
 export default {
   name: "CategoryPage",
 
   setup() {
-    const BASE_URL = "http://127.0.0.1:8003/api/superadmin/";
+    const BASE_URL = "http://127.0.0.1:8003/api/superadmin/"
 
     // TOKEN
-    const cookieToken = useCookie("accessToken");
-    const token = cookieToken.value;
-    if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    const cookieToken = useCookie("accessToken")
+    const token = cookieToken.value
+    if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
 
     // TABLE STATE
-    const categories = ref([]);
-    const services = ref([]);
+    const categories = ref([])
+    const services = ref([])
 
     const headers = [
       { title: "Name", key: "name" },
@@ -387,36 +480,38 @@ export default {
       { title: "Description", key: "description" },
       { title: "Active", key: "is_active" },
       { title: "Actions", key: "actions", sortable: false },
-    ];
+    ]
 
-    const page = ref(1);
-    const itemsPerPage = ref(10);
-    const totalItems = ref(0);
-    const searchQuery = ref("");
-    const selectedService = ref(null); // 👈 Added Filter
-    const selectedRows = ref([]);
+    const page = ref(1)
+    const itemsPerPage = ref(10)
+    const totalItems = ref(0)
+    const searchQuery = ref("")
+    const selectedService = ref(null) // 👈 Added Filter
+    const selectedRows = ref([])
 
     // DRAWER + DELETE POPUP
-    const drawerOpen = ref(false);
-    const isEdit = ref(false);
-    const loading = ref(false);
-    const deleteDialog = ref(false);
-    const deleteItem = ref(null);
-    const editId = ref(null);
+    const drawerOpen = ref(false)
+    const isEdit = ref(false)
+    const loading = ref(false)
+    const deleteDialog = ref(false)
+    const deleteItem = ref(null)
+    const editId = ref(null)
 
     // FORM MODEL
     const form = ref({
       service: null,
       name: "",
+      linked_capability: "",
       description: "",
       is_active: true,
-    });
+    })
 
     // FETCH SERVICES (for dropdown)
     const fetchServices = async () => {
-      const res = await axios.get(BASE_URL + "services/");
-      services.value = res.data.results || res.data;
-    };
+      const res = await axios.get(BASE_URL + "services/")
+
+      services.value = res.data.results || res.data
+    }
 
     // FETCH CATEGORIES
     const fetchCategories = async () => {
@@ -425,90 +520,115 @@ export default {
         page_size: itemsPerPage.value,
         search: searchQuery.value,
         service: selectedService.value, // 👈 Apply Filter
-      };
+      }
 
-      const res = await axios.get(BASE_URL + "categories/", { params });
-      categories.value = res.data.results || res.data;
-      totalItems.value = res.data.count || res.data.length;
-    };
+      const res = await axios.get(BASE_URL + "categories/", { params })
+
+      categories.value = res.data.results || res.data
+      totalItems.value = res.data.count || res.data.length
+    }
 
     onMounted(() => {
-      fetchServices();
-      fetchCategories();
-    });
+      fetchServices()
+      fetchCategories()
+    })
 
-    watch([page, itemsPerPage, searchQuery, selectedService], fetchCategories); // 👈 Watch Filter
+    watch([page, itemsPerPage, searchQuery, selectedService], fetchCategories) // 👈 Watch Filter
 
-    const updateOptions = () => fetchCategories();
+    const updateOptions = () => fetchCategories()
 
     // DRAWER FUNCTIONS
     const openAddDrawer = () => {
-      isEdit.value = false;
+      isEdit.value = false
       form.value = {
         service: selectedService.value || null, // Pre-fill if filter selected
         name: "",
+        linked_capability: "",
         description: "",
         is_active: true,
-      };
-      drawerOpen.value = true;
-    };
+      }
+      drawerOpen.value = true
+    }
 
-    const openEditDrawer = (item) => {
-      isEdit.value = true;
-      editId.value = item.id;
+    const openEditDrawer = item => {
+      isEdit.value = true
+      editId.value = item.id
 
       form.value = {
         service: item.service,
         name: item.name,
+        linked_capability: item.linked_capability,
         description: item.description,
         is_active: item.is_active,
-      };
+      }
 
-      drawerOpen.value = true;
-    };
+      drawerOpen.value = true
+    }
 
-    const closeDrawer = () => (drawerOpen.value = false);
+    const closeDrawer = () => (drawerOpen.value = false)
 
     // SUBMIT
     const submit = async () => {
-      loading.value = true;
+      loading.value = true
 
       if (isEdit.value) {
-        await axios.put(BASE_URL + "categories/" + editId.value + "/", form.value);
+        await axios.put(BASE_URL + "categories/" + editId.value + "/", form.value)
       } else {
-        await axios.post(BASE_URL + "categories/", form.value);
+        await axios.post(BASE_URL + "categories/", form.value)
       }
 
-      drawerOpen.value = false;
-      loading.value = false;
-      fetchCategories();
-    };
+      drawerOpen.value = false
+      loading.value = false
+      fetchCategories()
+    }
 
     // DELETE
-    const openDeleteDialog = (item) => {
-      deleteItem.value = item;
-      deleteDialog.value = true;
-    };
+    const openDeleteDialog = item => {
+      deleteItem.value = item
+      deleteDialog.value = true
+    }
 
     const deleteCategory = async () => {
-      await axios.delete(BASE_URL + "categories/" + deleteItem.value.id + "/");
-      deleteDialog.value = false;
-      fetchCategories();
-    };
+      await axios.delete(BASE_URL + "categories/" + deleteItem.value.id + "/")
+      deleteDialog.value = false
+      fetchCategories()
+    }
 
-    // DYNAMIC LABELS
+      // DYNAMIC LABELS
     const isVeterinarySelected = computed(() => {
-      if (!form.value.service) return false;
-      const s = services.value.find((x) => x.id === form.value.service);
-      return s && (s.name.toUpperCase().startsWith("VETERINARY") || s.display_name.toUpperCase().includes("VETERINARY"));
-    });
+      if (!form.value.service) return false
+      const s = services.value.find(x => x.id === form.value.service)
+      
+      return s && (s.name.toUpperCase().startsWith("VETERINARY") || s.display_name.toUpperCase().includes("VETERINARY"))
+    })
 
-    const categoryLabel = computed(() => isVeterinarySelected.value ? "Feature Name *" : "Category Name *");
-    const descriptionLabel = computed(() => isVeterinarySelected.value ? "Feature Description" : "Description");
+    const categoryLabel = computed(() => isVeterinarySelected.value ? "Feature Name *" : "Category Name *")
+    const descriptionLabel = computed(() => isVeterinarySelected.value ? "Feature Description" : "Description")
+
     const drawerTitle = computed(() => {
-      const type = isVeterinarySelected.value ? "Feature" : "Category";
-      return isEdit.value ? `Update ${type}` : `Create ${type}`;
-    });
+      const type = isVeterinarySelected.value ? "Feature" : "Category"
+      
+      return isEdit.value ? `Update ${type}` : `Create ${type}`
+    })
+
+    // CAPABILITIES
+    const capabilities = ref([])
+    
+    // Fetch Capabilities for Dropdown
+    const fetchCapabilities = async () => {
+      try {
+        const res = await axios.get(BASE_URL + "dynamic-permissions/capabilities/")
+        // Map to simple strings or objects? Combobox likes simple arrays for creation.
+        // We will store just the key (string).
+        capabilities.value = (res.data.results || res.data).map(c => c.key)
+      } catch (e) {
+        console.error("Failed to fetch capabilities", e)
+      }
+    }
+
+    onMounted(() => {
+        fetchCapabilities()
+    })
 
     return {
       categories,
@@ -543,7 +663,10 @@ export default {
       descriptionLabel,
       drawerTitle,
       isVeterinarySelected,
-    };
+      
+      // Capabilities
+      capabilities, 
+    }
   },
-};
+}
 </script>

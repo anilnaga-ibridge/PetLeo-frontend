@@ -15,11 +15,13 @@ const loading = ref(false)
 const changePin = async () => {
   if (!oldPin.value || !newPin.value || !confirmPin.value) {
     alert("Please fill all fields")
+    
     return
   }
 
   if (newPin.value !== confirmPin.value) {
     alert("New PINs do not match")
+    
     return
   }
 
@@ -28,13 +30,13 @@ const changePin = async () => {
     const { data, error } = await useApi('http://127.0.0.1:8000/auth/change-pin/', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: {
         old_pin: oldPin.value,
         new_pin: newPin.value,
-        confirm_new_pin: confirmPin.value
-      }
+        confirm_new_pin: confirmPin.value,
+      },
     })
 
     if (error.value) {

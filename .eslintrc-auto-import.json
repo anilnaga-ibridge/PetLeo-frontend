@@ -369,6 +369,12 @@
     "getPostLoginRoute": true,
     "featureMapping": true,
     "formatFeatureName": true,
-    "VETERINARY_ROLES": true
+    "VETERINARY_ROLES": true,
+    "DefaultNavigation": true,
+    "ServiceConfig": true,
+    "getServiceConfig": true,
+    "ACTION_LABELS": true,
+    "VETERINARY_FEATURES": true,
+    "getLabel": true
   }
 }

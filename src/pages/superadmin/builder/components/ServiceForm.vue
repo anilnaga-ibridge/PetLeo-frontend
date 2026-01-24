@@ -23,38 +23,40 @@ const form = ref({
 /* =======================
    ICON OPTIONS
 ======================= */
- // Static Icon List
-    const iconList = [
-      { title: 'Pet Care', value: 'tabler-heart-handshake' },
-      { title: 'Pet Grooming', value: 'tabler-scissors' },
-      { title: 'Pet Health', value: 'tabler-stethoscope' },
-      { title: 'Veterinary', value: 'tabler-first-aid-kit' },
-      { title: 'Pet Training', value: 'tabler-school' },
-      { title: 'Pet Behavior', value: 'tabler-brain' },
-      { title: 'Pet Adoption', value: 'tabler-home-heart' },
-      { title: 'Pet Store', value: 'tabler-shopping-cart' },
-      { title: 'Pet Transport', value: 'tabler-car' },
-      { title: 'Pet Relocation', value: 'tabler-truck-delivery' },
-      { title: 'Special Services', value: 'tabler-sparkles' },
-      { title: 'Fish & Aquarium', value: 'tabler-fish' },
-      { title: 'Exotic Pets', value: 'tabler-bug' },
-      { title: 'General Pet', value: 'tabler-paw' },
-      { title: 'Dog', value: 'tabler-dog' },
-      { title: 'Cat', value: 'tabler-cat' },
-      { title: 'Bone', value: 'tabler-bone' },
-      { title: 'Vaccine', value: 'tabler-vaccine' },
-      { title: 'Bath', value: 'tabler-bath' },
-      { title: 'Walking', value: 'tabler-walk' },
-      { title: 'Home', value: 'tabler-home' },
-      { title: 'Location', value: 'tabler-map-pin' },
-      { title: 'Schedule', value: 'tabler-calendar-time' },
-    ];
+// Static Icon List
+const iconList = [
+  { title: 'Pet Care', value: 'tabler-heart-handshake' },
+  { title: 'Pet Grooming', value: 'tabler-scissors' },
+  { title: 'Pet Health', value: 'tabler-stethoscope' },
+  { title: 'Veterinary', value: 'tabler-first-aid-kit' },
+  { title: 'Pet Training', value: 'tabler-school' },
+  { title: 'Pet Behavior', value: 'tabler-brain' },
+  { title: 'Pet Adoption', value: 'tabler-home-heart' },
+  { title: 'Pet Store', value: 'tabler-shopping-cart' },
+  { title: 'Pet Transport', value: 'tabler-car' },
+  { title: 'Pet Relocation', value: 'tabler-truck-delivery' },
+  { title: 'Special Services', value: 'tabler-sparkles' },
+  { title: 'Fish & Aquarium', value: 'tabler-fish' },
+  { title: 'Exotic Pets', value: 'tabler-bug' },
+  { title: 'General Pet', value: 'tabler-paw' },
+  { title: 'Dog', value: 'tabler-dog' },
+  { title: 'Cat', value: 'tabler-cat' },
+  { title: 'Bone', value: 'tabler-bone' },
+  { title: 'Vaccine', value: 'tabler-vaccine' },
+  { title: 'Bath', value: 'tabler-bath' },
+  { title: 'Walking', value: 'tabler-walk' },
+  { title: 'Home', value: 'tabler-home' },
+  { title: 'Location', value: 'tabler-map-pin' },
+  { title: 'Schedule', value: 'tabler-calendar-time' },
+]
+
+
 /* =======================
    INIT FORM (EDIT / CREATE)
 ======================= */
 watch(
   () => props.service,
-  (val) => {
+  val => {
     if (val && props.isEdit) {
       form.value = {
         name: val.name,
@@ -73,7 +75,7 @@ watch(
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 /* =======================
@@ -84,7 +86,7 @@ const submit = async () => {
     if (props.isEdit && props.service?.id) {
       await superAdminApi.put(
         `/api/superadmin/services/${props.service.id}/`,
-        form.value
+        form.value,
       )
     } else {
       await superAdminApi.post('/api/superadmin/services/', form.value)
@@ -100,72 +102,93 @@ const submit = async () => {
 
 <template>
   <div class="service-form-wrapper">
-    <!-- =======================
-         FORM CONTENT
-    ======================= -->
-    <VForm @submit.prevent="submit" class="form-content">
-      <!-- Display Name -->
-      <AppTextField
-        v-model="form.display_name"
-        label="Display Name"
-        placeholder="e.g. Veterinary"
-        class="mb-4"
-        required
-      />
+    <!--
+      =======================
+      FORM CONTENT
+      ======================= 
+    -->
+    <VForm
+      class="form-content"
+      @submit.prevent="submit"
+    >
+      <div class="d-flex flex-column gap-6">
+        <!-- Display Name -->
+        <AppTextField
+          v-model="form.display_name"
+          label="Display Name"
+          placeholder="e.g. Veterinary"
+          required
+          density="comfortable"
+        />
 
-      <!-- Slug -->
-      <AppTextField
-        v-model="form.name"
-        label="Slug (Internal Name)"
-        placeholder="e.g. veterinary"
-        class="mb-4"
-        required
-        :disabled="isEdit"
-      />
+        <!-- Slug -->
+        <AppTextField
+          v-model="form.name"
+          label="Slug (Internal Name)"
+          placeholder="e.g. veterinary"
+          required
+          :disabled="isEdit"
+          density="comfortable"
+        />
 
-      <!-- ICON SELECT (FIXED – NO CUSTOM SLOTS) -->
-      <VSelect
-        v-model="form.icon"
-        :items="iconList"
-        item-title="title"
-        item-value="value"
-        label="Service Icon"
-        placeholder="Select an icon"
-        prepend-inner-icon="tabler-icons"
-        :menu-props="{ zIndex: 10000 }"
-      >
-        <template #selection="{ item }">
-          <div class="d-flex align-center">
-            <VIcon :icon="item.raw.value" class="me-2" />
-            {{ item.raw.title }}
-          </div>
-        </template>
-        <template #item="{ props, item }">
-          <VListItem v-bind="props" title="">
-            <template #prepend>
-              <VIcon :icon="item.raw.value" />
-            </template>
-            <VListItemTitle>{{ item.raw.title }}</VListItemTitle>
-          </VListItem>
-        </template>
-      </VSelect>
+        <!-- ICON SELECT -->
+        <VSelect
+          v-model="form.icon"
+          :items="iconList"
+          item-title="title"
+          item-value="value"
+          label="Service Icon"
+          placeholder="Select an icon"
+          prepend-inner-icon="tabler-icons"
+          density="comfortable"
+          variant="outlined"
+          :menu-props="{ zIndex: 10000 }"
+        >
+          <template #selection="{ item }">
+            <div class="d-flex align-center">
+              <VIcon
+                :icon="item.raw.value"
+                class="me-2"
+                color="primary"
+              />
+              <span class="text-body-2">{{ item.raw.title }}</span>
+            </div>
+          </template>
+          <template #item="{ props, item }">
+            <VListItem
+              v-bind="props"
+              title=""
+              class="px-4 py-2"
+            >
+              <template #prepend>
+                <VIcon
+                  :icon="item.raw.value"
+                  color="primary"
+                />
+              </template>
+              <VListItemTitle class="ms-2">
+                {{ item.raw.title }}
+              </VListItemTitle>
+            </VListItem>
+          </template>
+        </VSelect>
 
-      <!-- Description -->
-      <AppTextarea
-        v-model="form.description"
-        label="Description"
-        placeholder="Briefly describe the service..."
-        class="mb-6"
-      />
+        <!-- Description -->
+        <AppTextarea
+          v-model="form.description"
+          label="Description"
+          placeholder="Briefly describe the service..."
+          rows="3"
+        />
+      </div>
     </VForm>
 
-    <!-- =======================
-         FIXED FOOTER ACTIONS
-    ======================= -->
-    <div class="form-footer">
+    <!-- FIXED FOOTER ACTIONS -->
+    <div class="form-footer mt-auto pt-6">
       <VBtn
-        variant="outlined"
+        variant="tonal"
         color="secondary"
+        rounded="lg"
         @click="emit('close')"
       >
         Cancel
@@ -173,6 +196,8 @@ const submit = async () => {
 
       <VBtn
         color="primary"
+        rounded="lg"
+        class="premium-btn"
         @click="submit"
       >
         {{ props.isEdit ? 'Update Service' : 'Create Service' }}
@@ -190,14 +215,12 @@ const submit = async () => {
 
 .form-content {
   flex: 1;
-  overflow-y: auto;
-  padding-bottom: 16px;
 }
 
 .form-footer {
   display: flex;
-  gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  justify-content: flex-end;
+  gap: 16px;
+  background: white;
 }
 </style>

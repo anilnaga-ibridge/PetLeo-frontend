@@ -5,7 +5,7 @@ import { useCookie } from '@/@core/composable/useCookie'
 import {
   VCard, VCardTitle, VCardText, VCardItem, VCardSubtitle, VDivider,
   VDataTable, VBtn, VIcon, VChip, VDialog, VCardActions, VTextarea,
-  VSnackbar, VAvatar
+  VSnackbar, VAvatar,
 } from 'vuetify/components'
 
 // =============================
@@ -30,6 +30,7 @@ const rejectionReason = ref('')
 
 const tokenHeader = () => {
   const token = useCookie('accessToken').value
+  
   return { Authorization: `Bearer ${token}` }
 }
 
@@ -50,11 +51,15 @@ const fetchDocuments = async () => {
     })
 
     const docs = res.data
-console.log("Fetched docs:", docs)
+
+    console.log("Fetched docs:", docs)
+
+
     // Enrich each doc
     const enriched = await Promise.all(
       docs.map(async doc => {
         const providerId = doc.auth_user_id
+
         console.log("Fetching info for provider ID:", providerId)
 
         let role = doc.provider_role || 'Unknown'
@@ -64,8 +69,9 @@ console.log("Fetched docs:", docs)
         try {
           const p = await axios.get(
             `http://127.0.0.1:8000/auth/users/${providerId}/`,
-            { headers: tokenHeader() }
+            { headers: tokenHeader() },
           )
+
           providerName = p.data?.full_name || 'Unknown'
           role = p.data?.role_name || role
         } catch (err) {
@@ -77,7 +83,7 @@ console.log("Fetched docs:", docs)
           provider_role: role,
           provider_name: providerName,
         }
-      })
+      }),
     )
 
     documents.value = enriched
@@ -93,7 +99,7 @@ console.log("Fetched docs:", docs)
 // =============================
 // 🔹 Approve
 // =============================
-const approveDocument = async (doc) => {
+const approveDocument = async doc => {
   if (!confirm(`Approve ${doc.filename}?`)) return
 
   processing.value = true
@@ -101,7 +107,7 @@ const approveDocument = async (doc) => {
     await axios.post(
       `${API_BASE}${doc.id}/verify/`,
       { status: 'approved' },
-      { headers: tokenHeader() }
+      { headers: tokenHeader() },
     )
     openSnack('Document approved!')
     fetchDocuments()
@@ -115,7 +121,7 @@ const approveDocument = async (doc) => {
 // =============================
 // 🔹 Reject
 // =============================
-const openRejectDialog = (doc) => {
+const openRejectDialog = doc => {
   selectedDoc.value = doc
   rejectionReason.value = ''
   isRejectDialogVisible.value = true
@@ -124,6 +130,7 @@ const openRejectDialog = (doc) => {
 const rejectDocument = async () => {
   if (!rejectionReason.value.trim()) {
     openSnack('Enter a rejection reason!', 'warning')
+    
     return
   }
 
@@ -135,7 +142,7 @@ const rejectDocument = async () => {
         status: 'rejected',
         rejection_reason: rejectionReason.value,
       },
-      { headers: tokenHeader() }
+      { headers: tokenHeader() },
     )
     openSnack('Document rejected.')
     isRejectDialogVisible.value = false
@@ -158,9 +165,10 @@ const headers = [
   { title: 'Actions', key: 'actions', sortable: false },
 ]
 
-const resolveStatusColor = (status) => {
+const resolveStatusColor = status => {
   if (status === 'approved') return 'success'
   if (status === 'rejected') return 'error'
+  
   return 'warning'
 }
 </script>
@@ -183,17 +191,28 @@ const resolveStatusColor = (status) => {
       >
         <template #item.filename="{ item }">
           <div class="d-flex align-center gap-x-2">
-            <VAvatar color="primary" variant="tonal">
+            <VAvatar
+              color="primary"
+              variant="tonal"
+            >
               <VIcon icon="tabler-file" />
             </VAvatar>
-            <a :href="item.file_url" target="_blank" class="text-primary">
+            <a
+              :href="item.file_url"
+              target="_blank"
+              class="text-primary"
+            >
               {{ item.filename }}
             </a>
           </div>
         </template>
 
         <template #item.status="{ item }">
-          <VChip :color="resolveStatusColor(item.status)" size="small" class="text-capitalize">
+          <VChip
+            :color="resolveStatusColor(item.status)"
+            size="small"
+            class="text-capitalize"
+          >
             {{ item.status }}
           </VChip>
         </template>
@@ -203,11 +222,21 @@ const resolveStatusColor = (status) => {
         </template>
 
         <template #item.actions="{ item }">
-          <VBtn icon color="success" variant="text" @click="approveDocument(item)">
+          <VBtn
+            icon
+            color="success"
+            variant="text"
+            @click="approveDocument(item)"
+          >
             <VIcon icon="tabler-check" />
           </VBtn>
 
-          <VBtn icon color="error" variant="text" @click="openRejectDialog(item)">
+          <VBtn
+            icon
+            color="error"
+            variant="text"
+            @click="openRejectDialog(item)"
+          >
             <VIcon icon="tabler-x" />
           </VBtn>
         </template>
@@ -215,21 +244,45 @@ const resolveStatusColor = (status) => {
     </VCard>
 
     <!-- Reject Modal -->
-    <VDialog v-model="isRejectDialogVisible" max-width="450">
+    <VDialog
+      v-model="isRejectDialogVisible"
+      max-width="450"
+    >
       <VCard>
-        <VCardTitle class="bg-error text-white">Reject Document</VCardTitle>
+        <VCardTitle class="bg-error text-white">
+          Reject Document
+        </VCardTitle>
         <VCardText>
           <p>Reason for rejecting <b>{{ selectedDoc?.filename }}</b>:</p>
-          <VTextarea v-model="rejectionReason" label="Reason" rows="3" />
+          <VTextarea
+            v-model="rejectionReason"
+            label="Reason"
+            rows="3"
+          />
         </VCardText>
         <VCardActions class="justify-end">
-          <VBtn variant="text" @click="isRejectDialogVisible = false">Cancel</VBtn>
-          <VBtn color="error" @click="rejectDocument" :loading="processing">Reject</VBtn>
+          <VBtn
+            variant="text"
+            @click="isRejectDialogVisible = false"
+          >
+            Cancel
+          </VBtn>
+          <VBtn
+            color="error"
+            :loading="processing"
+            @click="rejectDocument"
+          >
+            Reject
+          </VBtn>
         </VCardActions>
       </VCard>
     </VDialog>
 
-    <VSnackbar v-model="showSnack" :color="snackColor" timeout="3000">
+    <VSnackbar
+      v-model="showSnack"
+      :color="snackColor"
+      timeout="3000"
+    >
       {{ snackMessage }}
     </VSnackbar>
   </section>

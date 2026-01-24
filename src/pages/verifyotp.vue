@@ -75,8 +75,9 @@ const imageVariant = useGenerateImageVariant(
   authV2RegisterIllustrationDark,
   authV2RegisterIllustrationBorderedLight,
   authV2RegisterIllustrationBorderedDark,
-  true
+  true,
 )
+
 const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
 
 /* Store session */
@@ -113,13 +114,14 @@ const verifyOtp = async () => {
     if (!sessionId) {
       errorMessage.value = "Session expired. Please resend OTP."
       isLoading.value = false
+      
       return
     }
 
     const res = await axios.post(VERIFY_OTP_URL, {
       session_id: sessionId,
       otp: otp.value,
-      remember_me: rememberMe
+      remember_me: rememberMe,
     })
 
     console.log("VERIFY OTP:", res.data)
@@ -135,6 +137,7 @@ const verifyOtp = async () => {
       localStorage.removeItem('session_id')
 
       setTimeout(() => router.replace('/setpin'), 500)
+      
       return
     }
 
@@ -147,7 +150,7 @@ const verifyOtp = async () => {
         userData,
         userAbilityRules,
         has_pin,
-        require_set_pin
+        require_set_pin,
       } = res.data
 
       storeSession(accessToken, userData, userAbilityRules, rememberMe)
@@ -156,6 +159,7 @@ const verifyOtp = async () => {
       if (require_set_pin || !has_pin) {
         showSetPinDrawer.value = true
         isLoading.value = false
+        
         return
       }
 
@@ -169,9 +173,11 @@ const verifyOtp = async () => {
 
       // Capability-based redirection
       const targetRoute = getPostLoginRoute(userData)
+
       await nextTick(() => router.replace(targetRoute))
       
       isLoading.value = false
+      
       return
     }
 
@@ -207,6 +213,7 @@ const resendOtp = async () => {
     if (!sessionId) {
       resendError.value = "Session expired. Please login again."
       resendLoading.value = false
+      
       return
     }
 
@@ -217,7 +224,7 @@ const resendOtp = async () => {
     const payload = { 
       session_id: sessionId,
       phone_number: phone,
-      purpose: purpose
+      purpose: purpose,
     }
 
     const res = await axios.post(RESEND_OTP_URL, payload)
@@ -249,20 +256,23 @@ const submitPin = async () => {
   if (!newPin.value || !/^\d{4,6}$/.test(newPin.value)) {
     pinError.value = "PIN must be 4-6 digits."
     pinLoading.value = false
+    
     return
   }
   if (newPin.value !== confirmPin.value) {
     pinError.value = "PINs do not match."
     pinLoading.value = false
+    
     return
   }
 
   try {
     const token = useCookie('accessToken').value
+
     await axios.post(
       `${API_BASE}/auth/set-pin/`,
       { pin: newPin.value },
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` } },
     )
 
     showSetPinDrawer.value = false
@@ -282,32 +292,65 @@ const skipSetPin = () => {
 </script>
 
 <template>
-  <VRow no-gutters class="auth-wrapper bg-surface no-scrollbar">
-    
+  <VRow
+    no-gutters
+    class="auth-wrapper bg-surface no-scrollbar"
+  >
     <!-- Left Illustration -->
-    <VCol md="8" class="d-none d-md-flex">
+    <VCol
+      md="8"
+      class="d-none d-md-flex"
+    >
       <div class="position-relative bg-background w-100 h-100 d-flex align-center justify-center">
-        <VImg max-width="320" :src="imageVariant" class="mt-10 mb-4 fade-in-image" />
-        <img class="auth-footer-mask" :src="authThemeMask" height="150" width="100" />
+        <VImg
+          max-width="320"
+          :src="imageVariant"
+          class="mt-10 mb-4 fade-in-image"
+        />
+        <img
+          class="auth-footer-mask"
+          :src="authThemeMask"
+          height="150"
+          width="100"
+        >
       </div>
     </VCol>
 
     <!-- Right Auth Card -->
-    <VCol cols="12" md="4" class="d-flex align-center justify-center px-4">
-      <VCard flat max-width="480" class="pa-8 rounded-xl auth-card slide-up-card">
-
+    <VCol
+      cols="12"
+      md="4"
+      class="d-flex align-center justify-center px-4"
+    >
+      <VCard
+        flat
+        max-width="480"
+        class="pa-8 rounded-xl auth-card slide-up-card"
+      >
         <VCardText class="text-center mb-6">
-          <h3 class="text-h4 font-weight-bold mb-2 text-high-emphasis">Verify OTP</h3>
+          <h3 class="text-h4 font-weight-bold mb-2 text-high-emphasis">
+            Verify OTP
+          </h3>
           <p class="text-body-1 text-medium-emphasis">
             Enter the 6-digit code sent to your mobile number
           </p>
         </VCardText>
 
         <VCardText class="px-0">
-          <VAlert v-if="successMessage" type="success" variant="tonal" class="mb-6 rounded-lg border-success">
+          <VAlert
+            v-if="successMessage"
+            type="success"
+            variant="tonal"
+            class="mb-6 rounded-lg border-success"
+          >
             {{ successMessage }}
           </VAlert>
-          <VAlert v-if="errorMessage" type="error" variant="tonal" class="mb-6 rounded-lg border-error">
+          <VAlert
+            v-if="errorMessage"
+            type="error"
+            variant="tonal"
+            class="mb-6 rounded-lg border-error"
+          >
             {{ errorMessage }}
           </VAlert>
 
@@ -337,8 +380,10 @@ const skipSetPin = () => {
 
         <!-- Resend Section with Circular Timer -->
         <div class="d-flex flex-column align-center mt-8">
-          
-          <div v-if="timeLeft > 0" class="d-flex align-center gap-2 mb-2">
+          <div
+            v-if="timeLeft > 0"
+            class="d-flex align-center gap-2 mb-2"
+          >
             <VProgressCircular
               :model-value="(timeLeft / 60) * 100"
               color="primary"
@@ -351,57 +396,81 @@ const skipSetPin = () => {
             </span>
           </div>
 
-          <div v-else class="text-center fade-in">
+          <div
+            v-else
+            class="text-center fade-in"
+          >
             <span class="text-body-2 text-medium-emphasis">Didn't receive the code?</span>
             <VBtn
               variant="text"
               color="primary"
               class="ml-2 px-2 font-weight-bold text-body-2"
               :loading="resendLoading"
-              @click="resendOtp"
               :ripple="false"
+              @click="resendOtp"
             >
               Resend OTP
             </VBtn>
           </div>
-
         </div>
 
         <!-- Resend Alerts -->
         <div class="mt-4">
-          <VAlert v-if="resendSuccess" type="success" variant="tonal" density="compact" class="rounded-lg mb-2 text-caption">
+          <VAlert
+            v-if="resendSuccess"
+            type="success"
+            variant="tonal"
+            density="compact"
+            class="rounded-lg mb-2 text-caption"
+          >
             {{ resendSuccess }}
           </VAlert>
-          <VAlert v-if="resendError" type="error" variant="tonal" density="compact" class="rounded-lg text-caption">
+          <VAlert
+            v-if="resendError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            class="rounded-lg text-caption"
+          >
             {{ resendError }}
           </VAlert>
         </div>
-
       </VCard>
     </VCol>
 
     <!-- PIN Drawer (unchanged) -->
-    <v-dialog v-model="showSetPinDrawer" persistent max-width="440" transition="dialog-bottom-transition">
-      <v-card class="rounded-xl overflow-hidden pin-card" elevation="24">
-        
+    <VDialog
+      v-model="showSetPinDrawer"
+      persistent
+      max-width="440"
+      transition="dialog-bottom-transition"
+    >
+      <VCard
+        class="rounded-xl overflow-hidden pin-card"
+        elevation="24"
+      >
         <!-- Decorative Header -->
         <div class="d-flex justify-center pt-8 pb-6 bg-surface-variant-lighten-1 position-relative overflow-hidden">
-          <div class="decorative-circle"></div>
+          <div class="decorative-circle" />
           <div class="rounded-circle bg-white pa-4 elevation-3 z-index-1">
-            <VIcon icon="tabler-lock-check" size="42" color="primary" />
+            <VIcon
+              icon="tabler-lock-check"
+              size="42"
+              color="primary"
+            />
           </div>
         </div>
 
-        <v-card-item class="text-center pt-2 pb-2">
-          <v-card-title class="text-h5 font-weight-bold text-high-emphasis">
+        <VCardItem class="text-center pt-2 pb-2">
+          <VCardTitle class="text-h5 font-weight-bold text-high-emphasis">
             Secure Your Account
-          </v-card-title>
-          <v-card-subtitle class="text-body-1 text-medium-emphasis mt-1">
+          </VCardTitle>
+          <VCardSubtitle class="text-body-1 text-medium-emphasis mt-1">
             Create a 4-6 digit PIN for quick access
-          </v-card-subtitle>
-        </v-card-item>
+          </VCardSubtitle>
+        </VCardItem>
 
-        <v-card-text class="px-6 pt-2">
+        <VCardText class="px-6 pt-2">
           <VAlert
             v-if="pinError"
             type="error"
@@ -432,10 +501,10 @@ const skipSetPin = () => {
               />
             </div>
           </div>
-        </v-card-text>
+        </VCardText>
 
-        <v-card-actions class="px-6 pb-8 pt-4 d-flex flex-column gap-y-3">
-          <v-btn
+        <VCardActions class="px-6 pb-8 pt-4 d-flex flex-column gap-y-3">
+          <VBtn
             block
             color="primary"
             size="x-large"
@@ -445,9 +514,9 @@ const skipSetPin = () => {
             @click="submitPin"
           >
             Set PIN
-          </v-btn>
+          </VBtn>
           
-          <v-btn
+          <VBtn
             block
             variant="text"
             color="secondary"
@@ -456,11 +525,10 @@ const skipSetPin = () => {
             @click="skipSetPin"
           >
             Skip for now
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
+          </VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
   </VRow>
 </template>
 

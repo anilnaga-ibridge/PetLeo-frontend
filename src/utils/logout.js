@@ -22,6 +22,7 @@ export function fullLogout(router) {
   // Clear Pinia store if used
   try {
     const cookieStore = useCookieStore()
+
     cookieStore.$reset()
   } catch (e) {}
 

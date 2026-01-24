@@ -1,12 +1,16 @@
 <script setup>
 import { PerfectScrollbar } from 'vue3-perfect-scrollbar'
 import { useAuthStore } from '@/stores/authStore'
+import { usePermissionStore } from '@/stores/permissionStore'
 import { useRouter } from 'vue-router'
 import { useCookie } from '@/@core/composable/useCookie'
+import { storeToRefs } from 'pinia'
 
 const router = useRouter()
-const userData = useCookie('userData')
+// const userData = useCookie('userData') // ❌ Replaced by Store for reactivity
 const authStore = useAuthStore()
+const permissionStore = usePermissionStore()
+const { userData } = storeToRefs(permissionStore)
 
 const logout = async () => {
   await authStore.logout()

@@ -1,12 +1,21 @@
 <script setup>
-const profileHeaderData = ref()
-const { data, error } = await useApi('/pages/profile/header')
-if (error.value) {
-  console.log(error.value)
-} else {
-  if (data.value)
-    profileHeaderData.value = data.value
-}
+import { useCookie } from '@/@core/composable/useCookie'
+import { avatarText } from '@core/utils/formatters'
+
+const userData = useCookie('userData')
+
+const profileHeaderData = computed(() => {
+  if (!userData.value) return null
+  
+  return {
+    fullName: userData.value.full_name || userData.value.username,
+    designation: (userData.value.role?.name || userData.value.role || 'User').toUpperCase(),
+    location: 'India', 
+    joiningDate: new Date(userData.value.date_joined || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    profileImg: userData.value.avatar, 
+    coverImg: 'https://demos.pixinvent.com/vuexy-vuejs-admin-template/demo-1/assets/pages/profile-banner.png', 
+  }
+})
 </script>
 
 <template>

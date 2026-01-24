@@ -16,24 +16,29 @@ const form = ref({
   pet_id: null,
   visit_type: 'OFFLINE',
   reason: '',
-  date: new Date().toISOString().substr(0, 10)
+  date: new Date().toISOString().substr(0, 10),
 })
 
 const pets = computed(() => veterinaryStore.pets)
 const loading = computed(() => veterinaryStore.loading)
 
 onMounted(async () => {
-  await veterinaryStore.fetchPets()
+  await Promise.all([
+    veterinaryStore.fetchPets(),
+    veterinaryStore.fetchPetTypes(),
+    veterinaryStore.fetchPetBreeds(),
+  ])
 })
 
 const visitTypes = [
   { title: 'Offline', value: 'OFFLINE' },
-  { title: 'Online', value: 'ONLINE' }
+  { title: 'Online', value: 'ONLINE' },
 ]
 
 const submit = async () => {
   if (!form.value.pet_id) {
     alert('Please select a pet')
+    
     return
   }
 
@@ -43,6 +48,7 @@ const submit = async () => {
     const clinicsResponse = await veterinaryStore.fetchClinics()
     if (!clinicsResponse || clinicsResponse.length === 0) {
       alert('No clinic found for this provider')
+      
       return
     }
     
@@ -50,7 +56,7 @@ const submit = async () => {
     
     await veterinaryStore.createVisit({
       ...form.value,
-      clinic: clinicId
+      clinic: clinicId,
     })
     
     alert('Visit Created Successfully!')
@@ -65,27 +71,51 @@ const submit = async () => {
   <component :is="currentLayout">
     <div class="new-visit-page">
       <div class="d-flex align-center mb-6">
-        <VBtn icon="tabler-arrow-left" variant="text" to="/veterinary/dashboard" class="me-2" />
-        <h1 class="text-h3 font-weight-bold text-primary">New Visit</h1>
+        <VBtn
+          icon="tabler-arrow-left"
+          variant="text"
+          to="/veterinary/dashboard"
+          class="me-2"
+        />
+        <h1 class="text-h3 font-weight-bold text-primary">
+          New Visit
+        </h1>
       </div>
 
       <VCard>
         <VCardText>
           <VForm @submit.prevent="submit">
             <VRow>
-              <VCol cols="12" md="6">
+              <VCol
+                cols="12"
+                md="6"
+              >
+                <div class="d-flex align-center justify-space-between mb-1">
+                  <VLabel>Select Pet</VLabel>
+                  <VBtn
+                    variant="text"
+                    color="primary"
+                    size="small"
+                    to="/veterinary/pets/new"
+                    prepend-icon="tabler-plus"
+                  >
+                    New Pet
+                  </VBtn>
+                </div>
                 <AppSelect
                   v-model="form.pet_id"
                   :items="pets"
                   item-title="name"
                   item-value="id"
-                  label="Select Pet"
                   placeholder="Search for a pet..."
                   prepend-inner-icon="tabler-paw"
                 />
               </VCol>
               
-              <VCol cols="12" md="6">
+              <VCol
+                cols="12"
+                md="6"
+              >
                 <AppSelect
                   v-model="form.visit_type"
                   :items="visitTypes"
@@ -113,9 +143,24 @@ const submit = async () => {
                 />
               </VCol>
 
-              <VCol cols="12" class="d-flex justify-end gap-2">
-                <VBtn variant="tonal" color="secondary" to="/veterinary/dashboard">Cancel</VBtn>
-                <VBtn type="submit" color="primary" :loading="loading">Create Visit</VBtn>
+              <VCol
+                cols="12"
+                class="d-flex justify-end gap-2"
+              >
+                <VBtn
+                  variant="tonal"
+                  color="secondary"
+                  to="/veterinary/dashboard"
+                >
+                  Cancel
+                </VBtn>
+                <VBtn
+                  type="submit"
+                  color="primary"
+                  :loading="loading"
+                >
+                  Create Visit
+                </VBtn>
               </VCol>
             </VRow>
           </VForm>

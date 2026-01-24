@@ -1,41 +1,69 @@
 <template>
   <div>
-    <v-btn color="primary" @click="openAdd">+ Add Slide</v-btn>
+    <VBtn
+      color="primary"
+      @click="openAdd"
+    >
+      + Add Slide
+    </VBtn>
 
-    <v-dialog v-model="dialog" width="600">
-      <v-card class="pa-4">
-        <v-text-field v-model="form.image" label="Image URL" />
-        <v-text-field v-model="form.title" label="Title" />
-        <v-text-field v-model="form.subtitle" label="Subtitle" />
-        <v-text-field v-model="form.cta_text" label="CTA Text" />
-        <v-text-field v-model="form.cta_url" label="CTA URL" />
+    <VDialog
+      v-model="dialog"
+      width="600"
+    >
+      <VCard class="pa-4">
+        <VTextField
+          v-model="form.image"
+          label="Image URL"
+        />
+        <VTextField
+          v-model="form.title"
+          label="Title"
+        />
+        <VTextField
+          v-model="form.subtitle"
+          label="Subtitle"
+        />
+        <VTextField
+          v-model="form.cta_text"
+          label="CTA Text"
+        />
+        <VTextField
+          v-model="form.cta_url"
+          label="CTA URL"
+        />
 
-        <v-btn color="primary" @click="save">Save</v-btn>
-      </v-card>
-    </v-dialog>
+        <VBtn
+          color="primary"
+          @click="save"
+        >
+          Save
+        </VBtn>
+      </VCard>
+    </VDialog>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
-import api from "../api";
+import { ref } from "vue"
+import api from "../api"
 
 const props = defineProps({
-  homeId: String
-});
+  homeId: String,
+})
 
-const dialog = ref(false);
-const form = ref({});
+const dialog = ref(false)
+const form = ref({})
 
 function openAdd() {
-  dialog.value = true;
-  form.value = {};
+  dialog.value = true
+  form.value = {}
 }
 
 function save() {
   api.addSlide(props.homeId, form.value).then(() => {
-    dialog.value = false;
-    alert("Slide added");
-  });
+    dialog.value = false
+    alert("Slide added")
+  })
 }
 </script>

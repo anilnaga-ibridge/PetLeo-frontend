@@ -3,10 +3,11 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { superAdminApi } from '@/plugins/axios'
 
-const router = useRouter()
-
 const props = defineProps(['state', 'hideNavigation'])
+
 const emit = defineEmits(['prev', 'update:state'])
+
+const router = useRouter()
 
 const plans = ref([])
 const billingCycles = ref([])
@@ -32,6 +33,7 @@ const fetchPlans = async () => {
   loading.value = true
   try {
     const res = await superAdminApi.get('/api/superadmin/plans/')
+
     plans.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch plans:', err)
@@ -44,8 +46,9 @@ const fetchMetadata = async () => {
   try {
     const [bcRes, svcRes] = await Promise.all([
       superAdminApi.get('/api/superadmin/billing-cycles/'),
-      superAdminApi.get('/api/superadmin/services/')
+      superAdminApi.get('/api/superadmin/services/'),
     ])
+
     billingCycles.value = bcRes.data.results || bcRes.data || []
     services.value = svcRes.data.results || svcRes.data || []
   } catch (err) {
@@ -69,22 +72,25 @@ const openAddDrawer = () => {
   drawerOpen.value = true
 }
 
-const openEditDrawer = async (plan) => {
+const openEditDrawer = async plan => {
   isEdit.value = true
   editId.value = plan.id
   
   const capsMap = {}
   try {
     const capRes = await superAdminApi.get('/api/superadmin/plan-capabilities/', {
-      params: { plan: plan.id }
+      params: { plan: plan.id },
     })
+
     const caps = capRes.data.results || capRes.data || []
+
     caps.forEach(c => {
       const svcId = c.service?.id || c.service
+
       capsMap[svcId] = {
         enabled: true,
         id: c.id,
-        permissions: c.permissions || { can_view: true, can_create: true, can_edit: true, can_delete: true }
+        permissions: c.permissions || { can_view: true, can_create: true, can_edit: true, can_delete: true },
       }
     })
   } catch (err) {
@@ -101,6 +107,7 @@ const openEditDrawer = async (plan) => {
 const submit = async () => {
   try {
     let planId = editId.value
+
     const planPayload = {
       title: form.value.title,
       subtitle: form.value.subtitle,
@@ -116,13 +123,15 @@ const submit = async () => {
       await superAdminApi.put(`/api/superadmin/plans/${planId}/`, planPayload)
     } else {
       const res = await superAdminApi.post('/api/superadmin/plans/', planPayload)
+
       planId = res.data.id
     }
 
     // Sync Capabilities
     const capRes = await superAdminApi.get('/api/superadmin/plan-capabilities/', {
-      params: { plan: planId }
+      params: { plan: planId },
     })
+
     const currentCaps = capRes.data.results || capRes.data || []
     const currentSvcIds = currentCaps.map(c => c.service?.id || c.service)
 
@@ -135,8 +144,9 @@ const submit = async () => {
         const payload = {
           plan: planId,
           service: svc.id,
-          permissions: capData.permissions
+          permissions: capData.permissions,
         }
+
         if (exists) {
           await superAdminApi.put(`/api/superadmin/plan-capabilities/${currentCap.id}/`, payload)
         } else {
@@ -154,7 +164,7 @@ const submit = async () => {
   }
 }
 
-const toggleStatus = async (plan) => {
+const toggleStatus = async plan => {
   try {
     await superAdminApi.patch(`/api/superadmin/plans/${plan.id}/`, {
       is_active: plan.is_active,
@@ -174,7 +184,13 @@ onMounted(() => {
 <template>
   <div>
     <VRow v-if="loading">
-      <VCol v-for="i in 3" :key="i" cols="12" sm="6" md="4">
+      <VCol
+        v-for="i in 3"
+        :key="i"
+        cols="12"
+        sm="6"
+        md="4"
+      >
         <VSkeletonLoader type="card" />
       </VCol>
     </VRow>
@@ -191,11 +207,20 @@ onMounted(() => {
           <VCardText class="pa-6 d-flex flex-column h-100">
             <div class="d-flex justify-space-between align-start mb-4">
               <div>
-                <VChip size="x-small" color="info" variant="tonal" class="mb-2 uppercase">
+                <VChip
+                  size="x-small"
+                  color="info"
+                  variant="tonal"
+                  class="mb-2 uppercase"
+                >
                   {{ plan.target_type }}
                 </VChip>
-                <h3 class="text-h5 font-weight-bold">{{ plan.title }}</h3>
-                <div class="text-body-2 text-medium-emphasis">{{ plan.subtitle }}</div>
+                <h3 class="text-h5 font-weight-bold">
+                  {{ plan.title }}
+                </h3>
+                <div class="text-body-2 text-medium-emphasis">
+                  {{ plan.subtitle }}
+                </div>
               </div>
               <VBtn
                 icon="tabler-edit"
@@ -214,13 +239,26 @@ onMounted(() => {
             <VDivider class="my-4" />
 
             <div class="flex-grow-1">
-              <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">Features</div>
+              <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                Features
+              </div>
               <ul class="feature-list pa-0">
-                <li v-for="(feature, i) in plan.features" :key="i" class="d-flex align-center gap-2 mb-1">
-                  <VIcon icon="tabler-check" size="14" color="success" />
+                <li
+                  v-for="(feature, i) in plan.features"
+                  :key="i"
+                  class="d-flex align-center gap-2 mb-1"
+                >
+                  <VIcon
+                    icon="tabler-check"
+                    size="14"
+                    color="success"
+                  />
                   <span class="text-body-2">{{ feature }}</span>
                 </li>
-                <li v-if="!plan.features || plan.features.length === 0" class="text-body-2 text-medium-emphasis italic">
+                <li
+                  v-if="!plan.features || plan.features.length === 0"
+                  class="text-body-2 text-medium-emphasis italic"
+                >
                   No features listed.
                 </li>
               </ul>
@@ -246,16 +284,46 @@ onMounted(() => {
       variant="outlined"
     >
       <VCardText>
-        <VIcon icon="tabler-package" size="48" color="medium-emphasis" class="mb-4" />
-        <h3 class="text-h6 font-weight-bold mb-2">No Plans Created</h3>
-        <p class="text-body-2 text-medium-emphasis mb-6">Create your first subscription plan to start selling services.</p>
-        <VBtn variant="tonal" color="primary" @click="openAddDrawer">Create First Plan</VBtn>
+        <VIcon
+          icon="tabler-package"
+          size="48"
+          color="medium-emphasis"
+          class="mb-4"
+        />
+        <h3 class="text-h6 font-weight-bold mb-2">
+          No Plans Created
+        </h3>
+        <p class="text-body-2 text-medium-emphasis mb-6">
+          Create your first subscription plan to start selling services.
+        </p>
+        <VBtn
+          variant="tonal"
+          color="primary"
+          @click="openAddDrawer"
+        >
+          Create First Plan
+        </VBtn>
       </VCardText>
     </VCard>
 
-    <div v-if="!hideNavigation" class="d-flex justify-space-between mt-8">
-      <VBtn variant="text" prepend-icon="tabler-arrow-left" @click="emit('prev')">Back</VBtn>
-      <VBtn color="success" append-icon="tabler-check" @click="router.push('/superadmin/dashboard')">Finish Builder</VBtn>
+    <div
+      v-if="!hideNavigation"
+      class="d-flex justify-space-between mt-8"
+    >
+      <VBtn
+        variant="text"
+        prepend-icon="tabler-arrow-left"
+        @click="emit('prev')"
+      >
+        Back
+      </VBtn>
+      <VBtn
+        color="success"
+        append-icon="tabler-check"
+        @click="router.push('/superadmin/dashboard')"
+      >
+        Finish Builder
+      </VBtn>
     </div>
 
     <!-- Add/Edit Drawer -->
@@ -268,8 +336,14 @@ onMounted(() => {
     >
       <div class="d-flex flex-column h-100">
         <div class="pa-6 border-b d-flex justify-space-between align-center bg-surface sticky-header">
-          <h3 class="text-h6 font-weight-bold">{{ isEdit ? 'Edit Plan' : 'Create Plan' }}</h3>
-          <VBtn icon="tabler-x" variant="text" @click="drawerOpen = false" />
+          <h3 class="text-h6 font-weight-bold">
+            {{ isEdit ? 'Edit Plan' : 'Create Plan' }}
+          </h3>
+          <VBtn
+            icon="tabler-x"
+            variant="text"
+            @click="drawerOpen = false"
+          />
         </div>
 
         <div class="flex-grow-1 overflow-y-auto pa-6">
@@ -320,12 +394,23 @@ onMounted(() => {
 
             <VDivider class="my-6" />
 
-            <div class="text-subtitle-1 font-weight-bold mb-4">Included Services & Capabilities</div>
+            <div class="text-subtitle-1 font-weight-bold mb-4">
+              Included Services & Capabilities
+            </div>
             <div class="d-flex flex-column gap-4 mb-6">
-              <VCard v-for="svc in services" :key="svc.id" variant="outlined" class="pa-4">
+              <VCard
+                v-for="svc in services"
+                :key="svc.id"
+                variant="outlined"
+                class="pa-4"
+              >
                 <div class="d-flex align-center justify-space-between mb-2">
                   <div class="d-flex align-center gap-2">
-                    <VIcon :icon="svc.icon || 'tabler-package'" size="20" color="primary" />
+                    <VIcon
+                      :icon="svc.icon || 'tabler-package'"
+                      size="20"
+                      color="primary"
+                    />
                     <span class="font-weight-bold">{{ svc.display_name }}</span>
                   </div>
                   <VSwitch
@@ -343,8 +428,13 @@ onMounted(() => {
                 </div>
 
                 <VExpandTransition>
-                  <div v-if="form.capabilities[svc.id]?.enabled" class="mt-4 pt-4 border-t">
-                    <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">Permissions</div>
+                  <div
+                    v-if="form.capabilities[svc.id]?.enabled"
+                    class="mt-4 pt-4 border-t"
+                  >
+                    <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                      Permissions
+                    </div>
                     <div class="d-flex flex-wrap gap-x-6 gap-y-2">
                       <VCheckbox
                         v-model="form.capabilities[svc.id].permissions.can_view"
@@ -378,7 +468,9 @@ onMounted(() => {
 
             <VDivider class="my-6" />
 
-            <div class="text-subtitle-1 font-weight-bold mb-4">Features (Marketing)</div>
+            <div class="text-subtitle-1 font-weight-bold mb-4">
+              Features (Marketing)
+            </div>
             <div class="d-flex flex-wrap gap-2 mb-4">
               <VChip
                 v-for="(feature, i) in form.features"
@@ -392,12 +484,16 @@ onMounted(() => {
             </div>
             <AppTextField
               placeholder="Add a feature and press Enter"
-              @keyup.enter="(e) => { if(e.target.value) { form.features.push(e.target.value); e.target.value = '' } }"
               class="mb-8"
+              @keyup.enter="(e) => { if(e.target.value) { form.features.push(e.target.value); e.target.value = '' } }"
             />
 
             <div class="d-flex gap-4">
-              <VBtn color="primary" block type="submit">
+              <VBtn
+                color="primary"
+                block
+                type="submit"
+              >
                 {{ isEdit ? 'Update Plan' : 'Create Plan' }}
               </VBtn>
             </div>

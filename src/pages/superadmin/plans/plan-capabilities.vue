@@ -1,26 +1,26 @@
 <script>
-import { ref, onMounted, watch, nextTick, computed } from "vue";
-import { superAdminApi } from "@/plugins/axios";
-import { featureMapping, formatFeatureName } from '@/utils/capabilityMapping';
+import { ref, onMounted, watch, nextTick, computed } from "vue"
+import { superAdminApi } from "@/plugins/axios"
+import { featureMapping, formatFeatureName } from '@/utils/capabilityMapping'
 
 export default {
   name: "PlanCapabilitiesPage",
 
   setup() {
     // API paths relative to superAdminApi baseURL (http://127.0.0.1:8003)
-    const BASE_PATH = "/api/superadmin/";
-    const baseURL = BASE_PATH + "plan-capabilities/";
-    const plansURL = BASE_PATH + "plans/";
-    const servicesURL = BASE_PATH + "services/";
-    const categoriesURL = BASE_PATH + "categories/";
-    const facilitiesURL = BASE_PATH + "facilities/";
+    const BASE_PATH = "/api/superadmin/"
+    const baseURL = BASE_PATH + "plan-capabilities/"
+    const plansURL = BASE_PATH + "plans/"
+    const servicesURL = BASE_PATH + "services/"
+    const categoriesURL = BASE_PATH + "categories/"
+    const facilitiesURL = BASE_PATH + "facilities/"
 
     // State
-    const items = ref([]);
-    const page = ref(1);
-    const itemsPerPage = ref(10);
-    const totalItems = ref(0);
-    const searchQuery = ref("");
+    const items = ref([])
+    const page = ref(1)
+    const itemsPerPage = ref(10)
+    const totalItems = ref(0)
+    const searchQuery = ref("")
 
     const headers = [
       { title: "Plan", key: "plan" },
@@ -32,42 +32,44 @@ export default {
       { title: "Edit", key: "permissions.can_edit" },
       { title: "Delete", key: "permissions.can_delete" },
       { title: "Actions", key: "actions", sortable: false },
-    ];
+    ]
 
-    const drawerOpen = ref(false);
-    const isEdit = ref(false);
-    const editId = ref(null);
-    const loading = ref(false);
+    const drawerOpen = ref(false)
+    const isEdit = ref(false)
+    const editId = ref(null)
+    const loading = ref(false)
 
-    const plans = ref([]);
-    const services = ref([]);
-    const categories = ref([]);
-    const facilities = ref([]);
+    const plans = ref([])
+    const services = ref([])
+    const categories = ref([])
+    const facilities = ref([])
 
     const form = ref({
       plan: null,
       service_id: [], // Array of service IDs
-    });
+    })
 
     // New State for Unified UI
-    const selectedFeatures = ref({}); // { serviceId: [catId1, catId2] }
-    const selectedCRUD = ref({});     // { serviceId: { can_view: true, can_create: false... } }
+    const selectedFeatures = ref({}) // { serviceId: [catId1, catId2] }
+    const selectedCRUD = ref({})     // { serviceId: { can_view: true, can_create: false... } }
 
-    const isVeterinary = (service) => {
-      if (!service) return false;
-      const name = service.name || service.display_name || "";
-      return name.toUpperCase().includes("VETERINARY");
-    };
+    const isVeterinary = service => {
+      if (!service) return false
+      const name = service.name || service.display_name || ""
+      
+      return name.toUpperCase().includes("VETERINARY")
+    }
 
     // Lookup fetch
     const fetchLookup = async (url, setter) => {
       try {
-        const res = await superAdminApi.get(url, { params: { page_size: 1000 } });
-        setter.value = res.data.results || res.data || [];
+        const res = await superAdminApi.get(url, { params: { page_size: 1000 } })
+
+        setter.value = res.data.results || res.data || []
       } catch (err) {
-        console.error("❌ Lookup Error:", err);
+        console.error("❌ Lookup Error:", err)
       }
-    };
+    }
 
     // Fetch items
     const fetchItems = async () => {
@@ -78,18 +80,19 @@ export default {
             page_size: itemsPerPage.value,
             search: searchQuery.value,
           },
-        });
+        })
 
-        const list = res.data.results || res.data || [];
-        totalItems.value = res.data.count ?? list.length;
+        const list = res.data.results || res.data || []
+
+        totalItems.value = res.data.count ?? list.length
 
         // Convert to new array to avoid VDataTable caching problem
-        items.value = JSON.parse(JSON.stringify(list));
+        items.value = JSON.parse(JSON.stringify(list))
 
       } catch (err) {
-        console.error("❌ fetchItems Error:", err);
+        console.error("❌ fetchItems Error:", err)
       }
-    };
+    }
 
     onMounted(async () => {
       await Promise.all([
@@ -97,158 +100,167 @@ export default {
         fetchLookup(servicesURL, services),
         fetchLookup(categoriesURL, categories),
         fetchLookup(facilitiesURL, facilities),
-      ]);
+      ])
 
-      fetchItems();
-    });
+      fetchItems()
+    })
 
-    watch([page, itemsPerPage, searchQuery], fetchItems);
+    watch([page, itemsPerPage, searchQuery], fetchItems)
 
     // Initialize state when services are selected
-    watch(() => form.value.service_id, (newVal) => {
-      const ids = Array.isArray(newVal) ? newVal : (newVal ? [newVal] : []);
+    watch(() => form.value.service_id, newVal => {
+      const ids = Array.isArray(newVal) ? newVal : (newVal ? [newVal] : [])
+
       ids.forEach(id => {
-        if (!selectedFeatures.value[id]) selectedFeatures.value[id] = [];
+        if (!selectedFeatures.value[id]) selectedFeatures.value[id] = []
         if (!selectedCRUD.value[id]) selectedCRUD.value[id] = { 
           can_view: false, 
           can_create: false, 
           can_edit: false, 
-          can_delete: false 
-        };
-      });
-    });
+          can_delete: false, 
+        }
+      })
+    })
 
     // Computed: Get selected service objects
     const selectedServicesList = computed(() => {
-      const ids = Array.isArray(form.value.service_id) ? form.value.service_id : [];
-      return services.value.filter(s => ids.includes(s.id));
-    });
+      const ids = Array.isArray(form.value.service_id) ? form.value.service_id : []
+      
+      return services.value.filter(s => ids.includes(s.id))
+    })
 
     // Helper to get categories for a service
-    const getCategoriesForService = (serviceId) => {
+    const getCategoriesForService = serviceId => {
       return categories.value.filter(c => {
-        const cServiceId = c.service?.id || c.service;
-        return String(cServiceId) === String(serviceId);
-      });
-    };
+        const cServiceId = c.service?.id || c.service
+        
+        return String(cServiceId) === String(serviceId)
+      })
+    }
 
     // ADD drawer
     const openAddDrawer = async () => {
-      isEdit.value = false;
-      editId.value = null;
+      isEdit.value = false
+      editId.value = null
       form.value = {
         plan: null,
         service_id: [],
-      };
-      selectedFeatures.value = {};
-      selectedCRUD.value = {};
+      }
+      selectedFeatures.value = {}
+      selectedCRUD.value = {}
       
       // Refresh lookups to ensure we have latest categories
       await Promise.all([
         fetchLookup(servicesURL, services),
-        fetchLookup(categoriesURL, categories)
-      ]);
+        fetchLookup(categoriesURL, categories),
+      ])
 
-      drawerOpen.value = true;
-    };
+      drawerOpen.value = true
+    }
 
     // EDIT drawer
-    const openEditDrawer = (item) => {
-      isEdit.value = true;
-      editId.value = item.id;
+    const openEditDrawer = item => {
+      isEdit.value = true
+      editId.value = item.id
 
       // For Edit, we only support editing one item at a time, but UI is built for bulk.
       // We'll just load the single item into the form.
       form.value = {
         plan: item.plan?.id ?? null,
         service_id: item.service?.id ? [item.service.id] : [],
-      };
+      }
       
       // Populate state based on what it is
-      selectedFeatures.value = {};
-      selectedCRUD.value = {};
+      selectedFeatures.value = {}
+      selectedCRUD.value = {}
 
       if (item.service) {
-        const sId = item.service.id;
+        const sId = item.service.id
         if (isVeterinary(item.service)) {
-           // If it's a category permission
-           if (item.category) {
-             selectedFeatures.value[sId] = [item.category.id];
-           }
+          // If it's a category permission
+          if (item.category) {
+            selectedFeatures.value[sId] = [item.category.id]
+          }
         } else {
-           // CRUD
-           // Unpack from item.permissions JSON
-           const p = item.permissions || {};
-           selectedCRUD.value[sId] = {
-             can_view: !!p.can_view,
-             can_create: !!p.can_create,
-             can_edit: !!p.can_edit,
-             can_delete: !!p.can_delete,
-           };
+          // CRUD
+          // Unpack from item.permissions JSON
+          const p = item.permissions || {}
+
+          selectedCRUD.value[sId] = {
+            can_view: !!p.can_view,
+            can_create: !!p.can_create,
+            can_edit: !!p.can_edit,
+            can_delete: !!p.can_delete,
+          }
         }
       }
 
-      drawerOpen.value = true;
-    };
+      drawerOpen.value = true
+    }
 
-    const closeDrawer = () => (drawerOpen.value = false);
+    const closeDrawer = () => (drawerOpen.value = false)
 
     // Submit (Create / Update)
     const submit = async () => {
-      loading.value = true;
+      loading.value = true
 
       if (!form.value.plan) {
-        alert("Please select a Plan.");
-        loading.value = false;
-        return;
+        alert("Please select a Plan.")
+        loading.value = false
+        
+        return
       }
       if (!form.value.service_id || form.value.service_id.length === 0) {
-        alert("Please select at least one Service.");
-        loading.value = false;
-        return;
+        alert("Please select at least one Service.")
+        loading.value = false
+        
+        return
       }
 
       try {
-        const promises = [];
-        let createdCount = 0;
-        let skippedCount = 0;
+        const promises = []
+        let createdCount = 0
+        let skippedCount = 0
 
         // Iterate over selected services
-        const serviceIds = Array.isArray(form.value.service_id) ? form.value.service_id : [form.value.service_id];
+        const serviceIds = Array.isArray(form.value.service_id) ? form.value.service_id : [form.value.service_id]
 
         for (const sId of serviceIds) {
-          const serviceObj = services.value.find(s => s.id === sId);
-          if (!serviceObj) continue;
+          const serviceObj = services.value.find(s => s.id === sId)
+          if (!serviceObj) continue
 
           if (isVeterinary(serviceObj)) {
             // === VETERINARY (Feature-based) ===
             // Create one capability per selected Category
-            const catIds = selectedFeatures.value[sId] || [];
+            const catIds = selectedFeatures.value[sId] || []
             for (const cId of catIds) {
               const payload = {
                 plan_id: form.value.plan,
                 service_id: sId,
                 category_id: cId,
                 facility_id: null,
+
                 // Feature permissions usually imply "View" access to that feature
                 permissions: {
                   can_view: true, 
                   can_create: true, // Defaulting to full access for the feature
                   can_edit: true,
                   can_delete: true,
-                }
-              };
-              promises.push(createOrUpdate(payload));
+                },
+              }
+
+              promises.push(createOrUpdate(payload))
             }
+
             // If no categories selected, maybe they just want the service itself?
             if (catIds.length === 0) {
-               // Optional: Create a "Core" capability if no category selected?
-               // For now, we'll assume they must select features.
+              // Optional: Create a "Core" capability if no category selected?
+              // For now, we'll assume they must select features.
             }
 
           } else {
             // === REGULAR (CRUD-based) ===
-            const perms = selectedCRUD.value[sId] || { can_view: false, can_create: false, can_edit: false, can_delete: false };
+            const perms = selectedCRUD.value[sId] || { can_view: false, can_create: false, can_edit: false, can_delete: false }
             
             // Only create if at least one permission is true
             if (perms.can_view || perms.can_create || perms.can_edit || perms.can_delete) {
@@ -262,62 +274,63 @@ export default {
                   can_create: perms.can_create,
                   can_edit: perms.can_edit,
                   can_delete: perms.can_delete,
-                }
-              };
-              promises.push(createOrUpdate(payload));
+                },
+              }
+
+              promises.push(createOrUpdate(payload))
             }
           }
         }
 
-        await Promise.all(promises);
+        await Promise.all(promises)
         
-        drawerOpen.value = false;
-        await fetchItems();
+        drawerOpen.value = false
+        await fetchItems()
 
       } catch (err) {
-        console.error("❌ Submit Error:", err.response?.data || err);
-        alert(JSON.stringify(err.response?.data));
+        console.error("❌ Submit Error:", err.response?.data || err)
+        alert(JSON.stringify(err.response?.data))
       } finally {
-        loading.value = false;
+        loading.value = false
       }
-    };
+    }
 
-    const createOrUpdate = (payload) => {
-       if (isEdit.value && editId.value) {
-         return superAdminApi.put(`${baseURL}${editId.value}/`, payload);
-       } else {
-         return superAdminApi.post(baseURL, payload).catch(err => {
-            if (err.response?.data?.non_field_errors?.[0]?.includes("unique set")) {
-               // ignore duplicates
-            } else {
-               throw err;
-            }
-         });
-       }
-    };
+    const createOrUpdate = payload => {
+      if (isEdit.value && editId.value) {
+        return superAdminApi.put(`${baseURL}${editId.value}/`, payload)
+      } else {
+        return superAdminApi.post(baseURL, payload).catch(err => {
+          if (err.response?.data?.non_field_errors?.[0]?.includes("unique set")) {
+            // ignore duplicates
+          } else {
+            throw err
+          }
+        })
+      }
+    }
 
     // Delete
-    const deleteDialog = ref(false);
-    const deleteItem = ref(null);
+    const deleteDialog = ref(false)
+    const deleteItem = ref(null)
 
-    const openDeleteDialog = (item) => {
-      deleteItem.value = item;
-      deleteDialog.value = true;
-    };
+    const openDeleteDialog = item => {
+      deleteItem.value = item
+      deleteDialog.value = true
+    }
 
     const deleteItemConfirm = async () => {
-      if (!deleteItem.value) return;
+      if (!deleteItem.value) return
 
-      console.log("Deleting PlanCapability ID:", deleteItem.value.id);
+      console.log("Deleting PlanCapability ID:", deleteItem.value.id)
 
       try {
-        await superAdminApi.delete(`${baseURL}${deleteItem.value.id}/`);
-        deleteDialog.value = false;
-        await fetchItems();
+        await superAdminApi.delete(`${baseURL}${deleteItem.value.id}/`)
+        deleteDialog.value = false
+        await fetchItems()
       } catch (err) {
-        console.error("❌ Delete Error:", err);
+        console.error("❌ Delete Error:", err)
       }
-    };
+    }
 
     return {
       items,
@@ -355,9 +368,9 @@ export default {
 
       updateOptions: fetchItems,
       formatFeatureName,
-    };
+    }
   },
-};
+}
 </script>
 
 
@@ -367,12 +380,17 @@ export default {
   <section>
     <VCard class="mb-6">
       <VCardItem class="pb-2">
-        <VCardTitle class="text-h5 font-weight-bold">Plan Capabilities</VCardTitle>
+        <VCardTitle class="text-h5 font-weight-bold">
+          Plan Capabilities
+        </VCardTitle>
       </VCardItem>
 
       <VCardText>
         <VRow>
-          <VCol cols="12" sm="4">
+          <VCol
+            cols="12"
+            sm="4"
+          >
             <AppTextField 
               v-model="searchQuery" 
               placeholder="Search capabilities..." 
@@ -380,8 +398,17 @@ export default {
             />
           </VCol>
 
-          <VCol cols="12" sm="8" class="d-flex justify-end">
-            <VBtn color="primary" prepend-icon="tabler-plus" class="px-6" @click="openAddDrawer">
+          <VCol
+            cols="12"
+            sm="8"
+            class="d-flex justify-end"
+          >
+            <VBtn
+              color="primary"
+              prepend-icon="tabler-plus"
+              class="px-6"
+              @click="openAddDrawer"
+            >
               Add Capability
             </VBtn>
           </VCol>
@@ -403,11 +430,18 @@ export default {
         class="text-no-wrap"
         @update:options="updateOptions"
       >
-
         <template #item.plan="{ item }">
           <div class="d-flex align-center">
-            <VAvatar size="32" color="primary" variant="tonal" class="me-2">
-              <VIcon icon="tabler-file-certificate" size="18" />
+            <VAvatar
+              size="32"
+              color="primary"
+              variant="tonal"
+              class="me-2"
+            >
+              <VIcon
+                icon="tabler-file-certificate"
+                size="18"
+              />
             </VAvatar>
             <span class="font-weight-medium">{{ item.plan?.title || "-" }}</span>
           </div>
@@ -415,7 +449,11 @@ export default {
 
         <template #item.service="{ item }">
           <div class="d-flex align-center gap-2">
-            <VIcon icon="tabler-briefcase" size="16" class="text-medium-emphasis" />
+            <VIcon
+              icon="tabler-briefcase"
+              size="16"
+              class="text-medium-emphasis"
+            />
             <span>{{ item.service?.display_name || "-" }}</span>
           </div>
         </template>
@@ -423,17 +461,34 @@ export default {
         <template #item.category="{ item }">
           <!-- VETERINARY: Show Feature Badge -->
           <div v-if="isVeterinary(item.service)">
-            <VChip v-if="item.category" size="small" color="primary" variant="flat" prepend-icon="tabler-star">
+            <VChip
+              v-if="item.category"
+              size="small"
+              color="primary"
+              variant="flat"
+              prepend-icon="tabler-star"
+            >
               Feature: {{ formatFeatureName(item.category.name) }}
             </VChip>
-            <span v-else class="text-medium-emphasis">-</span>
+            <span
+              v-else
+              class="text-medium-emphasis"
+            >-</span>
           </div>
           <!-- REGULAR: Show Category Chip -->
           <div v-else>
-            <VChip v-if="item.category" size="small" color="info" variant="tonal">
+            <VChip
+              v-if="item.category"
+              size="small"
+              color="info"
+              variant="tonal"
+            >
               {{ item.category.name }}
             </VChip>
-            <span v-else class="text-medium-emphasis">-</span>
+            <span
+              v-else
+              class="text-medium-emphasis"
+            >-</span>
           </div>
         </template>
 
@@ -444,37 +499,67 @@ export default {
           </div>
           <!-- REGULAR: Show Facility Chip -->
           <div v-else>
-            <VChip v-if="item.facility" size="small" color="success" variant="tonal">
+            <VChip
+              v-if="item.facility"
+              size="small"
+              color="success"
+              variant="tonal"
+            >
               {{ item.facility.name }}
             </VChip>
-            <span v-else class="text-medium-emphasis">-</span>
+            <span
+              v-else
+              class="text-medium-emphasis"
+            >-</span>
           </div>
         </template>
 
         <!-- Permissions Grouped -->
         <template #item.permissions.can_view="{ item }">
           <div v-if="isVeterinary(item.service)">
-            <VChip size="x-small" color="success" variant="elevated">Enabled</VChip>
+            <VChip
+              size="x-small"
+              color="success"
+              variant="elevated"
+            >
+              Enabled
+            </VChip>
           </div>
-          <VIcon v-else :icon="item.permissions?.can_view ? 'tabler-check' : 'tabler-x'" :color="item.permissions?.can_view ? 'success' : 'medium-emphasis'" />
+          <VIcon
+            v-else
+            :icon="item.permissions?.can_view ? 'tabler-check' : 'tabler-x'"
+            :color="item.permissions?.can_view ? 'success' : 'medium-emphasis'"
+          />
         </template>
         <template #item.permissions.can_create="{ item }">
           <div v-if="isVeterinary(item.service)">
             <span class="text-disabled">-</span>
           </div>
-          <VIcon v-else :icon="item.permissions?.can_create ? 'tabler-check' : 'tabler-x'" :color="item.permissions?.can_create ? 'success' : 'medium-emphasis'" />
+          <VIcon
+            v-else
+            :icon="item.permissions?.can_create ? 'tabler-check' : 'tabler-x'"
+            :color="item.permissions?.can_create ? 'success' : 'medium-emphasis'"
+          />
         </template>
         <template #item.permissions.can_edit="{ item }">
           <div v-if="isVeterinary(item.service)">
             <span class="text-disabled">-</span>
           </div>
-          <VIcon v-else :icon="item.permissions?.can_edit ? 'tabler-check' : 'tabler-x'" :color="item.permissions?.can_edit ? 'success' : 'medium-emphasis'" />
+          <VIcon
+            v-else
+            :icon="item.permissions?.can_edit ? 'tabler-check' : 'tabler-x'"
+            :color="item.permissions?.can_edit ? 'success' : 'medium-emphasis'"
+          />
         </template>
         <template #item.permissions.can_delete="{ item }">
           <div v-if="isVeterinary(item.service)">
             <span class="text-disabled">-</span>
           </div>
-          <VIcon v-else :icon="item.permissions?.can_delete ? 'tabler-check' : 'tabler-x'" :color="item.permissions?.can_delete ? 'success' : 'medium-emphasis'" />
+          <VIcon
+            v-else
+            :icon="item.permissions?.can_delete ? 'tabler-check' : 'tabler-x'"
+            :color="item.permissions?.can_delete ? 'success' : 'medium-emphasis'"
+          />
         </template>
 
         <template #item.actions="{ item }">
@@ -482,30 +567,56 @@ export default {
             <IconBtn @click="openEditDrawer(item)">
               <VIcon icon="tabler-edit" />
             </IconBtn>
-            <IconBtn color="error" @click="openDeleteDialog(item)">
+            <IconBtn
+              color="error"
+              @click="openDeleteDialog(item)"
+            >
               <VIcon icon="tabler-trash" />
             </IconBtn>
           </div>
         </template>
 
         <template #bottom>
-          <TablePagination v-model:page="page" :items-per-page="itemsPerPage" :total-items="totalItems" />
+          <TablePagination
+            v-model:page="page"
+            :items-per-page="itemsPerPage"
+            :total-items="totalItems"
+          />
         </template>
-
       </VDataTableServer>
     </VCard>
 
     <!-- Drawer -->
-    <VNavigationDrawer v-model="drawerOpen" location="end" temporary width="450" class="pa-0" style="border-left: 2px solid #E2E8F0;">
+    <VNavigationDrawer
+      v-model="drawerOpen"
+      location="end"
+      temporary
+      width="450"
+      class="pa-0"
+      style="border-left: 2px solid #E2E8F0;"
+    >
       <div class="d-flex flex-column h-100 pa-4">
         <!-- Header -->
-        <div class="pa-3 mb-4 rounded-lg flex-shrink-0" style="background: linear-gradient(135deg, #42a5f5, #1e88e5); color: white;">
+        <div
+          class="pa-3 mb-4 rounded-lg flex-shrink-0"
+          style="background: linear-gradient(135deg, #42a5f5, #1e88e5); color: white;"
+        >
           <div class="d-flex justify-space-between align-center">
             <div>
-              <h3 class="text-h6 font-weight-bold mb-1">{{ isEdit ? "Update Capability" : "Create Capability" }}</h3>
-              <div class="text-caption opacity-90">Define what plans can do</div>
+              <h3 class="text-h6 font-weight-bold mb-1">
+                {{ isEdit ? "Update Capability" : "Create Capability" }}
+              </h3>
+              <div class="text-caption opacity-90">
+                Define what plans can do
+              </div>
             </div>
-            <IconBtn @click="closeDrawer" color="white" variant="text"><VIcon icon="tabler-x" /></IconBtn>
+            <IconBtn
+              color="white"
+              variant="text"
+              @click="closeDrawer"
+            >
+              <VIcon icon="tabler-x" />
+            </IconBtn>
           </div>
         </div>
 
@@ -541,18 +652,52 @@ export default {
               </VCol>
 
               <!-- DYNAMIC PERMISSIONS SECTION -->
-              <VCol cols="12" v-if="selectedServicesList.length > 0">
-                <VLabel class="mb-2 font-weight-medium">Permissions</VLabel>
+              <VCol
+                v-if="selectedServicesList.length > 0"
+                cols="12"
+              >
+                <VLabel class="mb-2 font-weight-medium">
+                  Permissions
+                </VLabel>
                 
-                <div v-for="service in selectedServicesList" :key="service.id" class="mb-4">
-                  <VCard variant="outlined" class="pa-3">
+                <div
+                  v-for="service in selectedServicesList"
+                  :key="service.id"
+                  class="mb-4"
+                >
+                  <VCard
+                    variant="outlined"
+                    class="pa-3"
+                  >
                     <div class="d-flex align-center mb-3">
-                      <VAvatar size="32" color="primary" variant="tonal" class="me-2">
-                        <VIcon :icon="service.icon || 'tabler-box'" size="18" />
+                      <VAvatar
+                        size="32"
+                        color="primary"
+                        variant="tonal"
+                        class="me-2"
+                      >
+                        <VIcon
+                          :icon="service.icon || 'tabler-box'"
+                          size="18"
+                        />
                       </VAvatar>
                       <span class="font-weight-bold">{{ service.display_name }}</span>
-                      <VChip v-if="isVeterinary(service)" size="x-small" color="info" class="ms-2">Feature-Based</VChip>
-                      <VChip v-else size="x-small" color="secondary" class="ms-2">CRUD-Based</VChip>
+                      <VChip
+                        v-if="isVeterinary(service)"
+                        size="x-small"
+                        color="info"
+                        class="ms-2"
+                      >
+                        Feature-Based
+                      </VChip>
+                      <VChip
+                        v-else
+                        size="x-small"
+                        color="secondary"
+                        class="ms-2"
+                      >
+                        CRUD-Based
+                      </VChip>
                     </div>
 
                     <VDivider class="mb-3" />
@@ -560,20 +705,30 @@ export default {
                     <!-- VETERINARY: Show Categories as Checkboxes -->
                     <div v-if="isVeterinary(service)">
                       <div class="bg-grey-lighten-4 pa-3 rounded mb-3">
-                        <div class="font-weight-bold text-primary mb-1">Veterinary Management (Feature Permissions)</div>
-                        <div class="text-caption text-medium-emphasis">Select the features enabled for this plan.</div>
+                        <div class="font-weight-bold text-primary mb-1">
+                          Veterinary Management (Feature Permissions)
+                        </div>
+                        <div class="text-caption text-medium-emphasis">
+                          Select the features enabled for this plan.
+                        </div>
                       </div>
 
-                      <div v-if="getCategoriesForService(service.id).length === 0" class="text-caption text-medium-emphasis px-3">
+                      <div
+                        v-if="getCategoriesForService(service.id).length === 0"
+                        class="text-caption text-medium-emphasis px-3"
+                      >
                         No features available for this service.
                       </div>
-                      <div v-else class="d-flex flex-column gap-2 px-3">
+                      <div
+                        v-else
+                        class="d-flex flex-column gap-2 px-3"
+                      >
                         <VCheckbox 
                           v-for="cat in getCategoriesForService(service.id)" 
                           :key="cat.id"
                           v-model="selectedFeatures[service.id]"
                           :value="cat.id"
-                          :label="formatFeatureName(cat.name)"
+                          :label="cat.name"
                           density="compact"
                           hide-details
                         />
@@ -583,34 +738,49 @@ export default {
                     <!-- REGULAR: Show CRUD Checkboxes -->
                     <div v-else>
                       <div class="bg-grey-lighten-4 pa-3 rounded mb-3">
-                        <div class="font-weight-bold text-primary mb-1">{{ service.display_name }} (CRUD Permissions)</div>
-                        <div class="text-caption text-medium-emphasis">Define access levels for this service.</div>
+                        <div class="font-weight-bold text-primary mb-1">
+                          {{ service.display_name }} (CRUD Permissions)
+                        </div>
+                        <div class="text-caption text-medium-emphasis">
+                          Define access levels for this service.
+                        </div>
                       </div>
 
                       <div class="d-flex flex-wrap gap-4 justify-space-between px-3">
                         <VCheckbox 
                           v-model="selectedCRUD[service.id].can_view" 
-                          label="View" color="primary" density="compact" hide-details 
+                          label="View"
+                          color="primary"
+                          density="compact"
+                          hide-details 
                           @update:model-value="(val) => { if(!selectedCRUD[service.id]) selectedCRUD[service.id] = {}; selectedCRUD[service.id].can_view = val; }"
                         />
                         <VCheckbox 
                           v-model="selectedCRUD[service.id].can_create" 
-                          label="Create" color="success" density="compact" hide-details 
+                          label="Create"
+                          color="success"
+                          density="compact"
+                          hide-details 
                           @update:model-value="(val) => { if(!selectedCRUD[service.id]) selectedCRUD[service.id] = {}; selectedCRUD[service.id].can_create = val; }"
                         />
                         <VCheckbox 
                           v-model="selectedCRUD[service.id].can_edit" 
-                          label="Edit" color="warning" density="compact" hide-details 
+                          label="Edit"
+                          color="warning"
+                          density="compact"
+                          hide-details 
                           @update:model-value="(val) => { if(!selectedCRUD[service.id]) selectedCRUD[service.id] = {}; selectedCRUD[service.id].can_edit = val; }"
                         />
                         <VCheckbox 
                           v-model="selectedCRUD[service.id].can_delete" 
-                          label="Delete" color="error" density="compact" hide-details 
+                          label="Delete"
+                          color="error"
+                          density="compact"
+                          hide-details 
                           @update:model-value="(val) => { if(!selectedCRUD[service.id]) selectedCRUD[service.id] = {}; selectedCRUD[service.id].can_delete = val; }"
                         />
                       </div>
                     </div>
-
                   </VCard>
                 </div>
               </VCol>
@@ -620,8 +790,18 @@ export default {
 
         <!-- Footer -->
         <div class="d-flex justify-end mt-4 pt-2 border-t flex-shrink-0 gap-2">
-          <VBtn variant="text" @click="closeDrawer">Cancel</VBtn>
-          <VBtn :loading="loading" color="primary" style="background: linear-gradient(135deg, #42a5f5, #1e88e5);" @click="submit">
+          <VBtn
+            variant="text"
+            @click="closeDrawer"
+          >
+            Cancel
+          </VBtn>
+          <VBtn
+            :loading="loading"
+            color="primary"
+            style="background: linear-gradient(135deg, #42a5f5, #1e88e5);"
+            @click="submit"
+          >
             {{ isEdit ? "Update" : "Create" }}
           </VBtn>
         </div>
@@ -629,13 +809,30 @@ export default {
     </VNavigationDrawer>
 
     <!-- Delete dialog -->
-    <VDialog v-model="deleteDialog" width="420" transition="dialog-bottom-transition">
-      <VCard class="pa-4 rounded-xl" elevation="10">
+    <VDialog
+      v-model="deleteDialog"
+      width="420"
+      transition="dialog-bottom-transition"
+    >
+      <VCard
+        class="pa-4 rounded-xl"
+        elevation="10"
+      >
         <div class="text-center mb-3">
-          <VAvatar size="60" color="error" variant="tonal" class="mb-3">
-            <VIcon icon="tabler-alert-triangle" size="32" />
+          <VAvatar
+            size="60"
+            color="error"
+            variant="tonal"
+            class="mb-3"
+          >
+            <VIcon
+              icon="tabler-alert-triangle"
+              size="32"
+            />
           </VAvatar>
-          <h3 class="text-h6 font-weight-bold">Delete Capability?</h3>
+          <h3 class="text-h6 font-weight-bold">
+            Delete Capability?
+          </h3>
           <p class="text-body-2 mt-1 text-medium-emphasis">
             Are you sure you want to delete this capability?
           </p>
@@ -644,8 +841,19 @@ export default {
         <VDivider class="my-3" />
 
         <div class="d-flex justify-end gap-2">
-          <VBtn variant="text" @click="deleteDialog = false">Cancel</VBtn>
-          <VBtn color="error" @click="deleteItemConfirm" prepend-icon="tabler-trash">Delete</VBtn>
+          <VBtn
+            variant="text"
+            @click="deleteDialog = false"
+          >
+            Cancel
+          </VBtn>
+          <VBtn
+            color="error"
+            prepend-icon="tabler-trash"
+            @click="deleteItemConfirm"
+          >
+            Delete
+          </VBtn>
         </div>
       </VCard>
     </VDialog>

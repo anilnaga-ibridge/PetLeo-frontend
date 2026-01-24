@@ -7,8 +7,12 @@
 export {}
 declare global {
   const $api: typeof import('./src/utils/api.js')['$api']
+  const ACTION_LABELS: typeof import('./src/utils/permissionLabels.js')['ACTION_LABELS']
   const COOKIE_MAX_AGE_1_YEAR: typeof import('./src/utils/constants.js')['COOKIE_MAX_AGE_1_YEAR']
+  const DefaultNavigation: typeof import('./src/utils/serviceConfig.js')['DefaultNavigation']
   const EffectScope: typeof import('vue')['EffectScope']
+  const ServiceConfig: typeof import('./src/utils/serviceConfig.js')['ServiceConfig']
+  const VETERINARY_FEATURES: typeof import('./src/utils/permissionLabels.js')['VETERINARY_FEATURES']
   const VETERINARY_ROLES: typeof import('./src/utils/veterinaryRoles.js')['VETERINARY_ROLES']
   const acceptHMRUpdate: typeof import('pinia')['acceptHMRUpdate']
   const alphaDashValidator: typeof import('./src/@core/utils/validators.js')['alphaDashValidator']
@@ -60,7 +64,9 @@ declare global {
   const getActivePinia: typeof import('pinia')['getActivePinia']
   const getCurrentInstance: typeof import('vue')['getCurrentInstance']
   const getCurrentScope: typeof import('vue')['getCurrentScope']
+  const getLabel: typeof import('./src/utils/permissionLabels.js')['getLabel']
   const getPostLoginRoute: typeof import('./src/utils/routeHelpers.js')['getPostLoginRoute']
+  const getServiceConfig: typeof import('./src/utils/serviceConfig.js')['getServiceConfig']
   const h: typeof import('vue')['h']
   const hexToRgb: typeof import('./src/@core/utils/colorConverter.js')['hexToRgb']
   const ignorableWatch: typeof import('@vueuse/core')['ignorableWatch']
@@ -376,6 +382,7 @@ declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly $api: UnwrapRef<typeof import('./src/utils/api.js')['$api']>
+    readonly ACTION_LABELS: UnwrapRef<typeof import('./src/utils/permissionLabels.js')['ACTION_LABELS']>
     readonly COOKIE_MAX_AGE_1_YEAR: UnwrapRef<typeof import('./src/utils/constants.js')['COOKIE_MAX_AGE_1_YEAR']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly VETERINARY_ROLES: UnwrapRef<typeof import('./src/utils/veterinaryRoles.js')['VETERINARY_ROLES']>
@@ -429,6 +436,7 @@ declare module 'vue' {
     readonly getActivePinia: UnwrapRef<typeof import('pinia')['getActivePinia']>
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
+    readonly getLabel: UnwrapRef<typeof import('./src/utils/permissionLabels.js')['getLabel']>
     readonly getPostLoginRoute: UnwrapRef<typeof import('./src/utils/routeHelpers.js')['getPostLoginRoute']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
     readonly hexToRgb: UnwrapRef<typeof import('./src/@core/utils/colorConverter.js')['hexToRgb']>

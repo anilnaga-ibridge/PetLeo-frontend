@@ -10,11 +10,13 @@ export const useServiceStore = defineStore('servicestore', () => {
   const fetchServices = async () => {
     try {
       const token = useCookie('accessToken').value
+
       console.log('service TOKEN =', token)
 
       if (!token) {
         console.warn('No access token found. Skipping fetchServices (login required).')
         services.value = []
+        
         return
       }
 

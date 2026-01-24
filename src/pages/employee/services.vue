@@ -15,6 +15,7 @@ const loading = ref(true)
 const fetchServices = async () => {
   try {
     const res = await api.get('http://127.0.0.1:8002/api/provider/permissions/')
+
     services.value = (res.data.permissions || []).filter(s => s.can_view)
   } catch (err) {
     console.error('Failed to fetch services', err)
@@ -33,25 +34,62 @@ onMounted(() => {
     <VRow>
       <VCol cols="12">
         <div class="d-flex align-center mb-6">
-          <VAvatar color="primary" variant="tonal" rounded size="48" class="me-4">
-            <VIcon icon="tabler-list-check" size="28" />
+          <VAvatar
+            color="primary"
+            variant="tonal"
+            rounded
+            size="48"
+            class="me-4"
+          >
+            <VIcon
+              icon="tabler-list-check"
+              size="28"
+            />
           </VAvatar>
           <div>
-            <h1 class="text-h3 mb-1">My Assigned Services</h1>
-            <p class="text-body-1 text-medium-emphasis mb-0">Manage services you have been assigned to.</p>
+            <h1 class="text-h3 mb-1">
+              My Assigned Services
+            </h1>
+            <p class="text-body-1 text-medium-emphasis mb-0">
+              Manage services you have been assigned to.
+            </p>
           </div>
         </div>
       </VCol>
       
-      <VCol v-if="loading" cols="12" class="text-center py-12">
-        <VProgressCircular indeterminate color="primary" size="64" width="6" />
-        <p class="mt-4 text-body-1 text-medium-emphasis">Loading your services...</p>
+      <VCol
+        v-if="loading"
+        cols="12"
+        class="text-center py-12"
+      >
+        <VProgressCircular
+          indeterminate
+          color="primary"
+          size="64"
+          width="6"
+        />
+        <p class="mt-4 text-body-1 text-medium-emphasis">
+          Loading your services...
+        </p>
       </VCol>
       
-      <VCol v-else-if="services.length === 0" cols="12" class="text-center py-12">
-        <VIcon icon="tabler-box-off" size="64" color="disabled" class="mb-4" />
-        <p class="text-h5 text-medium-emphasis">No services assigned yet.</p>
-        <p class="text-body-1 text-disabled">Contact your administrator to get access to services.</p>
+      <VCol
+        v-else-if="services.length === 0"
+        cols="12"
+        class="text-center py-12"
+      >
+        <VIcon
+          icon="tabler-box-off"
+          size="64"
+          color="disabled"
+          class="mb-4"
+        />
+        <p class="text-h5 text-medium-emphasis">
+          No services assigned yet.
+        </p>
+        <p class="text-body-1 text-disabled">
+          Contact your administrator to get access to services.
+        </p>
       </VCol>
       
       <VCol 
@@ -61,11 +99,22 @@ onMounted(() => {
         md="4" 
         sm="6"
       >
-        <VCard class="service-card h-100 d-flex flex-column" elevation="2">
+        <VCard
+          class="service-card h-100 d-flex flex-column"
+          elevation="2"
+        >
           <div class="service-header position-relative pa-6 d-flex justify-center align-center">
             <div class="service-icon-wrapper">
-              <VAvatar color="white" size="80" class="elevation-3">
-                <VIcon :icon="service.icon || 'tabler-box'" size="40" color="primary" />
+              <VAvatar
+                color="white"
+                size="80"
+                class="elevation-3"
+              >
+                <VIcon
+                  :icon="service.icon || 'tabler-box'"
+                  size="40"
+                  color="primary"
+                />
               </VAvatar>
             </div>
             <VChip 
@@ -86,16 +135,32 @@ onMounted(() => {
               ID: {{ service.service_id }}
             </VCardSubtitle>
             
-            <div v-if="service.categories && service.categories.length > 0" class="text-start mt-4">
-              <p class="text-caption font-weight-bold text-medium-emphasis mb-2 text-uppercase">Categories & Facilities</p>
+            <div
+              v-if="service.categories && service.categories.length > 0"
+              class="text-start mt-4"
+            >
+              <p class="text-caption font-weight-bold text-medium-emphasis mb-2 text-uppercase">
+                Categories & Facilities
+              </p>
               <div class="d-flex flex-column gap-2">
-                <div v-for="category in service.categories" :key="category.id" class="bg-grey-lighten-5 pa-2 rounded">
+                <div
+                  v-for="category in service.categories"
+                  :key="category.id"
+                  class="bg-grey-lighten-5 pa-2 rounded"
+                >
                   <div class="d-flex align-center mb-1">
-                    <VIcon icon="tabler-category" size="16" class="me-2 text-primary" />
+                    <VIcon
+                      icon="tabler-category"
+                      size="16"
+                      class="me-2 text-primary"
+                    />
                     <span class="text-body-2 font-weight-medium">{{ category.name }}</span>
                   </div>
                   
-                  <div v-if="category.facilities && category.facilities.length > 0" class="d-flex flex-wrap gap-1 ms-6">
+                  <div
+                    v-if="category.facilities && category.facilities.length > 0"
+                    class="d-flex flex-wrap gap-1 ms-6"
+                  >
                     <VChip 
                       v-for="facility in category.facilities" 
                       :key="facility.id"

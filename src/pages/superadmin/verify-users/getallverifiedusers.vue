@@ -7,7 +7,7 @@ import { useCookie } from '@/@core/composable/useCookie'
 import {
   VDialog, VCard, VCardTitle, VCardText, VCardActions, VTextField, VBtn, VIcon, VChip,
   VAvatar, VSelect, VRow, VCol, VCardItem, VCardSubtitle, VDivider, VNavigationDrawer,
-  VSheet, VForm, VProgressCircular, VSnackbar, VDataTable, VSwitch
+  VSheet, VForm, VProgressCircular, VSnackbar, VDataTable, VSwitch,
 } from 'vuetify/components'
 
 // =============================
@@ -49,6 +49,7 @@ const isDeleting = ref(false)
 // =============================
 const tokenHeader = () => {
   const token = useCookie('accessToken').value
+  
   return { Authorization: `Bearer ${token}` }
 }
 
@@ -70,11 +71,12 @@ const openError = msg => {
 const filteredUsers = computed(() => {
   if (!searchQuery.value) return users.value
   const q = searchQuery.value.toLowerCase()
+  
   return users.value.filter(u =>
     (u.full_name ?? '').toLowerCase().includes(q) ||
     (u.email ?? '').toLowerCase().includes(q) ||
     String(getRoleName(u.role)).toLowerCase().includes(q) ||
-    (u.phone_number ?? '').toLowerCase().includes(q)
+    (u.phone_number ?? '').toLowerCase().includes(q),
   )
 })
 
@@ -84,6 +86,7 @@ const filteredUsers = computed(() => {
 const fetchRoles = async () => {
   try {
     const res = await axios.get(ROLES_API, { headers: tokenHeader() })
+
     console.log('📥 Roles fetched:', res.data)
     roles.value = res.data.map(role => ({
       id: role.id,
@@ -97,6 +100,7 @@ const fetchRoles = async () => {
 
 const getRoleName = roleId => {
   const found = roles.value.find(r => r.id === roleId)
+  
   return found ? found.title : 'Unknown'
 }
 
@@ -107,6 +111,7 @@ const fetchUsers = async () => {
   loading.value = true
   try {
     const res = await axios.get(API_BASE, { headers: tokenHeader() })
+
     users.value = res.data
     totalUsers.value = res.data.length
   } catch {
@@ -126,6 +131,7 @@ const addUser = async () => {
     if (!newUser.value.full_name || !newUser.value.email || !newUser.value.phone_number || !newUser.value.role) {
       openError('⚠️ Please fill all fields before submitting.')
       isRegistering.value = false
+      
       return
     }
 
@@ -137,7 +143,7 @@ const addUser = async () => {
     }
 
     const res = await axios.post(REGISTER_API, payload, {
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     })
 
     openSnack("✅ User registered successfully!")
@@ -149,6 +155,7 @@ const addUser = async () => {
 
   } catch (err) {
     console.error("REG ERR:", err.response?.data)
+
     const data = err.response?.data || {}
     
     if (data.phone_number) {
@@ -165,14 +172,14 @@ const addUser = async () => {
   }
 }
 
-const toggleStatus = async (user) => {
+const toggleStatus = async user => {
   try {
     // Optimistic UI update
     user.is_active = !user.is_active
     
     await axios.patch(`${API_BASE}${user.id}/`, 
       { is_active: user.is_active }, 
-      { headers: tokenHeader() }
+      { headers: tokenHeader() },
     )
     openSnack(`User ${user.is_active ? 'activated' : 'deactivated'} successfully!`)
   } catch (err) {
@@ -200,6 +207,7 @@ const saveUpdatedUser = async () => {
       phone_number: selectedUser.value.phone_number,
       role: selectedUser.value.role,
     }
+
     await axios.patch(`${API_BASE}${selectedUser.value.id}/`, payload, {
       headers: { ...tokenHeader(), 'Content-Type': 'application/json' },
     })
@@ -252,7 +260,6 @@ const headers = [
   { title: 'Status', key: 'is_active', align: 'center' },
   { title: 'Actions', key: 'actions', sortable: false },
 ]
-
 </script>
 
 <template>
@@ -294,7 +301,10 @@ const headers = [
       >
         <template #item.full_name="{ item }">
           <div class="d-flex align-center gap-x-2">
-            <VAvatar color="primary" size="32">
+            <VAvatar
+              color="primary"
+              size="32"
+            >
               <span>{{ item.full_name ? item.full_name[0] : '?' }}</span>
             </VAvatar>
             <strong>{{ item.full_name }}</strong>
@@ -302,7 +312,11 @@ const headers = [
         </template>
 
         <template #item.role="{ item }">
-          <VChip color="primary" label size="small">
+          <VChip
+            color="primary"
+            label
+            size="small"
+          >
             {{ getRoleName(item.role) }}
           </VChip>
         </template>
@@ -330,10 +344,20 @@ const headers = [
         </template>
 
         <template #item.actions="{ item }">
-          <VBtn icon color="primary" variant="text" @click="openUpdateDialog(item)">
+          <VBtn
+            icon
+            color="primary"
+            variant="text"
+            @click="openUpdateDialog(item)"
+          >
             <VIcon icon="tabler-pencil" />
           </VBtn>
-          <VBtn icon color="error" variant="text" @click="confirmDelete(item)">
+          <VBtn
+            icon
+            color="error"
+            variant="text"
+            @click="confirmDelete(item)"
+          >
             <VIcon icon="tabler-trash" />
           </VBtn>
         </template>
@@ -353,16 +377,31 @@ const headers = [
         class="pa-5 text-white d-flex align-center justify-space-between"
       >
         <div>
-          <div class="text-h6 font-weight-bold">Register New User</div>
-          <div class="text-caption text-white text-opacity-80">Fill in all details below</div>
+          <div class="text-h6 font-weight-bold">
+            Register New User
+          </div>
+          <div class="text-caption text-white text-opacity-80">
+            Fill in all details below
+          </div>
         </div>
-        <VBtn icon color="white" variant="text" @click="isAddUserDrawerVisible = false">
+        <VBtn
+          icon
+          color="white"
+          variant="text"
+          @click="isAddUserDrawerVisible = false"
+        >
           <VIcon icon="tabler-x" />
         </VBtn>
       </VSheet>
 
-      <VCard flat class="pa-6">
-        <VForm @submit.prevent="addUser" class="d-flex flex-column gap-y-4">
+      <VCard
+        flat
+        class="pa-6"
+      >
+        <VForm
+          class="d-flex flex-column gap-y-4"
+          @submit.prevent="addUser"
+        >
           <VTextField
             v-model="newUser.full_name"
             label="Full Name"
@@ -406,12 +445,27 @@ const headers = [
     </VNavigationDrawer>
 
     <!-- 🟣 Update Dialog -->
-    <VDialog v-model="isUpdateDialogVisible" max-width="560px" persistent>
+    <VDialog
+      v-model="isUpdateDialogVisible"
+      max-width="560px"
+      persistent
+    >
       <VCard class="rounded-xl shadow-xl">
-        <VCardTitle class="text-center py-5 text-white" style="background: #6366f1;">
+        <VCardTitle
+          class="text-center py-5 text-white"
+          style="background: #6366f1;"
+        >
           <div class="d-flex flex-column align-center w-100">
-            <VAvatar color="white" size="56" class="mb-2 elevation-3">
-              <VIcon color="primary" icon="tabler-edit" size="32" />
+            <VAvatar
+              color="white"
+              size="56"
+              class="mb-2 elevation-3"
+            >
+              <VIcon
+                color="primary"
+                icon="tabler-edit"
+                size="32"
+              />
             </VAvatar>
             <span class="text-h5 font-weight-bold">Edit User Details</span>
           </div>
@@ -419,16 +473,40 @@ const headers = [
 
         <VCardText class="pt-6 px-6">
           <VRow dense>
-            <VCol cols="12" sm="6">
-              <VTextField v-model="selectedUser.full_name" label="Full Name" variant="outlined" />
+            <VCol
+              cols="12"
+              sm="6"
+            >
+              <VTextField
+                v-model="selectedUser.full_name"
+                label="Full Name"
+                variant="outlined"
+              />
             </VCol>
-            <VCol cols="12" sm="6">
-              <VTextField v-model="selectedUser.email" label="Email" variant="outlined" />
+            <VCol
+              cols="12"
+              sm="6"
+            >
+              <VTextField
+                v-model="selectedUser.email"
+                label="Email"
+                variant="outlined"
+              />
             </VCol>
-            <VCol cols="12" sm="6">
-              <VTextField v-model="selectedUser.phone_number" label="Phone Number" variant="outlined" />
+            <VCol
+              cols="12"
+              sm="6"
+            >
+              <VTextField
+                v-model="selectedUser.phone_number"
+                label="Phone Number"
+                variant="outlined"
+              />
             </VCol>
-            <VCol cols="12" sm="6">
+            <VCol
+              cols="12"
+              sm="6"
+            >
               <VSelect
                 v-model="selectedUser.role"
                 :items="roles"
@@ -442,10 +520,19 @@ const headers = [
         </VCardText>
 
         <VCardActions class="justify-end py-4 px-6">
-          <VBtn variant="outlined" color="error" @click="isUpdateDialogVisible = false">
+          <VBtn
+            variant="outlined"
+            color="error"
+            @click="isUpdateDialogVisible = false"
+          >
             Cancel
           </VBtn>
-          <VBtn color="primary" @click="saveUpdatedUser" :loading="isSavingUpdate" :disabled="isSavingUpdate">
+          <VBtn
+            color="primary"
+            :loading="isSavingUpdate"
+            :disabled="isSavingUpdate"
+            @click="saveUpdatedUser"
+          >
             Save Changes
           </VBtn>
         </VCardActions>
@@ -453,12 +540,27 @@ const headers = [
     </VDialog>
 
     <!-- 🔴 Delete Confirmation -->
-    <VDialog v-model="isDeleteDialogVisible" max-width="460px" persistent>
+    <VDialog
+      v-model="isDeleteDialogVisible"
+      max-width="460px"
+      persistent
+    >
       <VCard class="rounded-xl shadow-lg">
-        <VCardTitle class="text-center py-5 text-white" style="background: #ef4444;">
+        <VCardTitle
+          class="text-center py-5 text-white"
+          style="background: #ef4444;"
+        >
           <div class="d-flex flex-column align-center w-100">
-            <VAvatar color="white" size="56" class="mb-2 elevation-3">
-              <VIcon color="error" icon="tabler-alert-triangle" size="32" />
+            <VAvatar
+              color="white"
+              size="56"
+              class="mb-2 elevation-3"
+            >
+              <VIcon
+                color="error"
+                icon="tabler-alert-triangle"
+                size="32"
+              />
             </VAvatar>
             <span class="text-h5 font-weight-bold">Confirm Deletion</span>
           </div>
@@ -470,10 +572,19 @@ const headers = [
         </VCardText>
 
         <VCardActions class="justify-end py-4 px-6">
-          <VBtn variant="outlined" color="secondary" @click="isDeleteDialogVisible = false">
+          <VBtn
+            variant="outlined"
+            color="secondary"
+            @click="isDeleteDialogVisible = false"
+          >
             Cancel
           </VBtn>
-          <VBtn color="error" @click="deleteUser" :loading="isDeleting" :disabled="isDeleting">
+          <VBtn
+            color="error"
+            :loading="isDeleting"
+            :disabled="isDeleting"
+            @click="deleteUser"
+          >
             Yes, Delete User
           </VBtn>
         </VCardActions>
@@ -481,7 +592,12 @@ const headers = [
     </VDialog>
 
     <!-- 🔔 Snackbar -->
-    <VSnackbar v-model="showSnack" :color="snackColor" timeout="2800" location="top right">
+    <VSnackbar
+      v-model="showSnack"
+      :color="snackColor"
+      timeout="2800"
+      location="top right"
+    >
       {{ successMessage || errorMessage }}
     </VSnackbar>
   </section>

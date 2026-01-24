@@ -30,11 +30,12 @@ const imageVariant = useGenerateImageVariant(
   authV2LoginIllustrationDark,
   authV2LoginIllustrationBorderedLight,
   authV2LoginIllustrationBorderedDark,
-  true
+  true,
 )
+
 const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
 
-definePage({ meta: { layout: 'blank', unauthenticatedOnly: true }})
+definePage({ meta: { layout: 'blank', unauthenticatedOnly: true } })
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 const LOGIN_URL = `${API_BASE}/auth/api/auth/login/`
@@ -65,6 +66,7 @@ const resetSuccess = ref('')
 const sendOtp = async () => {
   if (!form.value.phone_number) {
     errorMessage.value = 'Phone number is required.'
+    
     return
   }
   try {
@@ -96,6 +98,7 @@ const sendOtp = async () => {
 const loginWithPin = async () => {
   if (!pinPhone.value || !pin.value) {
     errorMessage.value = "Phone and PIN are required."
+    
     return
   }
 
@@ -111,12 +114,14 @@ const loginWithPin = async () => {
 
     if (res.data?.accessToken) {
       handleLoginSuccess(res.data)
+      
       return
     }
 
     errorMessage.value = res.data?.message || 'Login failed.'
   } catch (err) {
     const data = err.response?.data
+
     errorMessage.value = data?.detail || data?.message || 'PIN login failed.'
   } finally {
     pinLoading.value = false
@@ -130,7 +135,7 @@ import { usePermissionStore } from '@/stores/permissionStore'
 
 // ... imports
 
-const handleLoginSuccess = async (data) => {
+const handleLoginSuccess = async data => {
   let { accessToken, userData, userAbilityRules } = data
 
   // 1. Set token first to allow authenticated API calls
@@ -163,12 +168,14 @@ const handleLoginSuccess = async (data) => {
   
   // Capability-based redirection
   const targetRoute = getPostLoginRoute(userData)
+
   router.replace(targetRoute)
 }
 
 const sendResetPinOtp = async () => {
   if (!resetPhone.value) {
     resetError.value = "Phone number is required."
+    
     return
   }
   resetLoading.value = true
@@ -221,32 +228,63 @@ onMounted(() => {
   
   // Reset permission store if initialized
   const permissionStore = usePermissionStore()
+
   permissionStore.$reset()
 })
 </script>
 
 <template>
-  <VRow no-gutters class="auth-wrapper bg-surface h-screen">
-
+  <VRow
+    no-gutters
+    class="auth-wrapper bg-surface h-screen"
+  >
     <!-- LEFT PANEL -->
-    <VCol md="6" class="d-none d-md-flex align-center justify-center bg-background">
+    <VCol
+      md="6"
+      class="d-none d-md-flex align-center justify-center bg-background"
+    >
       <div class="text-center px-6">
-        <VImg :src="imageVariant" max-width="340" class="auth-illustration mb-4" />
-        <img :src="authThemeMask" height="140" width="150%" />
+        <VImg
+          :src="imageVariant"
+          max-width="340"
+          class="auth-illustration mb-4"
+        />
+        <img
+          :src="authThemeMask"
+          height="140"
+          width="150%"
+        >
       </div>
     </VCol>
 
     <!-- RIGHT PANEL -->
-    <VCol cols="12" md="6" class="d-flex justify-center align-start pt-12">
-      <VCard flat class="pa-8 w-100 rounded-xl glass-login-card" style="max-width:450px;">
-
-        <!-- ======================
-             OTP LOGIN
-        ======================= -->
+    <VCol
+      cols="12"
+      md="6"
+      class="d-flex justify-center align-start pt-12"
+    >
+      <VCard
+        flat
+        class="pa-8 w-100 rounded-xl glass-login-card"
+        style="max-width:450px;"
+      >
+        <!--
+          ======================
+          OTP LOGIN
+          ======================= 
+        -->
         <template v-if="!showPinLogin">
           <div class="text-center mb-6">
-            <VAvatar color="primary" variant="tonal" size="64" class="mb-4">
-              <VIcon icon="tabler-login" size="32" />
+            <VAvatar
+              color="primary"
+              variant="tonal"
+              size="64"
+              class="mb-4"
+            >
+              <VIcon
+                icon="tabler-login"
+                size="32"
+              />
             </VAvatar>
             <h4 class="text-h4 font-weight-bold text-primary mb-2">
               Welcome Back! 👋
@@ -256,7 +294,13 @@ onMounted(() => {
             </p>
           </div>
 
-          <VAlert v-if="errorMessage" type="error" variant="tonal" density="comfortable" class="mb-6">
+          <VAlert
+            v-if="errorMessage"
+            type="error"
+            variant="tonal"
+            density="comfortable"
+            class="mb-6"
+          >
             {{ errorMessage }}
           </VAlert>
 
@@ -269,22 +313,46 @@ onMounted(() => {
           />
 
           <div class="d-flex align-center justify-space-between mb-6">
-            <VCheckbox v-model="rememberMe" label="Remember me" density="compact" hide-details />
+            <VCheckbox
+              v-model="rememberMe"
+              label="Remember me"
+              density="compact"
+              hide-details
+            />
           </div>
 
-          <VBtn block size="large" :loading="isLoading" class="mb-6 btn-gradient font-weight-bold" @click="sendOtp">
+          <VBtn
+            block
+            size="large"
+            :loading="isLoading"
+            class="mb-6 btn-gradient font-weight-bold"
+            @click="sendOtp"
+          >
             Send OTP
           </VBtn>
 
           <div class="text-center">
             <span class="text-body-2 text-medium-emphasis">Or sign in with</span>
             <div class="mt-3 d-flex justify-center gap-4 align-center">
-              <VBtn variant="text" color="primary" @click="openPinLogin" class="font-weight-bold">
-                <VIcon start icon="tabler-lock" />
+              <VBtn
+                variant="text"
+                color="primary"
+                class="font-weight-bold"
+                @click="openPinLogin"
+              >
+                <VIcon
+                  start
+                  icon="tabler-lock"
+                />
                 PIN Code
               </VBtn>
               <span class="text-disabled">|</span>
-              <VBtn variant="text" color="secondary" @click="showResetPinDialog = true" class="font-weight-bold">
+              <VBtn
+                variant="text"
+                color="secondary"
+                class="font-weight-bold"
+                @click="showResetPinDialog = true"
+              >
                 Forgot PIN?
               </VBtn>
             </div>
@@ -292,13 +360,23 @@ onMounted(() => {
         </template>
 
 
-        <!-- ======================
-             PIN LOGIN
-        ======================= -->
+        <!--
+          ======================
+          PIN LOGIN
+          ======================= 
+        -->
         <template v-else>
           <div class="text-center mb-6">
-            <VAvatar color="primary" variant="tonal" size="64" class="mb-4">
-              <VIcon icon="tabler-lock-open" size="32" />
+            <VAvatar
+              color="primary"
+              variant="tonal"
+              size="64"
+              class="mb-4"
+            >
+              <VIcon
+                icon="tabler-lock-open"
+                size="32"
+              />
             </VAvatar>
             <h4 class="text-h4 font-weight-bold text-primary mb-2">
               Login with PIN
@@ -308,7 +386,13 @@ onMounted(() => {
             </p>
           </div>
 
-          <VAlert v-if="errorMessage" type="error" variant="tonal" density="comfortable" class="mb-6">
+          <VAlert
+            v-if="errorMessage"
+            type="error"
+            variant="tonal"
+            density="comfortable"
+            class="mb-6"
+          >
             {{ errorMessage }}
           </VAlert>
 
@@ -335,19 +419,42 @@ onMounted(() => {
           </div>
 
           <div class="d-flex align-center justify-space-between mb-6">
-            <VCheckbox v-model="rememberMe" label="Remember me" density="compact" hide-details />
-            <a href="#" @click.prevent="showResetPinDialog = true" class="text-caption text-primary font-weight-bold">
+            <VCheckbox
+              v-model="rememberMe"
+              label="Remember me"
+              density="compact"
+              hide-details
+            />
+            <a
+              href="#"
+              class="text-caption text-primary font-weight-bold"
+              @click.prevent="showResetPinDialog = true"
+            >
               Forgot PIN?
             </a>
           </div>
 
-          <VBtn block size="large" :loading="pinLoading" class="mb-6 btn-gradient font-weight-bold" @click="loginWithPin">
+          <VBtn
+            block
+            size="large"
+            :loading="pinLoading"
+            class="mb-6 btn-gradient font-weight-bold"
+            @click="loginWithPin"
+          >
             Unlock & Login
           </VBtn>
 
           <div class="text-center">
-            <VBtn variant="text" color="secondary" @click="useOtpInstead" class="font-weight-medium">
-              <VIcon start icon="tabler-arrow-left" />
+            <VBtn
+              variant="text"
+              color="secondary"
+              class="font-weight-medium"
+              @click="useOtpInstead"
+            >
+              <VIcon
+                start
+                icon="tabler-arrow-left"
+              />
               Back to OTP Login
             </VBtn>
           </div>
@@ -358,84 +465,89 @@ onMounted(() => {
 
         <div class="text-center text-body-2">
           New on our platform?
-          <RouterLink class="text-primary font-weight-bold ms-1 text-decoration-none" :to="{ name: 'register' }">
+          <RouterLink
+            class="text-primary font-weight-bold ms-1 text-decoration-none"
+            :to="{ name: 'register' }"
+          >
             Create an account
           </RouterLink>
         </div>
-
       </VCard>
     </VCol>
   </VRow>
 
 
-  <!-- ======================
-       RESET PIN POPUP
-  ======================= -->
-<VDialog v-model="showResetPinDialog" persistent max-width="420px">
-  <VCard class="pa-6 rounded-xl">
+  <!--
+    ======================
+    RESET PIN POPUP
+    ======================= 
+  -->
+  <VDialog
+    v-model="showResetPinDialog"
+    persistent
+    max-width="420px"
+  >
+    <VCard class="pa-6 rounded-xl">
+      <!-- Title Section -->
+      <div class="text-center mb-4">
+        <div class="text-h5 font-weight-medium">
+          Reset PIN
+        </div>
+        <p class="text-body-2 text-medium-emphasis mt-1">
+          Enter your phone number to receive an OTP and reset your PIN.
+        </p>
+      </div>
 
-    <!-- Title Section -->
-    <div class="text-center mb-4">
-      <div class="text-h5 font-weight-medium">Reset PIN</div>
-      <p class="text-body-2 text-medium-emphasis mt-1">
-        Enter your phone number to receive an OTP and reset your PIN.
-      </p>
-    </div>
+      <!-- Input -->
+      <VTextField
+        v-model="resetPhone"
+        label="Phone Number"
+        variant="outlined"
+        density="comfortable"
+        class="mb-2"
+      />
 
-    <!-- Input -->
-    <VTextField
-      v-model="resetPhone"
-      label="Phone Number"
-      variant="outlined"
-      density="comfortable"
-      class="mb-2"
-    />
-
-    <!-- Alerts -->
-    <VAlert
-      v-if="resetError"
-      type="error"
-      variant="tonal"
-      density="comfortable"
-      class="mb-2"
-    >
-      {{ resetError }}
-    </VAlert>
-
-    <VAlert
-      v-if="resetSuccess"
-      type="success"
-      variant="tonal"
-      density="comfortable"
-      class="mb-2"
-    >
-      {{ resetSuccess }}
-    </VAlert>
-
-    <!-- Actions -->
-    <div class="d-flex justify-end gap-3 mt-4">
-      <VBtn
-        variant="text"
-        class="text-medium-emphasis"
-        @click="showResetPinDialog = false"
+      <!-- Alerts -->
+      <VAlert
+        v-if="resetError"
+        type="error"
+        variant="tonal"
+        density="comfortable"
+        class="mb-2"
       >
-        Cancel
-      </VBtn>
+        {{ resetError }}
+      </VAlert>
 
-      <VBtn
-        color="primary"
-        :loading="resetLoading"
-        @click="sendResetPinOtp"
+      <VAlert
+        v-if="resetSuccess"
+        type="success"
+        variant="tonal"
+        density="comfortable"
+        class="mb-2"
       >
-        Send OTP
-      </VBtn>
-    </div>
+        {{ resetSuccess }}
+      </VAlert>
 
-  </VCard>
-</VDialog>
+      <!-- Actions -->
+      <div class="d-flex justify-end gap-3 mt-4">
+        <VBtn
+          variant="text"
+          class="text-medium-emphasis"
+          @click="showResetPinDialog = false"
+        >
+          Cancel
+        </VBtn>
 
-
-
+        <VBtn
+          color="primary"
+          :loading="resetLoading"
+          @click="sendResetPinOtp"
+        >
+          Send OTP
+        </VBtn>
+      </div>
+    </VCard>
+  </VDialog>
 </template>
 
 <style scoped>

@@ -2,12 +2,17 @@
   <section>
     <VCard class="mb-6">
       <VCardItem class="pb-2">
-        <VCardTitle class="text-h5 font-weight-bold"> Permissions Management </VCardTitle>
+        <VCardTitle class="text-h5 font-weight-bold">
+          Permissions Management
+        </VCardTitle>
       </VCardItem>
 
       <VCardText>
         <VRow>
-          <VCol cols="12" sm="4">
+          <VCol
+            cols="12"
+            sm="4"
+          >
             <AppTextField
               v-model="searchQuery"
               placeholder="Search permissions..."
@@ -15,7 +20,11 @@
             />
           </VCol>
 
-          <VCol cols="12" sm="8" class="d-flex justify-end">
+          <VCol
+            cols="12"
+            sm="8"
+            class="d-flex justify-end"
+          >
             <VBtn
               color="primary"
               prepend-icon="tabler-plus"
@@ -43,7 +52,6 @@
         density="comfortable"
         @update:options="updateOptions"
       >
-
         <!-- ID -->
         <template #item.id="{ item }">
           <strong>#{{ item.id }}</strong>
@@ -66,7 +74,10 @@
               <VIcon icon="tabler-edit" />
             </IconBtn>
 
-            <IconBtn color="red" @click="openDeleteDialog(item)">
+            <IconBtn
+              color="red"
+              @click="openDeleteDialog(item)"
+            >
               <VIcon icon="tabler-trash" />
             </IconBtn>
           </div>
@@ -98,14 +109,15 @@
         <h3 class="text-h6 font-weight-bold">
           {{ isEdit ? "Update Permission" : "Create Permission" }}
         </h3>
-        <IconBtn @click="closeDrawer"><VIcon icon="tabler-x" /></IconBtn>
+        <IconBtn @click="closeDrawer">
+          <VIcon icon="tabler-x" />
+        </IconBtn>
       </div>
 
       <VDivider class="mb-4" />
 
       <VForm>
         <VRow>
-
           <!-- MODULE SELECT -->
           <VCol cols="12">
             <VSelect
@@ -139,27 +151,54 @@
               variant="solo-filled"
             />
           </VCol>
-
         </VRow>
       </VForm>
 
       <div class="d-flex justify-end mt-4">
-        <VBtn variant="text" class="me-2" @click="closeDrawer">Cancel</VBtn>
-        <VBtn :loading="loading" color="primary" @click="submit">
+        <VBtn
+          variant="text"
+          class="me-2"
+          @click="closeDrawer"
+        >
+          Cancel
+        </VBtn>
+        <VBtn
+          :loading="loading"
+          color="primary"
+          @click="submit"
+        >
           {{ isEdit ? "Update" : "Create" }}
         </VBtn>
       </div>
     </VNavigationDrawer>
 
     <!-- DELETE DIALOG -->
-    <VDialog v-model="deleteDialog" width="420" persistent>
-      <VCard class="pa-4 rounded-xl" elevation="12">
+    <VDialog
+      v-model="deleteDialog"
+      width="420"
+      persistent
+    >
+      <VCard
+        class="pa-4 rounded-xl"
+        elevation="12"
+      >
         <div class="text-center mb-3">
-          <VAvatar size="60" color="red" variant="tonal" class="mb-3">
-            <VIcon icon="tabler-alert-triangle" size="32" color="red-darken-2" />
+          <VAvatar
+            size="60"
+            color="red"
+            variant="tonal"
+            class="mb-3"
+          >
+            <VIcon
+              icon="tabler-alert-triangle"
+              size="32"
+              color="red-darken-2"
+            />
           </VAvatar>
 
-          <h2 class="text-h6 font-weight-bold"> Delete Permission? </h2>
+          <h2 class="text-h6 font-weight-bold">
+            Delete Permission?
+          </h2>
           <p class="text-body-2 mt-1 text-medium-emphasis">
             You are about to delete <strong>{{ deleteItem?.codename }}</strong>
           </p>
@@ -172,8 +211,18 @@
         <VDivider class="my-3" />
 
         <div class="d-flex justify-end gap-2">
-          <VBtn variant="text" @click="deleteDialog = false">Cancel</VBtn>
-          <VBtn color="error" variant="flat" prepend-icon="tabler-trash" @click="deletePermission">
+          <VBtn
+            variant="text"
+            @click="deleteDialog = false"
+          >
+            Cancel
+          </VBtn>
+          <VBtn
+            color="error"
+            variant="flat"
+            prepend-icon="tabler-trash"
+            @click="deletePermission"
+          >
             Delete
           </VBtn>
         </div>
@@ -183,44 +232,44 @@
 </template>
 
 <script>
-import axios from "axios";
-import { ref, onMounted, watch } from "vue";
-import { useCookie } from "@/@core/composable/useCookie";
+import axios from "axios"
+import { ref, onMounted, watch } from "vue"
+import { useCookie } from "@/@core/composable/useCookie"
 
 export default {
   name: "PermissionsPage",
 
   setup() {
-    const baseURL = "http://127.0.0.1:8000/auth/permissions/";
+    const baseURL = "http://127.0.0.1:8000/auth/permissions/"
 
     // Token
-    const token = useCookie("accessToken").value;
-    if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    const token = useCookie("accessToken").value
+    if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
 
     // TABLE DATA
-    const permissions = ref([]);
+    const permissions = ref([])
 
     const headers = [
       { title: "ID", key: "id" },
       { title: "Codename", key: "codename" },
       { title: "Description", key: "description" },
       { title: "Actions", key: "actions", sortable: false },
-    ];
+    ]
 
-    const page = ref(1);
-    const itemsPerPage = ref(10);
-    const totalItems = ref(0);
-    const searchQuery = ref("");
+    const page = ref(1)
+    const itemsPerPage = ref(10)
+    const totalItems = ref(0)
+    const searchQuery = ref("")
 
     // DRAWER STATE
-    const drawerOpen = ref(false);
-    const isEdit = ref(false);
-    const loading = ref(false);
-    const editId = ref(null);
+    const drawerOpen = ref(false)
+    const isEdit = ref(false)
+    const loading = ref(false)
+    const editId = ref(null)
 
     // DELETE STATE
-    const deleteDialog = ref(false);
-    const deleteItem = ref(null);
+    const deleteDialog = ref(false)
+    const deleteItem = ref(null)
 
     // STATIC PERMISSION GROUPS (Senior-level architecture)
     const permissionModules = [
@@ -251,27 +300,27 @@ export default {
           { codename: "permission.delete", description: "Delete permissions" },
         ],
       },
-    ];
+    ]
 
     // FORM DATA
-    const selectedModule = ref(null);
-    const selectedPermission = ref(null);
+    const selectedModule = ref(null)
+    const selectedPermission = ref(null)
 
     const form = ref({
       codename: "",
       description: "",
-    });
+    })
 
     // Auto-update codename + description on permission select
-    watch(selectedPermission, (val) => {
-      if (!val || !selectedModule.value) return;
+    watch(selectedPermission, val => {
+      if (!val || !selectedModule.value) return
 
-      const found = selectedModule.value.permissions.find(p => p.codename === val);
+      const found = selectedModule.value.permissions.find(p => p.codename === val)
       if (found) {
-        form.value.codename = found.codename;
-        form.value.description = found.description;
+        form.value.codename = found.codename
+        form.value.description = found.description
       }
-    });
+    })
 
     // Fetch Permissions
     const fetchPermissions = async () => {
@@ -279,77 +328,79 @@ export default {
         page: page.value,
         page_size: itemsPerPage.value,
         search: searchQuery.value,
-      };
+      }
 
-      const res = await axios.get(baseURL, { params });
-      permissions.value = res.data.results || res.data;
-      totalItems.value = res.data.count || permissions.value.length;
-    };
+      const res = await axios.get(baseURL, { params })
 
-    onMounted(fetchPermissions);
-    watch([page, itemsPerPage, searchQuery], fetchPermissions);
+      permissions.value = res.data.results || res.data
+      totalItems.value = res.data.count || permissions.value.length
+    }
 
-    const updateOptions = () => fetchPermissions();
+    onMounted(fetchPermissions)
+    watch([page, itemsPerPage, searchQuery], fetchPermissions)
+
+    const updateOptions = () => fetchPermissions()
 
     // Drawer Open
     const openAddDrawer = () => {
-      isEdit.value = false;
-      editId.value = null;
-      selectedModule.value = null;
-      selectedPermission.value = null;
-      form.value = { codename: "", description: "" };
-      drawerOpen.value = true;
-    };
+      isEdit.value = false
+      editId.value = null
+      selectedModule.value = null
+      selectedPermission.value = null
+      form.value = { codename: "", description: "" }
+      drawerOpen.value = true
+    }
 
-    const openEditDrawer = (item) => {
-      isEdit.value = true;
-      editId.value = item.id;
-      form.value = { codename: item.codename, description: item.description };
+    const openEditDrawer = item => {
+      isEdit.value = true
+      editId.value = item.id
+      form.value = { codename: item.codename, description: item.description }
 
       // Auto-select module + permission based on codename
       for (let group of permissionModules) {
-        const perm = group.permissions.find(p => p.codename === item.codename);
+        const perm = group.permissions.find(p => p.codename === item.codename)
         if (perm) {
-          selectedModule.value = group;
-          selectedPermission.value = perm.codename;
-          break;
+          selectedModule.value = group
+          selectedPermission.value = perm.codename
+          break
         }
       }
 
-      drawerOpen.value = true;
-    };
+      drawerOpen.value = true
+    }
 
-    const closeDrawer = () => (drawerOpen.value = false);
+    const closeDrawer = () => (drawerOpen.value = false)
 
     // Submit Create / Update
     const submit = async () => {
-      loading.value = true;
-      const payload = { codename: form.value.codename, description: form.value.description };
+      loading.value = true
+
+      const payload = { codename: form.value.codename, description: form.value.description }
 
       try {
         if (isEdit.value) {
-          await axios.put(`${baseURL}${editId.value}/`, payload);
+          await axios.put(`${baseURL}${editId.value}/`, payload)
         } else {
-          await axios.post(baseURL, payload);
+          await axios.post(baseURL, payload)
         }
-        drawerOpen.value = false;
-        fetchPermissions();
+        drawerOpen.value = false
+        fetchPermissions()
       } finally {
-        loading.value = false;
+        loading.value = false
       }
-    };
+    }
 
     // Delete
-    const openDeleteDialog = (item) => {
-      deleteItem.value = item;
-      deleteDialog.value = true;
-    };
+    const openDeleteDialog = item => {
+      deleteItem.value = item
+      deleteDialog.value = true
+    }
 
     const deletePermission = async () => {
-      await axios.delete(`${baseURL}${deleteItem.value.id}/`);
-      deleteDialog.value = false;
-      fetchPermissions();
-    };
+      await axios.delete(`${baseURL}${deleteItem.value.id}/`)
+      deleteDialog.value = false
+      fetchPermissions()
+    }
 
     return {
       permissions,
@@ -377,9 +428,9 @@ export default {
       permissionModules,
       selectedModule,
       selectedPermission,
-    };
+    }
   },
-};
+}
 </script>
 
 <style scoped>

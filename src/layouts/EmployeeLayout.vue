@@ -48,9 +48,14 @@ const logout = () => {
 <template>
   <VApp>
     <!-- Navigation Drawer -->
-    <VNavigationDrawer v-model="drawer" app>
+    <VNavigationDrawer
+      v-model="drawer"
+      app
+    >
       <div class="d-flex align-center justify-center pa-4">
-        <h2 class="text-h5 font-weight-bold text-primary">PetLeo Employee Portal</h2>
+        <h2 class="text-h5 font-weight-bold text-primary">
+          PetLeo Employee Portal
+        </h2>
       </div>
 
       <VList nav>
@@ -67,7 +72,13 @@ const logout = () => {
 
       <template #append>
         <div class="pa-4">
-          <VBtn block color="error" variant="tonal" prepend-icon="tabler-logout" @click="logout">
+          <VBtn
+            block
+            color="error"
+            variant="tonal"
+            prepend-icon="tabler-logout"
+            @click="logout"
+          >
             Logout
           </VBtn>
         </div>
@@ -75,17 +86,27 @@ const logout = () => {
     </VNavigationDrawer>
 
     <!-- App Bar -->
-    <VAppBar app flat border>
+    <VAppBar
+      app
+      flat
+      border
+    >
       <VAppBarNavIcon @click="drawer = !drawer" />
       <VSpacer />
-      <VBtn icon @click="theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark'">
+      <VBtn
+        icon
+        @click="theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark'"
+      >
         <VIcon :icon="theme.global.current.value.dark ? 'tabler-sun' : 'tabler-moon'" />
       </VBtn>
     </VAppBar>
 
     <!-- Main Content -->
     <VMain>
-      <VContainer fluid class="pa-6">
+      <VContainer
+        fluid
+        class="pa-6"
+      >
         <slot />
       </VContainer>
     </VMain>

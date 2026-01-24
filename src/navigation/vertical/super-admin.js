@@ -1,4 +1,4 @@
-import { icon } from "@/views/demos/components/badge/demoCodeBadge";
+import { icon } from "@/views/demos/components/badge/demoCodeBadge"
 
 export default [
   {
@@ -63,7 +63,7 @@ export default [
               },
             ],
           },
-        ]
+        ],
       },
       {
         title: "Pet Types & Breeds",
@@ -84,7 +84,7 @@ export default [
           },
           {
             title: "Dynamic Doc Fields",
-            to: "superadmin-dynamic-providerfields-sdocuments-form"
+            to: "superadmin-dynamic-providerfields-sdocuments-form",
           }
           ,
           {
@@ -92,13 +92,13 @@ export default [
             to: "superadmin-dynamic-providerfields-dynamicprofileform",
           },
           {
-            title: "Provider Profile Crud",
-            to: "superadmin-dynamic-providerfields-docdynamic"
+            title: "Provider Profile CRUD",
+            to: "superadmin-dynamic-providerfields-docdynamic",
           },
           {
             title: "Profile",
-            to: "superadmin-dynamic-providerfields-profile-documets"
-          }
+            to: "superadmin-dynamic-providerfields-profile-documets",
+          },
         ],
       },
       {
@@ -114,8 +114,8 @@ export default [
             title: "Permissions",
             iicon: { icon: "tabler-lock" },
             to: "superadmin-roles-permissions-permissions",
-          }
-        ]
+          },
+        ],
       },
       {
         title: "Document & Verification",
@@ -126,7 +126,7 @@ export default [
             iicon: { icon: "tabler-user-shield" },
             to: "superadmin-documents-verification-provider-docverification",
           },
-        ]
+        ],
       },
 
     ],
@@ -151,4 +151,4 @@ export default [
     icon: { icon: "tabler-mail" },
     to: "emailbuilder",
   },
-];
+]
