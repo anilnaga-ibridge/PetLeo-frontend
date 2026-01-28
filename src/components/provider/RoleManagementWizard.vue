@@ -7,6 +7,7 @@ const props = defineProps({
   modelValue: Boolean,
   role: { type: Object, default: null }, // If editing
   availablePermissions: { type: Array, default: () => [] }, // Full tree from backend
+  loading: Boolean, // [NEW] Loading state from parent
 })
 
 const emit = defineEmits(['update:modelValue', 'save'])
@@ -36,7 +37,7 @@ const availableServiceList = computed(() => {
   return props.availablePermissions.filter(s => {
       // Exclude granular veterinary keys (handled as features within Veterinary Management)
       const hiddenKeys = [
-          'VETERINARY_CORE', 
+          // 'VETERINARY_CORE', // <--- UNHIDE THIS so the main service appears!
           'VETERINARY_VISITS', 
           'VETERINARY_VITALS', 
           'VETERINARY_PRESCRIPTIONS', 
@@ -56,6 +57,34 @@ const availableServiceList = computed(() => {
 const selectedServiceObjects = computed(() => {
   // Return full objects for selected IDs
   return availableServiceList.value.filter(s => form.value.selectedServices.includes(s.service_id))
+})
+
+// [NEW] Flatten User Capabilities for Filtering
+const userCapabilities = computed(() => {
+  const caps = new Set()
+  console.log('--- Debug: Flattening Available Permissions ---', props.availablePermissions)
+  
+  if (!props.availablePermissions) return caps
+
+  props.availablePermissions.forEach(p => {
+    if (p.service_key) caps.add(p.service_key.toUpperCase()) // Force Upper
+    if (p.categories) {
+       p.categories.forEach(c => {
+         if (c.linked_capability) caps.add(c.linked_capability.toUpperCase())
+         if (c.category_key) caps.add(c.category_key.toUpperCase())
+         // Fallback: if category has 'name' matching a capability key
+         if (c.name) caps.add(c.name.toUpperCase().replace(/\s+/g, '_')) 
+       })
+    }
+  })
+  console.log('--- Debug: User Capabilities Set ---', Array.from(caps))
+  return caps
+})
+
+// [FIX] Filter Veterinary Features - SIMPLIFIED
+// Always show all features to avoid UI disappearing. Backend will handle validation.
+const filteredVeterinaryFeatures = computed(() => {
+  return veterinaryFeatureDefinitions.value || []
 })
 
 // --- API FETCH ---
@@ -100,13 +129,19 @@ const applyTemplate = template => {
   })
     
   // 4. Enable Features (Veterinary)
+  // console.log('--- Apply Template: ', template.name)
+  // console.log('Template Features:', template.features)
+  
   form.value.veterinaryFeatures = [...template.features]
+  // console.log('Form Features After:', form.value.veterinaryFeatures)
 }
 
 // --- INIT ---
 const initialize = async () => {
-  // Load templates if empty
-  if (roleTemplates.value.length === 0) await fetchTemplates()
+  // Force refresh to ensure data integrity
+  roleTemplates.value = []
+  veterinaryFeatureDefinitions.value = []
+  await fetchTemplates()
 
   if (props.role) {
     form.value.name = props.role.name
@@ -191,13 +226,12 @@ const toggleService = id => {
   } else {
     form.value.selectedServices.push(id)
         
-    // Auto-Enable All Veterinary Features for UX Convenience
-    const svc = availableServiceList.value.find(s => s.service_id === id)
-    if (svc && isVeterinary(svc)) {
-      const allFeatureIds = veterinaryFeatureDefinitions.value.map(f => f.id)
-
-      form.value.veterinaryFeatures = [...new Set([...form.value.veterinaryFeatures, ...allFeatureIds])]
-    }
+    // Auto-Enable All Veterinary Features for UX Convenience - REMOVED per user request
+    // const svc = availableServiceList.value.find(s => s.service_id === id)
+    // if (svc && isVeterinary(svc)) {
+    //   const allFeatureIds = veterinaryFeatureDefinitions.value.map(f => f.id)
+    //   form.value.veterinaryFeatures = [...new Set([...form.value.veterinaryFeatures, ...allFeatureIds])]
+    // }
   }
 }
 
@@ -368,18 +402,21 @@ const error = ref(null)
 </script>
 
 <template>
-  <VDialog
+  <VNavigationDrawer
     v-model="dialog"
-    fullscreen
-    transition="dialog-bottom-transition"
+    location="end"
+    width="600"
+    temporary
+    class="scrollable-content"
   >
-    <VCard class="h-100 d-flex flex-column bg-grey-lighten-5">
+    <div class="h-100 d-flex flex-column bg-grey-lighten-5">
       <!-- HEADER -->
-      <div class="px-8 py-4 bg-white border-b d-flex align-center justify-space-between elevation-1">
+      <div class="px-6 py-4 bg-white border-b d-flex align-center justify-space-between elevation-1">
         <div class="d-flex align-center gap-4">
           <VBtn
             icon="tabler-x"
             variant="text"
+            color="medium-emphasis"
             @click="dialog = false"
           />
           <div>
@@ -391,24 +428,11 @@ const error = ref(null)
             </div>
           </div>
         </div>
-        <div>
-          <VBtn
-            color="success"
-            size="large"
-            :disabled="!form.name"
-            @click="saveData"
-          >
-            Save Role
-          </VBtn>
-        </div>
       </div>
 
       <!-- BODY -->
-      <div class="flex-grow-1 overflow-y-auto pa-8 justify-center d-flex">
-        <div
-          class="w-100"
-          style="max-width: 900px;"
-        >
+      <div class="flex-grow-1 overflow-y-auto pa-6">
+        <div class="w-100">
           <VAlert
             v-if="error"
             type="error"
@@ -430,9 +454,8 @@ const error = ref(null)
             </p>
                  
             <VCard
-              class="pa-6 rounded-xl border-opacity-50"
+              class="pa-0 bg-transparent"
               flat
-              border
             >
               <!-- ROLE TEMPLATE SELECTOR -->
               <VAutocomplete 
@@ -444,7 +467,8 @@ const error = ref(null)
                 label="Choose a Role Template (Optional)"
                 placeholder="Select a standard role to auto-fill permissions"
                 variant="outlined"
-                class="mb-4"
+                density="comfortable"
+                class="mb-6"
                 bg-color="white"
                 prepend-inner-icon="tabler-template"
                 clearable
@@ -463,7 +487,7 @@ const error = ref(null)
                 label="Role Name" 
                 placeholder="e.g. Grooming Manager" 
                 variant="outlined" 
-                class="mb-4"
+                class="mb-4 text-h6 font-weight-bold"
                 bg-color="white"
               />
               <VTextarea 
@@ -471,7 +495,8 @@ const error = ref(null)
                 label="Description" 
                 placeholder="What is this person responsible for?" 
                 variant="outlined" 
-                rows="2"
+                rows="3"
+                auto-grow
                 bg-color="white"
               />
             </VCard>
@@ -559,32 +584,36 @@ const error = ref(null)
                     <div class="text-caption text-medium-emphasis">
                       Configure Access Rights
                     </div>
+                    <!-- DEBUG INFO: REMOVE AFTER FIXING -->
+                    <div class="text-caption text-error">
+                      DEBUG: {{ service.service_key }} | IsVet: {{ isVeterinary(service) }} | Features: {{ filteredVeterinaryFeatures.length }}
+                    </div>
                   </div>
                 </div>
 
                 <div class="pa-6">
                   <!-- VETERINARY SPECIAL UI (CHECKBOXES + SELECT ALL) -->
-                  <div v-if="isVeterinary(service)">
+                  <div v-if="isVeterinary(service) && filteredVeterinaryFeatures.length > 0">
                     <div class="d-flex align-center justify-space-between mb-4 px-4">
                       <div class="text-subtitle-1 font-weight-bold">
-                        Select Permissions ({{ veterinaryFeatureDefinitions.length }})
+                        Select Permissions ({{ filteredVeterinaryFeatures.length }})
                       </div>
                       <VCheckbox 
                         label="Select All" 
                         hide-details 
                         density="compact"
                         color="primary"
-                        :model-value="form.veterinaryFeatures.length === veterinaryFeatureDefinitions.length && veterinaryFeatureDefinitions.length > 0"
+                        :model-value="form.veterinaryFeatures.length === filteredVeterinaryFeatures.length && filteredVeterinaryFeatures.length > 0"
                         @update:model-value="(val) => {
-                          if (val) form.veterinaryFeatures = veterinaryFeatureDefinitions.map(f => f.id)
+                          if (val) form.veterinaryFeatures = filteredVeterinaryFeatures.map(f => f.id)
                           else form.veterinaryFeatures = []
                         }"
                       />
                     </div>
 
-                    <div class="d-flex flex-column gap-4">
+                    <div class="d-flex flex-column gap-4 mb-6">
                       <div 
-                        v-for="feature in veterinaryFeatureDefinitions" 
+                        v-for="feature in filteredVeterinaryFeatures" 
                         :key="feature.id"
                         class="d-flex align-center justify-space-between pa-4 rounded-lg border cursor-pointer"
                         :class="{'bg-primary-lighten-5 border-primary': isVetFeatureActive(feature.id)}"
@@ -617,8 +646,15 @@ const error = ref(null)
                     </div>
                   </div>
 
-                  <!-- DYNAMIC SERVICES (GROOMING/ETC) -->
-                  <div v-else>
+                  <!-- DYNAMIC CATEGORIES (GROOMING/ETC + VET FALLBACK) -->
+                  <!-- Render this if clean categories exist in the service -->
+                  <div v-if="service.categories && service.categories.length > 0 && !isVeterinary(service)">
+                    <div
+                       v-if="isVeterinary(service) && filteredVeterinaryFeatures.length > 0"
+                       class="text-overline font-weight-bold text-medium-emphasis mb-4 px-4"
+                    >
+                       Advanced Permissions
+                    </div>
                     <div
                       v-if="!service.categories || service.categories.length === 0"
                       class="text-caption text-disabled"
@@ -740,8 +776,26 @@ const error = ref(null)
           </div>
         </div>
       </div>
-    </VCard>
-  </VDialog>
+      <!-- STICKY FOOTER ACTIONS -->
+      <div class="px-6 py-4 bg-white border-t d-flex align-center justify-end gap-4 elevation-2 mt-auto">
+        <VBtn
+          variant="outlined"
+          color="secondary"
+          @click="dialog = false"
+        >
+          Cancel
+        </VBtn>
+        <VBtn
+          color="primary"
+          :loading="loading" 
+          :disabled="!form.name"
+          @click="saveData"
+        >
+          {{ role ? 'Save Changes' : 'Create Role' }}
+        </VBtn>
+      </div>
+    </div>
+  </VNavigationDrawer>
 </template>
 
 <style scoped>
@@ -764,7 +818,12 @@ const error = ref(null)
     display: grid;
 }
 .grid-cols-2 {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr); /* [RESTORED] 2 Columns for better density */
+}
+@media (max-width: 500px) {
+    .grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
 }
 .gap-4 {
     gap: 24px;

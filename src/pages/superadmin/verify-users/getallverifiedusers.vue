@@ -263,7 +263,7 @@ const headers = [
 </script>
 
 <template>
-  <section>
+  <section class="pa-4">
     <!-- 🧾 User Table -->
     <VCard class="mb-6">
       <VCardItem>

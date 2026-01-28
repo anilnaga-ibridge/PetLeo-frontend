@@ -50,6 +50,6 @@ export const getPostLoginRoute = userData => {
     }
   }
 
-  // 4. Other Employees (Fallback)
-  return '/employee/dashboard'
+  // 4. Other Employees (Fallback to Service Dashboard)
+  return '/employee/service-dashboard'
 }

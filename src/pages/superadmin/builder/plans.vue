@@ -360,10 +360,28 @@ const toggleCapability = (type, id, val) => {
         form.value.capabilities[key].permissions = { can_view: true, can_create: true, can_edit: true, can_delete: true }
       }
     }
+
+    // ✅ AUTO-SELECT CATEGORIES Logic
+    if (type === 'svc') {
+      const serviceCategories = categories.value.filter(c => c.service === id)
+      serviceCategories.forEach(cat => {
+        // Recursively enable category
+        toggleCapability('cat', cat.id, true)
+      })
+    }
+
   } else {
     // Disable
     if (form.value.capabilities[key]) {
       form.value.capabilities[key].enabled = false
+    }
+
+    // ✅ AUTO-DESELECT CATEGORIES Logic
+    if (type === 'svc') {
+      const serviceCategories = categories.value.filter(c => c.service === id)
+      serviceCategories.forEach(cat => {
+        toggleCapability('cat', cat.id, false)
+      })
     }
   }
 }
@@ -1449,31 +1467,60 @@ onMounted(() => {
                         v-if="form.capabilities[`svc_${veterinaryService.id}`]?.enabled"
                         class="mt-4 pt-4 border-t"
                       >
+                         <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2 pl-4">
+                           Core Categories
+                         </div>
+
+                        <!-- Categories List (Veterinary) -->
                         <div
-                          v-for="(caps, group) in groupedCapabilities"
-                          :key="group"
-                          class="mb-6"
+                          v-for="cat in categories.filter(c => c.service === veterinaryService.id)"
+                          :key="cat.id"
+                          class="mb-4 pl-4 border-l-2 ml-2"
                         >
-                          <div class="text-caption font-weight-bold text-uppercase text-success mb-2">
-                            {{ group }}
-                          </div>
-                          <div class="d-flex flex-column gap-4">
-                            <VCheckbox
-                              v-for="cap in caps"
-                              :key="cap.key"
-                              v-model="form.capabilities[`svc_${veterinaryService.id}`].permissions[cap.key]"
+                          <div class="d-flex align-center justify-space-between mb-2">
+                            <span class="text-body-2 font-weight-medium">{{ cat.name }}</span>
+                            <VSwitch
+                              :model-value="!!form.capabilities[`cat_${cat.id}`]?.enabled"
                               density="compact"
                               hide-details
-                            >
-                              <template #label>
-                                <div class="d-flex flex-column ms-2">
-                                  <span class="text-body-2 font-weight-medium">{{ cap.label }}</span>
-                                  <span class="text-caption text-medium-emphasis">{{ cap.description }}</span>
-                                </div>
-                              </template>
-                            </VCheckbox>
+                              color="success"
+                              @update:model-value="(val) => toggleCapability('cat', cat.id, val)"
+                            />
                           </div>
+              
+                          <!-- Category Permissions -->
+                          <VExpandTransition>
+                            <div v-if="form.capabilities[`cat_${cat.id}`]?.enabled">
+                              <div class="d-flex flex-wrap gap-x-6 gap-y-2 mb-3">
+                                <VCheckbox
+                                  v-model="form.capabilities[`cat_${cat.id}`].permissions.can_view"
+                                  label="View"
+                                  density="compact"
+                                  hide-details
+                                />
+                                <VCheckbox
+                                  v-model="form.capabilities[`cat_${cat.id}`].permissions.can_create"
+                                  label="Create"
+                                  density="compact"
+                                  hide-details
+                                />
+                                <VCheckbox
+                                  v-model="form.capabilities[`cat_${cat.id}`].permissions.can_edit"
+                                  label="Edit"
+                                  density="compact"
+                                  hide-details
+                                />
+                                <VCheckbox
+                                  v-model="form.capabilities[`cat_${cat.id}`].permissions.can_delete"
+                                  label="Delete"
+                                  density="compact"
+                                  hide-details
+                                />
+                              </div>
+                            </div>
+                          </VExpandTransition>
                         </div>
+
                       </div>
                     </VExpandTransition>
                   </VCard>

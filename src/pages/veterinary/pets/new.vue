@@ -20,10 +20,13 @@ const form = ref({
   sex: null,
   dob: '',
   color: '',
-  weight: '',
-  owner_name: '',
   owner_phone: '',
+  owner_email: '',
+  owner_address: '',
+  country_code: '+91',
 })
+
+const countryCodes = ['+91', '+1', '+44', '+61', '+81', '+49', '+33', '+86']
 
 const sexOptions = ['Male', 'Female', 'Unknown']
 
@@ -110,6 +113,14 @@ const submit = async () => {
   loading.value = true
   try {
     const payload = { ...form.value }
+
+    // Combine country code and phone
+    if (payload.owner_phone) {
+      payload.owner_phone = `${payload.country_code} ${payload.owner_phone}`
+    }
+
+    // Map frontend field to backend model field
+    payload.address = payload.owner_address
       
     const unwrap = val => {
       if (!val) return null
@@ -124,8 +135,6 @@ const submit = async () => {
     payload.species = unwrap(payload.species)
     payload.breed = unwrap(payload.breed)
     payload.sex = unwrap(payload.sex)
-
-    if (payload.weight) payload.weight = parseFloat(payload.weight)
 
     await veterinaryStore.createPet(payload)
     router.push('/veterinary/dashboard')
@@ -270,7 +279,7 @@ const submit = async () => {
 
               <VCol
                 cols="12"
-                md="4"
+                md="6"
               >
                 <AppTextField
                   v-model="form.dob"
@@ -282,26 +291,13 @@ const submit = async () => {
 
               <VCol
                 cols="12"
-                md="4"
+                md="6"
               >
                 <AppTextField
                   v-model="form.color"
                   label="Color/Markings"
                   placeholder="e.g. Brown with white spots"
                   prepend-inner-icon="tabler-palette"
-                />
-              </VCol>
-
-              <VCol
-                cols="12"
-                md="4"
-              >
-                <AppTextField
-                  v-model="form.weight"
-                  type="number"
-                  label="Weight (kg)"
-                  placeholder="0.0"
-                  prepend-inner-icon="tabler-scale"
                 />
               </VCol>
 
@@ -325,7 +321,7 @@ const submit = async () => {
 
               <VCol
                 cols="12"
-                md="6"
+                md="4"
               >
                 <AppTextField
                   v-model="form.owner_name"
@@ -338,14 +334,45 @@ const submit = async () => {
 
               <VCol
                 cols="12"
-                md="6"
+                md="4"
+              >
+                <div class="d-flex gap-1">
+                  <AppSelect
+                    v-model="form.country_code"
+                    :items="countryCodes"
+                    label="Code"
+                    style="max-width: 110px;"
+                  />
+                  <AppTextField
+                    v-model="form.owner_phone"
+                    label="Phone *"
+                    placeholder="9876543210"
+                    :rules="[v => !!v || 'Phone is required']"
+                  />
+                </div>
+              </VCol>
+
+              <VCol
+                cols="12"
+                md="4"
               >
                 <AppTextField
-                  v-model="form.owner_phone"
-                  label="Owner Phone *"
-                  placeholder="+1 234 567 890"
-                  prepend-inner-icon="tabler-phone"
-                  :rules="[v => !!v || 'Owner phone is required']"
+                  v-model="form.owner_email"
+                  label="Owner Email"
+                  placeholder="e.g. owner@example.com"
+                  prepend-inner-icon="tabler-mail"
+                  type="email"
+                />
+              </VCol>
+
+              <VCol cols="12">
+                <AppTextarea
+                  v-model="form.owner_address"
+                  label="Current Address"
+                  placeholder="Street, City, Zip Code"
+                  prepend-inner-icon="tabler-map-pin"
+                  rows="2"
+                  auto-grow
                 />
               </VCol>
 

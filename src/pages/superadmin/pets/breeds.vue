@@ -1,5 +1,5 @@
 <template>
-  <section class="premium-page-container">
+  <section class="premium-page-container pa-4">
     <!-- HEADER -->
     <div class="d-flex justify-space-between align-end mb-8">
       <div>

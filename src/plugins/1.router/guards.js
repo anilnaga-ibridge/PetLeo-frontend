@@ -67,9 +67,10 @@ export const setupGuards = router => {
         return undefined
     }
 
+    const permissionStore = usePermissionStore()
+
     // ✅ Permission Check
     if (to.meta.permission) {
-      const permissionStore = usePermissionStore()
       if (!permissionStore.hasPermission(to.meta.permission)) {
         console.warn(`Access denied. Missing permission: ${to.meta.permission}`)
 
@@ -81,17 +82,19 @@ export const setupGuards = router => {
     // 🛡️ CAPABILITY-BASED ROUTING GUARDS
     // =======================================================
     if (isLoggedIn && user) {
-      const permissionStore = usePermissionStore()
-
-      // Ensure permissions are loaded (ONLY FOR PROVIDERS)
       const role = (user.role?.name || user.role || '').toLowerCase()
       const isSuperAdmin = role === 'superadmin' || role === 'admin'
 
-      if (!isSuperAdmin && (!permissionStore.permissions || permissionStore.permissions.length === 0)) {
-        console.log('🛡️ Router Guard: Permissions missing, fetching...')
+      if (!isSuperAdmin && (!permissionStore.isPermissionsLoaded || !permissionStore.isDynamicAccessLoaded)) {
+        console.log(`🛡️ [${new Date().toISOString()}] Router Guard: Full access data missing/stale. Fetching fresh data...`)
         try {
-          await permissionStore.fetchPermissions()
-          await permissionStore.fetchDynamicAccess()
+          const startTime = performance.now()
+          await Promise.all([
+            permissionStore.fetchPermissions(),
+            permissionStore.fetchDynamicAccess()
+          ])
+          const endTime = performance.now()
+          console.log(`🛡️ [${new Date().toISOString()}] Router Guard: Fetching complete in ${(endTime - startTime).toFixed(2)}ms`)
         } catch (e) {
           console.error('🛡️ Router Guard: Failed to fetch permissions', e)
         }

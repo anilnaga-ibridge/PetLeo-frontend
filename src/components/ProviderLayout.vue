@@ -29,11 +29,26 @@ const fetchAllowedServices = async () => {
 }
 
 onMounted(async () => {
-  console.log('🏗️ ProviderLayout: Mounting...')
-  await permissionStore.fetchPermissions()
-  console.log('🏗️ ProviderLayout: Permissions fetched:', permissionStore.permissions)
+  const role = (permissionStore.userData?.role?.name || permissionStore.userData?.role || '').toUpperCase()
+  console.log(`⏱️ [${new Date().toISOString()}] ProviderLayout: Mounting... Role: ${role}, Ready: ${permissionStore.isDynamicAccessLoaded}`)
+  
+  if (!permissionStore.isDynamicAccessLoaded || !permissionStore.isPermissionsLoaded) {
+    console.log(`⚠️ ProviderLayout: Data missing on mount! Initializing...`)
+    // 1. Fetch Permissions (Standard)
+    await permissionStore.fetchPermissions()
+    
+    // 2. Fetch Dynamic Access (Feature Modules)
+    if (['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(role)) {
+      await permissionStore.fetchDynamicAccess()
+    } else {
+      permissionStore.isDynamicAccessLoaded = true
+    }
+  }
+
+  // 3. Fetch Allowed Services (Sidebar)
   await fetchAllowedServices()
-  console.log('🏗️ ProviderLayout: Allowed services fetched:', allowedServices.value)
+  
+  console.log(`⏱️ [${new Date().toISOString()}] ProviderLayout: Initialization complete.`)
 })
 
 const filteredNavItems = computed(() => {
@@ -45,7 +60,8 @@ console.log('ProviderLayout: themeConfig', themeConfig)
 </script>
 
 <template>
-  <VerticalNavLayout :nav-items="filteredNavItems">
+  <template v-if="permissionStore.isDynamicAccessLoaded">
+    <VerticalNavLayout :nav-items="filteredNavItems">
     <!-- 👉 navbar -->
     <template #navbar="{ toggleVerticalOverlayNavActive }">
       <div class="d-flex h-100 align-center">
@@ -95,4 +111,11 @@ console.log('ProviderLayout: themeConfig', themeConfig)
       <!-- Footer content if needed -->
     </template>
   </VerticalNavLayout>
+  </template>
+  <div v-else class="h-100 d-flex align-center justify-center bg-white" style="position: fixed; inset: 0; z-index: 9999;">
+    <div class="text-center">
+      <VProgressCircular indeterminate color="primary" size="64" width="6" class="mb-4" />
+      <div class="text-h6 text-medium-emphasis">Loading your workspace...</div>
+    </div>
+  </div>
 </template>

@@ -54,7 +54,7 @@ const totalCustomers = computed(() => customerData.value.total)
 </script>
 
 <template>
-  <div>
+  <div class="pa-4">
     <VCard>
       <VCardText>
         <div class="d-flex justify-space-between flex-wrap gap-y-4">

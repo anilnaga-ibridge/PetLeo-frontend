@@ -13,34 +13,49 @@ const getProviderNavigation = () => {
   const roleUpper = (userData.role?.name || userData.role || '').toUpperCase()
   const isProviderAdmin = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(roleUpper)
 
+  // STRICT: Internal Wait for Dynamic Access
+  if (!permissionStore.isDynamicAccessLoaded || !permissionStore.isPermissionsLoaded) {
+    console.log('🚧 Provider Nav: Waiting for dynamic access load...')
+    return []
+  }
+
   // STRICT: Veterinary Staff (Non-Admins) see NO Provider navigation
   if (permissionStore.hasCapability('VETERINARY_CORE') && !isProviderAdmin) {
     return []
   }
 
   // Base navigation items that are always visible
+  // [FIX] Dashboard link depends on role
+  const dashboardRoute = isProviderAdmin ? { name: 'provider-dashboard' } : { name: 'employee-service-dashboard' }
+
   const navigation = [
     {
       title: 'Dashboard',
-      to: { name: 'provider-dashboard' },
+      to: dashboardRoute,
       icon: { icon: 'tabler-smart-home' },
-    },
-    {
-      title: 'Plan Cart',
-      to: { name: 'provider-cart' },
-      icon: { icon: 'tabler-shopping-cart' },
-    },
-    {
-      title: 'Plan Bookings',
-      to: { name: 'provider-plan-bookings' },
-      icon: { icon: 'tabler-list-check' },
-    },
-    {
-      title: 'My Subscription',
-      to: { name: 'provider-subscription' },
-      icon: { icon: 'tabler-id' },
-    },
+    }
   ]
+
+  // Admin-only items
+  if (isProviderAdmin) {
+    navigation.push(
+      {
+        title: 'Plan Cart',
+        to: { name: 'provider-cart' },
+        icon: { icon: 'tabler-shopping-cart' },
+      },
+      {
+        title: 'Plan Bookings',
+        to: { name: 'provider-plan-bookings' },
+        icon: { icon: 'tabler-list-check' },
+      },
+      {
+        title: 'My Subscription',
+        to: { name: 'provider-subscription' },
+        icon: { icon: 'tabler-id' },
+      }
+    )
+  }
 
   // Add dynamic service items based on permissions
   const enabledServices = permissionStore.enabledServices

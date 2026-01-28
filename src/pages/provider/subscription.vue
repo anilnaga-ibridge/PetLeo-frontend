@@ -2,6 +2,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { usePermissionStore } from '@/stores/permissionStore'
+import { providerApi } from '@/plugins/axios'
 
 const permissionStore = usePermissionStore()
 const subscription = ref(null)

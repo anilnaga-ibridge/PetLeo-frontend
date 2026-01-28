@@ -118,7 +118,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section>
+  <section class="pa-4">
     <!-- HEADER -->
     <VCard class="mb-6">
       <VCardItem class="pb-2">

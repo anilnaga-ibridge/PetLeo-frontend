@@ -154,7 +154,7 @@ const deleteOrder = async id => {
 </script>
 
 <template>
-  <div>
+  <div class="pa-4">
     <VCard class="mb-6">
       <!-- 👉 Widgets  -->
       <VCardText>

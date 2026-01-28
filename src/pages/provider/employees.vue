@@ -62,6 +62,7 @@ const headers = [
   { title: 'Contact', key: 'contact' },
   { title: 'Status', key: 'status' },
   { title: 'Joined', key: 'joined_at' },
+  { title: 'Clinics', key: 'assigned_clinics' },
   { title: 'Actions', key: 'actions', sortable: false },
 ]
 
@@ -70,13 +71,23 @@ const fetchEmployees = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const [empRes, rolesRes, capsRes] = await Promise.all([
+    const [empRes, rolesRes, capsRes, assignmentsRes] = await Promise.all([
       api.get('http://127.0.0.1:8002/api/provider/employees/'),
       api.get('http://127.0.0.1:8002/api/provider/roles/'),
       api.get('http://127.0.0.1:8002/api/provider/capabilities/'),
+      api.get('http://127.0.0.1:8004/veterinary/assignments/'),
     ])
 
-    employees.value = empRes.data
+    const assignments = assignmentsRes.data || []
+
+    employees.value = (empRes.data || []).map(emp => {
+      const staffAssignments = assignments.filter(a => a.staff_auth_id === emp.auth_user_id)
+      
+      return {
+        ...emp,
+        assigned_clinics: staffAssignments.map(a => a.clinic_name || a.clinic),
+      }
+    })
     providerRoles.value = rolesRes.data
     capabilities.value = capsRes.data
   } catch (err) {
@@ -252,7 +263,8 @@ onMounted(() => {
 
 <template>
   <ProviderLayout>
-    <VCard class="mb-6">
+    <div class="pa-4">
+      <VCard class="mb-6">
       <VCardItem class="pb-4">
         <div class="d-flex justify-space-between align-center flex-wrap gap-4">
           <VCardTitle>Employees</VCardTitle>
@@ -345,6 +357,27 @@ onMounted(() => {
         <!-- Joined Column -->
         <template #item.joined_at="{ item }">
           {{ (item.joined_at || item.raw?.joined_at) ? new Date(item.joined_at || item.raw?.joined_at).toLocaleDateString() : '-' }}
+        </template>
+
+        <!-- Clinics Column -->
+        <template #item.assigned_clinics="{ item }">
+          <div class="d-flex flex-wrap gap-1">
+            <VChip
+              v-for="clinic in (item.assigned_clinics || item.raw?.assigned_clinics || [])"
+              :key="clinic"
+              size="x-small"
+              color="info"
+              variant="tonal"
+            >
+              {{ clinic }}
+            </VChip>
+            <span
+              v-if="!(item.assigned_clinics || item.raw?.assigned_clinics)?.length"
+              class="text-caption text-disabled"
+            >
+              No clinics
+            </span>
+          </div>
         </template>
 
         <!-- Actions Column -->
@@ -694,6 +727,8 @@ onMounted(() => {
     <ClinicAssignmentDialog 
       v-model="assignmentDialog" 
       :employee="assignmentEmployee" 
+      @saved="fetchEmployees"
     />
+    </div>
   </ProviderLayout>
 </template>

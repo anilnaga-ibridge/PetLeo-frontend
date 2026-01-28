@@ -38,6 +38,8 @@ export const usePermissionStore = defineStore('permission', {
       dynamicCapabilities: safeParse('dynamic_capabilities', []),
       dynamicModules: safeParse('dynamic_modules', []),
       isLoading: false,
+      isPermissionsLoaded: false,
+      isDynamicAccessLoaded: false,
     }
   },
 
@@ -87,6 +89,10 @@ export const usePermissionStore = defineStore('permission', {
         const res = await providerApi.get('/api/provider/permissions/')
 
         console.log('🔑 PermissionStore: API Response:', res.data)
+        const vetCore = res.data.permissions?.find(p => p.service_key === 'VETERINARY_CORE' || p.service_name === 'Veterinary')
+        if (vetCore) {
+          console.log('🔑 PermissionStore: VETERINARY_CORE Categories:', vetCore.categories?.map(c => c.name || c.category_key))
+        }
 
         // --- NORMALIZATION START ---
 
@@ -164,6 +170,7 @@ export const usePermissionStore = defineStore('permission', {
         }
         // -----------------------------------------
 
+        this.isPermissionsLoaded = true
         localStorage.setItem('provider_permissions', JSON.stringify(this.permissions))
         if (this.planDetails) {
           localStorage.setItem('provider_plan_details', JSON.stringify(this.planDetails))
@@ -378,16 +385,65 @@ export const usePermissionStore = defineStore('permission', {
 
       const service = this.permissions.find(
         p => (p.service_key?.toLowerCase() === serviceName.toLowerCase()) ||
-          (p.service_name?.toLowerCase() === serviceName.toLowerCase()),
+          (p.service_name?.toLowerCase() === serviceName.toLowerCase()) ||
+          (p.service_id?.toLowerCase() === serviceName.toLowerCase()),
       )
 
-      if (!service) return false
+      if (!service) {
+        // [FIX] Deep Search: If not found as a top-level service, check if it's a CATEGORY inside any service
+        // This is crucial for granular permissions like VETERINARY_VISITS which are inside VETERINARY_CORE
+        for (const s of this.permissions) {
+          if (s.categories) {
+            console.log(`🔍 Deep Search in ${s.service_key}:`, s.categories.map(c => c.name))
+            const nestedCategory = s.categories.find(c =>
+              c.name?.toLowerCase() === serviceName.toLowerCase() ||
+              c.category_key?.toLowerCase() === serviceName.toLowerCase()
+            )
+
+            if (nestedCategory) {
+              // Found it! Check permissions on this category
+              // Map action to property name
+              const propMap = {
+                'create': 'can_create',
+                'edit': 'can_edit',
+                'delete': 'can_delete',
+                'view': 'can_view',
+              }
+              const prop = propMap[action] || 'can_view'
+              return !!(nestedCategory[prop] || nestedCategory.permissions?.[prop])
+            }
+          }
+        }
+
+        if (serviceName.startsWith('VETERINARY')) {
+          console.log(`🚫 hasCapability('${serviceName}'): Service/Category NOT FOUND even after deep search. Available keys:`, this.permissions.map(p => p.service_key))
+        }
+
+        // [FIX] Special Case: VETERINARY_CORE is required for layout, but user might only have specific sub-capabilities
+        // If asking for VETERINARY_CORE, and it wasn't found, check if they have ANY veterinary access.
+        if (serviceName === 'VETERINARY_CORE') {
+          const hasAnyVet = this.permissions.some(p => p.service_key?.startsWith('VETERINARY_'))
+          if (hasAnyVet) {
+            console.log('✅ hasCapability: Implicitly granting VETERINARY_CORE because user has other VETERINARY_* permissions')
+            return true
+          }
+        }
+
+        return false
+      }
 
       // If checking for the service itself (e.g. VETERINARY_CORE)
       if (!categoryName) {
         // [FIX] Backend sends can_view at the root of the Service object
-        return !!(service.can_view || service.permissions?.can_view)
+        const result = !!(service.can_view || service.permissions?.can_view)
+        if (!result && serviceName.startsWith('VETERINARY')) {
+          console.log(`🚫 hasCapability('${serviceName}'): Found service but can_view is false`, service)
+        }
+        return result
       }
+
+
+
 
       // If checking for a category (e.g. VETERINARY_VISITS)
       if (service.categories) {
@@ -415,16 +471,27 @@ export const usePermissionStore = defineStore('permission', {
     },
 
     async fetchDynamicAccess() {
+      this.isLoading = true
       try {
+        console.log('🧭 PermissionStore: Fetching Dynamic Access...')
         const res = await providerApi.get('/api/provider/permissions/my-access/')
+
         this.dynamicCapabilities = res.data.capabilities || []
         this.dynamicModules = res.data.modules || []
 
         localStorage.setItem('dynamic_capabilities', JSON.stringify(this.dynamicCapabilities))
         localStorage.setItem('dynamic_modules', JSON.stringify(this.dynamicModules))
+
+        this.isDynamicAccessLoaded = true
         console.log("✅ Fetched Dynamic Access:", this.dynamicModules.length, "modules")
       } catch (e) {
         console.error("Failed to fetch dynamic access", e)
+        // Even on error, we mark it as "loaded" to prevent infinite spinner 
+        // if the user has cached data or we want to show what we have.
+        // But for strict fix, maybe we should handle it differently.
+        this.isDynamicAccessLoaded = true
+      } finally {
+        this.isLoading = false
       }
     },
 

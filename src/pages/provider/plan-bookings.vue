@@ -36,7 +36,8 @@ onMounted(() => {
 
 <template>
   <ProviderLayout>
-    <VRow>
+    <div class="pa-4">
+      <VRow>
       <VCol cols="12">
         <h2 class="text-h4 mb-4">
           Plan Bookings
@@ -139,7 +140,8 @@ onMounted(() => {
           </VTable>
         </VCard>
       </VCol>
-    </VRow>
+      </VRow>
+    </div>
   </ProviderLayout>
 </template>
 

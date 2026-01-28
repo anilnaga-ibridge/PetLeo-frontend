@@ -21,8 +21,15 @@ const getUserRole = () => {
 import { onMounted } from 'vue'
 
 onMounted(() => {
-    if (['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(getUserRole())) {
+    const role = getUserRole()
+    console.log(`⏱️ [${new Date().toISOString()}] Sidebar: Layout Mounted. Role: ${role}, Ready: ${permissionStore.isDynamicAccessLoaded}`)
+    
+    // Guard: If for some reason the router guard was skipped and we aren't loaded, fetch now.
+    if (['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(role) && !permissionStore.isDynamicAccessLoaded) {
+        console.log(`⚠️ Sidebar: Data missing on mount! Calling fetchDynamicAccess...`)
         permissionStore.fetchDynamicAccess()
+    } else {
+        permissionStore.isDynamicAccessLoaded = true
     }
 })
 
@@ -34,6 +41,8 @@ const filteredNavItems = computed(() => {
   // Use Provider Navigation if Provider Role, otherwise Default (SuperAdmin)
   let items = isProvider ? getProviderNavigation() : navItems
   
+  console.log(`🧭 Sidebar: Initial Items: ${items.length}, DynamicLoaded: ${permissionStore.isDynamicAccessLoaded}`)
+
   // MERGE DYNAMIC ITEMS
   if (permissionStore.dynamicModules && permissionStore.dynamicModules.length) {
       const dynItems = permissionStore.dynamicModules.map(mod => ({
@@ -63,6 +72,19 @@ const filteredNavItems = computed(() => {
   })
 })
 
+// Computed Property for App Readiness
+const isAppReady = computed(() => {
+  const role = getUserRole()
+  const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(role)
+  
+  if (isProvider) {
+    // STRICT: Wait for BOTH dynamic access (modules) AND permissions (capabilities)
+    return permissionStore.isDynamicAccessLoaded && permissionStore.isPermissionsLoaded
+  }
+  
+  return true
+})
+
 import { watch } from 'vue'
 watch(
   () => permissionStore.permissions,
@@ -86,7 +108,8 @@ import { VerticalNavLayout } from '@layouts'
 </script>
 
 <template>
-  <VerticalNavLayout :nav-items="filteredNavItems">
+  <template v-if="isAppReady">
+    <VerticalNavLayout :nav-items="filteredNavItems">
     <!-- 👉 navbar -->
     <template #navbar="{ toggleVerticalOverlayNavActive }">
       <div class="d-flex h-100 align-center">
@@ -127,4 +150,11 @@ import { VerticalNavLayout } from '@layouts'
     <!-- 👉 Customizer -->
     <TheCustomizer />
   </VerticalNavLayout>
+  </template>
+  <div v-else class="h-100 d-flex align-center justify-center bg-white" style="position: fixed; inset: 0; z-index: 9999;">
+    <div class="text-center">
+      <VProgressCircular indeterminate color="primary" size="64" width="6" class="mb-4" />
+      <div class="text-h6 text-medium-emphasis">Loading your workspace...</div>
+    </div>
+  </div>
 </template>

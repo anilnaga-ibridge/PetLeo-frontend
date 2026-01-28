@@ -45,7 +45,7 @@ const filteredNavItems = computed(() => {
       // Map store structure if needed, but if store has { service_key: '...' }, we check that
       // Assuming permissionStore.hasCapability logic or direct list check
       // The store permissions are objects: { service_key: 'VETERINARY_CORE', ... }
-      return permissions.some(p => p.service_key === item.capability || p.service_name === item.capability)
+      return permissionStore.hasCapability(item.capability)
     }
     
     if (item.heading) return true

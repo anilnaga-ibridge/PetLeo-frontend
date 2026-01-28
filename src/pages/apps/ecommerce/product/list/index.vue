@@ -220,7 +220,7 @@ const deleteProduct = async id => {
 </script>
 
 <template>
-  <div>
+  <div class="pa-4">
     <!-- 👉 widgets -->
     <VCard class="mb-6">
       <VCardText class="px-3">

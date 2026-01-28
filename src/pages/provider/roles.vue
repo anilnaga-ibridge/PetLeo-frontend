@@ -24,6 +24,9 @@ const saving = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const currentRole = ref(null) // Role being edited
+const capDialog = ref(false)
+const empDialog = ref(false)
+const roleDetails = ref(null)
 
 // Headers
 const headers = [
@@ -57,8 +60,22 @@ const fetchData = async () => {
   }
 }
 
-// Open Dialog
+const openCapDetails = role => {
+  roleDetails.value = role.raw || role
+  capDialog.value = true
+}
+
+const openEmpDetails = role => {
+  roleDetails.value = role.raw || role
+  empDialog.value = true
+}
+
 const openDialog = (role = null) => {
+  // Guard: If called via event listener without args, 'role' might be a PointerEvent
+  if (role && (role instanceof Event || !role.id && !role.raw)) {
+     role = null
+  }
+
   errorMessage.value = ''
   successMessage.value = ''
   currentRole.value = role ? (role.raw || role) : null
@@ -72,7 +89,7 @@ const handleWizardSave = async payload => {
   successMessage.value = ''
 
   try {
-    if (currentRole.value) {
+    if (currentRole.value && currentRole.value.id) {
       await api.patch(`http://127.0.0.1:8002/api/provider/roles/${currentRole.value.id}/`, payload)
       successMessage.value = 'Role updated successfully!'
     } else {
@@ -111,7 +128,8 @@ onMounted(() => {
 
 <template>
   <ProviderLayout>
-    <VCard class="mb-6">
+    <div class="pa-4">
+      <VCard class="mb-6">
       <VCardItem class="pb-4">
         <div class="d-flex justify-space-between align-center flex-wrap gap-4">
           <VCardTitle>Provider Roles</VCardTitle>
@@ -126,7 +144,7 @@ onMounted(() => {
             />
             <VBtn
               prepend-icon="tabler-plus"
-              @click="openDialog"
+              @click="openDialog(null)"
             >
               Create Role
             </VBtn>
@@ -146,6 +164,8 @@ onMounted(() => {
             size="small"
             color="primary"
             variant="tonal"
+            style="cursor: pointer;"
+            @click="openCapDetails(item)"
           >
             {{ (item.capabilities || item.raw?.capabilities || []).length }}
           </VChip>
@@ -156,6 +176,8 @@ onMounted(() => {
             size="small"
             color="info"
             variant="tonal"
+            style="cursor: pointer;"
+            @click="openEmpDetails(item)"
           >
             {{ (item.employees || item.raw?.employees || []).length }}
           </VChip>
@@ -192,8 +214,113 @@ onMounted(() => {
       v-model="dialog"
       :role="currentRole"
       :available-permissions="permissionTree"
+      :loading="saving"
       @save="handleWizardSave"
     />
+
+    <!-- Capabilities Details Dialog -->
+    <VDialog
+      v-model="capDialog"
+      max-width="500px"
+    >
+      <VCard>
+        <VCardItem>
+          <VCardTitle>Role Capabilities</VCardTitle>
+          <VCardSubtitle v-if="roleDetails">
+            Permissions for {{ roleDetails.name }}
+          </VCardSubtitle>
+        </VCardItem>
+
+        <VCardText class="pt-0">
+          <VList v-if="roleDetails?.capabilities_details?.length">
+            <VListItem
+              v-for="cap in roleDetails.capabilities_details"
+              :key="cap.key"
+              :title="cap.label"
+              :subtitle="cap.group"
+            >
+              <template #prepend>
+                <VIcon
+                  icon="tabler-shield-check"
+                  color="success"
+                  class="me-2"
+                />
+              </template>
+            </VListItem>
+          </VList>
+          <div
+            v-else
+            class="pa-4 text-center text-medium-emphasis"
+          >
+            No specific capabilities assigned.
+          </div>
+        </VCardText>
+
+        <VCardActions>
+          <VSpacer />
+          <VBtn
+            color="primary"
+            @click="capDialog = false"
+          >
+            Close
+          </VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
+
+    <!-- Employees Details Dialog -->
+    <VDialog
+      v-model="empDialog"
+      max-width="500px"
+    >
+      <VCard>
+        <VCardItem>
+          <VCardTitle>Assigned Employees</VCardTitle>
+          <VCardSubtitle v-if="roleDetails">
+            Employees with the {{ roleDetails.name }} role
+          </VCardSubtitle>
+        </VCardItem>
+
+        <VCardText class="pt-0">
+          <VList v-if="roleDetails?.employees_details?.length">
+            <VListItem
+              v-for="emp in roleDetails.employees_details"
+              :key="emp.email"
+              :title="emp.full_name || 'No Name'"
+              :subtitle="emp.email"
+            >
+              <template #prepend>
+                <VAvatar
+                  size="32"
+                  color="info"
+                  variant="tonal"
+                  class="me-2"
+                >
+                  {{ (emp.full_name || emp.email).charAt(0).toUpperCase() }}
+                </VAvatar>
+              </template>
+            </VListItem>
+          </VList>
+          <div
+            v-else
+            class="pa-4 text-center text-medium-emphasis"
+          >
+            No employees currently assigned to this role.
+          </div>
+        </VCardText>
+
+        <VCardActions>
+          <VSpacer />
+          <VBtn
+            color="primary"
+            @click="empDialog = false"
+          >
+            Close
+          </VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
+    </div>
   </ProviderLayout>
 </template>
 

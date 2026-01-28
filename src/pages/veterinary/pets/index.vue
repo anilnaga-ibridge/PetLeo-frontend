@@ -46,7 +46,7 @@ const headers = [
 
 <template>
   <component :is="currentLayout">
-    <div class="patients-list-page">
+    <div class="patients-list-page pa-4">
       <div class="d-flex justify-space-between align-center mb-6">
         <div>
           <h1 class="text-h3 font-weight-bold text-primary">

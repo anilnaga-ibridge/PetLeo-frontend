@@ -10,12 +10,14 @@ onMounted(async () => {
   console.log('📊 Provider Dashboard: Mounting...')
   await permissionStore.fetchPermissions()
   console.log('📊 Provider Dashboard: Permissions loaded:', permissionStore.permissions.length)
+  console.log('📊 Provider Dashboard: Enabled Services:', permissionStore.enabledServices.map(s => s.service_name))
 })
 </script>
 
 <template>
   <ProviderLayout>
-    <VRow>
+    <div class="pa-4">
+      <VRow>
       <!-- EXPIRY ALERT -->
       <VCol
         v-if="permissionStore.planDetails?.is_expiring_soon"
@@ -177,7 +179,8 @@ onMounted(async () => {
           </VCol>
         </VRow>
       </VCol>
-    </VRow>
+      </VRow>
+    </div>
   </ProviderLayout>
 </template>
 

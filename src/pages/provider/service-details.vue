@@ -27,7 +27,7 @@ const searchQuery = ref('')
 
 const userData = useCookie('userData')
 const userRole = computed(() => (userData.value?.role?.name || userData.value?.role || '').toLowerCase())
-const currentLayout = computed(() => userRole.value === 'employee' ? EmployeeLayout : ProviderLayout)
+const currentLayout = ProviderLayout
 
 // Detect Veterinary Service
 const isVeterinary = computed(() => {
@@ -250,7 +250,7 @@ const handleOpenDashboard = () => {
     <!-- SERVICE CONTENT -->
     <div
       v-else
-      class="service-details-page"
+      class="service-details-page pa-4"
     >
       <!-- HEADER -->
       <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">

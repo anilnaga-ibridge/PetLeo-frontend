@@ -81,7 +81,8 @@ const editPermission = name => {
 </script>
 
 <template>
-  <VRow>
+  <div class="pa-4">
+    <VRow>
     <VCol cols="12">
       <VCard>
         <VCardText class="d-flex align-center justify-space-between flex-wrap gap-4">
@@ -198,4 +199,5 @@ const editPermission = name => {
       <AddEditPermissionDialog v-model:is-dialog-visible="isAddPermissionDialogVisible" />
     </VCol>
   </VRow>
+  </div>
 </template>

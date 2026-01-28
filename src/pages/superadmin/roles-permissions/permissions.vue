@@ -1,5 +1,5 @@
 <template>
-  <section>
+  <section class="pa-4">
     <VCard class="mb-6">
       <VCardItem class="pb-2">
         <VCardTitle class="text-h5 font-weight-bold">

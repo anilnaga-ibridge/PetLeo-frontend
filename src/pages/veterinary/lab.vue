@@ -41,7 +41,7 @@ const onResultSubmitted = () => {
 
 <template>
   <component :is="currentLayout">
-    <div class="lab-page">
+    <div class="lab-page pa-4">
       <h1 class="text-h3 font-weight-bold text-primary mb-6">
         Lab Orders
       </h1>

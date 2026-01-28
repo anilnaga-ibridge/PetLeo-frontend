@@ -263,9 +263,28 @@ export const useVeterinaryStore = defineStore('veterinary', {
               // Already added above map
             }
 
-            console.log("Synced Permissions from Clinic:", mapped)
-            permStore.permissions = mapped
-            localStorage.setItem('provider_permissions', JSON.stringify(mapped))
+            console.log("Synced Permissions from Clinic (Merging with existing):", mapped)
+
+            // [FIX] Merge with existing permissions instead of overwriting
+            // This preserves NON-CLINIC permissions (like Provider Dashboard access) 
+            // while adding/updating clinic specific ones.
+            const existing = [...permStore.permissions]
+            const merged = [...existing]
+
+            mapped.forEach(mp => {
+              const index = merged.findIndex(p => p.service_key === mp.service_key)
+              if (index >= 0) {
+                // Update existing (e.g. enable it if it was disabled?)
+                // actually, typically clinic perms are additive or restrictive? 
+                // For now, let's assume we just ensure it's there.
+                merged[index] = { ...merged[index], ...mp }
+              } else {
+                merged.push(mp)
+              }
+            })
+
+            permStore.permissions = merged
+            localStorage.setItem('provider_permissions', JSON.stringify(merged))
           } catch (e) {
             console.error("Error syncing permissions:", e)
           }

@@ -21,10 +21,13 @@ const form = ref({
   sex: null,
   dob: '',
   color: '',
-  weight: '',
-  owner_name: '',
   owner_phone: '',
+  owner_email: '',
+  owner_address: '',
+  country_code: '+91',
 })
+
+const countryCodes = ['+91', '+1', '+44', '+61', '+81', '+49', '+33', '+86']
 
 const sexOptions = ['Male', 'Female', 'Unknown']
 const petTypes = computed(() => veterinaryStore.petTypes)
@@ -111,9 +114,22 @@ onMounted(async () => {
         sex: pet.sex,
         dob: pet.dob,
         color: pet.color,
-        weight: pet.weight,
         owner_name: pet.owner?.name || '',
-        owner_phone: pet.owner?.phone || '',
+        owner_phone: '', 
+        owner_email: pet.owner?.email || '',
+        owner_address: pet.owner?.address || '',
+      }
+
+      // Parse phone number
+      if (pet.owner?.phone) {
+        const phone = pet.owner.phone.trim()
+        const code = countryCodes.find(c => phone.startsWith(c))
+        if (code) {
+          form.value.country_code = code
+          form.value.owner_phone = phone.substring(code.length).trim()
+        } else {
+          form.value.owner_phone = phone
+        }
       }
     }
   } catch (e) {
@@ -139,7 +155,14 @@ const submit = async () => {
     payload.species = unwrap(payload.species)
     payload.breed = unwrap(payload.breed)
     payload.sex = unwrap(payload.sex)
-    if (payload.weight) payload.weight = parseFloat(payload.weight)
+
+    // Combine country code and phone
+    if (payload.owner_phone) {
+      payload.owner_phone = `${payload.country_code} ${payload.owner_phone}`
+    }
+      
+    // Map frontend field to backend model field
+    payload.address = payload.owner_address
 
     await veterinaryStore.updatePet(petId, payload)
     router.push('/veterinary/pets')
@@ -288,7 +311,7 @@ const submit = async () => {
 
                 <VCol
                   cols="12"
-                  md="4"
+                  md="6"
                 >
                   <AppTextField
                     v-model="form.dob"
@@ -300,24 +323,12 @@ const submit = async () => {
 
                 <VCol
                   cols="12"
-                  md="4"
+                  md="6"
                 >
                   <AppTextField
                     v-model="form.color"
                     label="Color/Markings"
                     prepend-inner-icon="tabler-palette"
-                  />
-                </VCol>
-
-                <VCol
-                  cols="12"
-                  md="4"
-                >
-                  <AppTextField
-                    v-model="form.weight"
-                    type="number"
-                    label="Weight (kg)"
-                    prepend-inner-icon="tabler-scale"
                   />
                 </VCol>
 
@@ -341,7 +352,7 @@ const submit = async () => {
 
                 <VCol
                   cols="12"
-                  md="6"
+                  md="4"
                 >
                   <AppTextField
                     v-model="form.owner_name"
@@ -353,13 +364,45 @@ const submit = async () => {
 
                 <VCol
                   cols="12"
-                  md="6"
+                  md="4"
+                >
+                  <div class="d-flex gap-1">
+                    <AppSelect
+                      v-model="form.country_code"
+                      :items="countryCodes"
+                      label="Code"
+                      style="max-width: 110px;"
+                    />
+                    <AppTextField
+                      v-model="form.owner_phone"
+                      label="Phone *"
+                      placeholder="9876543210"
+                      :rules="[v => !!v || 'Phone is required']"
+                    />
+                  </div>
+                </VCol>
+
+                <VCol
+                  cols="12"
+                  md="4"
                 >
                   <AppTextField
-                    v-model="form.owner_phone"
-                    label="Owner Phone *"
-                    prepend-inner-icon="tabler-phone"
-                    :rules="[v => !!v || 'Owner phone is required']"
+                    v-model="form.owner_email"
+                    label="Owner Email"
+                    placeholder="e.g. owner@example.com"
+                    prepend-inner-icon="tabler-mail"
+                    type="email"
+                  />
+                </VCol>
+
+                <VCol cols="12">
+                  <AppTextarea
+                    v-model="form.owner_address"
+                    label="Current Address"
+                    placeholder="Street, City, Zip Code"
+                    prepend-inner-icon="tabler-map-pin"
+                    rows="2"
+                    auto-grow
                   />
                 </VCol>
 

@@ -75,7 +75,8 @@ onMounted(() => {
 
 <template>
   <ProviderLayout>
-    <VRow>
+    <div class="pa-4">
+      <VRow>
       <VCol cols="12">
         <h2 class="text-h4 mb-4">
           Plan Cart
@@ -220,13 +221,14 @@ onMounted(() => {
       </VCol>
     </VRow>
 
-    <VSnackbar
-      v-model="snackbar.show"
-      :color="snackbar.color"
-      location="top end"
-    >
-      {{ snackbar.text }}
-    </VSnackbar>
+      <VSnackbar
+        v-model="snackbar.show"
+        :color="snackbar.color"
+        location="top end"
+      >
+        {{ snackbar.text }}
+      </VSnackbar>
+    </div>
   </ProviderLayout>
 </template>
 

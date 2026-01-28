@@ -174,7 +174,7 @@ const resolveStatusColor = status => {
 </script>
 
 <template>
-  <section>
+  <section class="pa-4">
     <VCard>
       <VCardItem>
         <VCardTitle>Document Verification</VCardTitle>

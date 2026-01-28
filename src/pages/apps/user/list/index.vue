@@ -236,7 +236,7 @@ const widgetData = ref([
 </script>
 
 <template>
-  <section>
+  <section class="pa-4">
     <!-- 👉 Widgets -->
     <div class="d-flex mb-6">
       <VRow>

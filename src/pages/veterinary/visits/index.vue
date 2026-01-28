@@ -87,7 +87,7 @@ export default {
 
 <template>
   <component :is="currentLayout">
-    <div class="visits-list-page">
+    <div class="visits-list-page pa-4">
       <div class="d-flex justify-space-between align-center mb-6">
         <div>
           <h1 class="text-h3 font-weight-bold text-primary">
