@@ -628,31 +628,33 @@ watch(() => props.state.selectedServiceId, () => {
                 <VSelect
                   v-model="form.category"
                   :items="categories"
-                  label="Service Type"
-                  placeholder="Select type (Optional)"
+                  label="Service Type *"
+                  placeholder="Select type"
                   item-title="name"
                   item-value="id"
                   class="mb-4"
-                  clearable
+                  required
                   density="comfortable"
                   variant="outlined"
                   bg-color="surface"
                   :menu-props="{ zIndex: 10000 }"
+                  :rules="[v => !!v || 'Category is required']"
                 />
                 
                 <VSelect
                   v-model="form.facility"
                   :items="facilities"
-                  label="Facility"
-                  placeholder="Select facility (Optional)"
+                  label="Facility *"
+                  placeholder="Select facility"
                   item-title="name"
                   item-value="id"
                   class="mb-0"
-                  clearable
+                  required
                   density="comfortable"
                   variant="outlined"
                   bg-color="surface"
                   :menu-props="{ zIndex: 10000 }"
+                  :rules="[v => !!v || 'Facility is required']"
                 />
               </VCard>
 

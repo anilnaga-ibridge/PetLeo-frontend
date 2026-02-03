@@ -12,6 +12,9 @@ const router = useRouter()
 const plans = ref([])
 const billingCycles = ref([])
 const services = ref([])
+const categories = ref([])
+const facilities = ref([])
+const rules = ref([])
 const loading = ref(false)
 const drawerOpen = ref(false)
 const isEdit = ref(false)
@@ -42,15 +45,89 @@ const fetchPlans = async () => {
   }
 }
 
+const runDiagnostics = () => {
+    const report = [
+        `Services: ${services.value.length}`,
+        `Categories: ${categories.value.length}`,
+        `Facilities: ${facilities.value.length}`,
+        `Rules: ${rules.value.length}`,
+    ]
+    
+    if (facilities.value.length > 0) {
+        const sample = facilities.value[0]
+        report.push(`Sample Fac Cat Type: ${typeof sample.category}`)
+        report.push(`Sample Fac Cat Val: ${JSON.stringify(sample.category)}`)
+    }
+    
+    const grooming = services.value.find(s => s.display_name === 'Grooming')
+    if (grooming) {
+        report.push(`Grooming Cats: ${grooming.categories?.length}`)
+        if (grooming.categories?.[0]) {
+             const cat = grooming.categories[0]
+             report.push(`First Cat (${cat.name}) Facs: ${cat.facilities?.length}`)
+             report.push(`Debug Info: ${cat.debug_info}`)
+        }
+    }
+
+    alert(report.join('\n'))
+}
+
 const fetchMetadata = async () => {
   try {
-    const [bcRes, svcRes] = await Promise.all([
+    const [bcRes, svcRes, catRes, facRes, priceRes] = await Promise.all([
       superAdminApi.get('/api/superadmin/billing-cycles/'),
       superAdminApi.get('/api/superadmin/services/'),
+      superAdminApi.get(`/api/superadmin/categories/?limit=1000&_t=${Date.now()}`),
+      superAdminApi.get(`/api/superadmin/facilities/?limit=1000&_t=${Date.now()}`),
+      superAdminApi.get(`/api/superadmin/pricing-rules/?limit=1000&_t=${Date.now()}`),
     ])
 
     billingCycles.value = bcRes.data.results || bcRes.data || []
     services.value = svcRes.data.results || svcRes.data || []
+    categories.value = catRes.data.results || catRes.data || []
+    facilities.value = facRes.data.results || facRes.data || []
+    rules.value = priceRes.data.results || priceRes.data || []
+
+    console.log('DEBUG: Hierarchy Loaded', { cats: categories.value.length, facs: facilities.value.length, rules: rules.value.length })
+
+    // Map hierarchy: Service -> Category -> Facility -> Price
+    services.value = services.value.map(svc => {
+        // 1. Get Categories for this Service
+        const svcCategories = categories.value.filter(c => String(c.service) === String(svc.id))
+        
+        svcCategories.forEach(cat => {
+            // 2. Get Facilities for this Category (Source: Facilities API)
+            // Fix: Handle facility.category being an object or ID
+            const catFacilities = facilities.value.filter(f => {
+                const fCatId = f.category?.id || f.category
+                return String(fCatId) === String(cat.id)
+            })
+            
+            // 3. Map to UI objects and Attach Price (Source: PricingRules)
+            cat.facilities = catFacilities.map(fac => {
+                // Find matching pricing rule for this facility
+                const rule = rules.value.find(r => {
+                    const rFacId = r.facility?.id || r.facility
+                    return String(rFacId) === String(fac.id)
+                })
+
+                return {
+                    id: fac.id,
+                    name: fac.name,
+                    price: rule ? parseFloat(rule.base_price || 0).toFixed(2) : '0.00',
+                    billing_unit: rule?.billing_unit || 'PER_SESSION'
+                }
+            })
+            
+            // Debug info
+            cat.debug_info = `Cat: ${cat.name} | Facs: ${cat.facilities.length}`
+        })
+        
+        return {
+            ...svc,
+            categories: svcCategories
+        }
+    })
   } catch (err) {
     console.error('Failed to fetch metadata:', err)
   }
@@ -127,34 +204,63 @@ const submit = async () => {
       planId = res.data.id
     }
 
-    // Sync Capabilities
+    // Sync Capabilities (Cascade Strategy)
     const capRes = await superAdminApi.get('/api/superadmin/plan-capabilities/', {
       params: { plan: planId },
     })
-
     const currentCaps = capRes.data.results || capRes.data || []
-    const currentSvcIds = currentCaps.map(c => c.service?.id || c.service)
+    
+    // 2. Identify all desired capabilities
+    const desiredCaps = [] 
 
     for (const svc of services.value) {
       const capData = form.value.capabilities[svc.id]
-      const exists = currentSvcIds.includes(svc.id)
-      const currentCap = currentCaps.find(c => (c.service?.id || c.service) === svc.id)
-
       if (capData?.enabled) {
-        const payload = {
-          plan: planId,
-          service: svc.id,
-          permissions: capData.permissions,
-        }
+         // A. Service Capability
+         desiredCaps.push({
+             service: svc.id,
+             category: null,
+             facility: null,
+             permissions: capData.permissions
+         })
 
-        if (exists) {
-          await superAdminApi.put(`/api/superadmin/plan-capabilities/${currentCap.id}/`, payload)
-        } else {
-          await superAdminApi.post('/api/superadmin/plan-capabilities/', payload)
-        }
-      } else if (exists) {
-        await superAdminApi.delete(`/api/superadmin/plan-capabilities/${currentCap.id}/`)
+         // B. Category Capabilities
+         if (svc.categories) {
+             for (const cat of svc.categories) {
+                 desiredCaps.push({
+                     service: svc.id,
+                     category: cat.id,
+                     facility: null,
+                     permissions: capData.permissions
+                 })
+
+                 // C. Facility Capabilities
+                 if (cat.facilities) {
+                     for (const fac of cat.facilities) {
+                         desiredCaps.push({
+                             service: svc.id,
+                             category: cat.id,
+                             facility: fac.id,
+                             permissions: capData.permissions
+                         })
+                     }
+                 }
+             }
+         }
       }
+    }
+
+    // 3. Delete ALL and Recreate to ensure correct hierarchy
+    if (currentCaps.length > 0) {
+        await Promise.all(currentCaps.map(c => superAdminApi.delete(`/api/superadmin/plan-capabilities/${c.id}/`)))
+    }
+
+    // 4. Create all desired
+    for (const cap of desiredCaps) {
+        await superAdminApi.post('/api/superadmin/plan-capabilities/', {
+            plan: planId,
+            ...cap
+        })
     }
 
     drawerOpen.value = false
@@ -163,6 +269,7 @@ const submit = async () => {
     console.error('Failed to save plan:', err)
   }
 }
+
 
 const toggleStatus = async plan => {
   try {
@@ -339,11 +446,22 @@ onMounted(() => {
           <h3 class="text-h6 font-weight-bold">
             {{ isEdit ? 'Edit Plan' : 'Create Plan' }}
           </h3>
-          <VBtn
-            icon="tabler-x"
-            variant="text"
-            @click="drawerOpen = false"
-          />
+          <div class="d-flex align-center">
+             <VBtn
+               size="small"
+               color="error"
+               variant="text"
+               class="mr-2"
+               @click="runDiagnostics"
+             >
+               Debug Data
+             </VBtn>
+             <VBtn
+               icon="tabler-x"
+               variant="text"
+               @click="drawerOpen = false"
+             />
+          </div>
         </div>
 
         <div class="flex-grow-1 overflow-y-auto pa-6">
@@ -460,6 +578,38 @@ onMounted(() => {
                         density="compact"
                         hide-details
                       />
+                    </div>
+
+                    <!-- HIERARCHY DISPLAY -->
+                    <div v-if="svc.categories && svc.categories.length > 0" class="mt-4 pt-4 border-t">
+                      <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                        Included Categories & Facilities
+                      </div>
+                      <div class="ml-1">
+                         <div v-for="cat in svc.categories" :key="cat.id" class="mb-3">
+                            <div class="d-flex align-center gap-2 mb-1">
+                               <VIcon icon="tabler-category" size="16" color="secondary" />
+                               <span class="text-body-2 font-weight-bold">{{ cat.name }}</span>
+                               <span class="text-caption text-error font-weight-bold">{{ cat.debug_info }}</span>
+                            </div>
+                            
+                            <div v-if="cat.facilities && cat.facilities.length > 0" class="ml-6 d-flex flex-wrap gap-2">
+                                <VChip 
+                                  v-for="fac in cat.facilities" 
+                                  :key="fac.id" 
+                                  size="small" 
+                                  variant="tonal" 
+                                  color="primary"
+                                  class="font-weight-medium"
+                                >
+                                   {{ fac.name }} <span class="text-caption ml-1 opacity-70"> (₹{{ fac.price }})</span>
+                                </VChip>
+                            </div>
+                            <div v-else class="ml-6 text-caption text-disabled font-italic">
+                              No facilities defined
+                            </div>
+                         </div>
+                      </div>
                     </div>
                   </div>
                 </VExpandTransition>

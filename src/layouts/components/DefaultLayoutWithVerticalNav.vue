@@ -25,7 +25,7 @@ onMounted(() => {
     console.log(`⏱️ [${new Date().toISOString()}] Sidebar: Layout Mounted. Role: ${role}, Ready: ${permissionStore.isDynamicAccessLoaded}`)
     
     // Guard: If for some reason the router guard was skipped and we aren't loaded, fetch now.
-    if (['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(role) && !permissionStore.isDynamicAccessLoaded) {
+    if (['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE'].includes(role) && !permissionStore.isDynamicAccessLoaded) {
         console.log(`⚠️ Sidebar: Data missing on mount! Calling fetchDynamicAccess...`)
         permissionStore.fetchDynamicAccess()
     } else {
@@ -36,7 +36,7 @@ onMounted(() => {
 const filteredNavItems = computed(() => {
   console.log('🔄 Sidebar: Re-calculating filteredNavItems')
   const role = getUserRole()
-  const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(role)
+  const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE'].includes(role)
   
   // Use Provider Navigation if Provider Role, otherwise Default (SuperAdmin)
   let items = isProvider ? getProviderNavigation() : navItems
@@ -75,7 +75,7 @@ const filteredNavItems = computed(() => {
 // Computed Property for App Readiness
 const isAppReady = computed(() => {
   const role = getUserRole()
-  const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(role)
+  const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE'].includes(role)
   
   if (isProvider) {
     // STRICT: Wait for BOTH dynamic access (modules) AND permissions (capabilities)

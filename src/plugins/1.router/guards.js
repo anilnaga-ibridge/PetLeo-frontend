@@ -131,9 +131,9 @@ export const setupGuards = router => {
         console.log('🛡️ Provider Guard Debug:', { roleUpper, isProviderAdmin, hasVetCore: permissionStore.hasCapability('VETERINARY_CORE'), hasProviderMod: permissionStore.hasCapability('PROVIDER_MODULE'), providerType: user.provider_type })
 
         if (permissionStore.hasCapability('VETERINARY_CORE') && !isProviderAdmin) {
-          console.warn('⛔ Veterinary staff blocked from Provider area')
-
-          return '/veterinary/dashboard'
+          console.log('🩺 Veterinary staff entering Provider area - Checking mixed access')
+          // [FIX] If they have OTHER services (Grooming, etc.), allow them to see the sidebar/pages
+          // If they ONLY have Veterinary, they stay in /veterinary/
         }
 
         // Allow if they are a Provider admin
@@ -150,12 +150,8 @@ export const setupGuards = router => {
         }
       }
 
-      // 4. Block Generic Employee Dashboard for Veterinary Staff
-      if (to.path.startsWith('/employee') && permissionStore.hasCapability('VETERINARY_CORE')) {
-        console.warn('⛔ Veterinary staff redirected from generic employee dashboard')
-
-        return '/veterinary/dashboard'
-      }
+      // 4. (REMOVED) Block Generic Employee Dashboard for Veterinary Staff
+      // We want everyone to be able to hit /employee/ if they have the perms.
     }
 
     // 🛡️ CASL Ability Check (Replaced canNavigate with direct check)

@@ -74,17 +74,19 @@ const fetchPlans = async () => {
 
 const categories = ref([])
 const facilities = ref([])
+const rules = ref([])
 
 const availableCapabilities = ref([])
 
 const fetchMetadata = async () => {
   try {
-    const [bcRes, svcRes, catRes, facRes, capRes] = await Promise.all([
+    const [bcRes, svcRes, catRes, facRes, capRes, priceRes] = await Promise.all([
       superAdminApi.get('/api/superadmin/billing-cycles/'),
       superAdminApi.get('/api/superadmin/services/'),
       superAdminApi.get('/api/superadmin/categories/'),
       superAdminApi.get('/api/superadmin/facilities/'),
       superAdminApi.get('/api/superadmin/capabilities/'),
+      superAdminApi.get(`/api/superadmin/pricing-rules/?limit=1000&_t=${Date.now()}`),
     ])
 
     billingCycles.value = bcRes.data.results || bcRes.data || []
@@ -92,9 +94,26 @@ const fetchMetadata = async () => {
     categories.value = catRes.data.results || catRes.data || []
     facilities.value = facRes.data.results || facRes.data || []
     availableCapabilities.value = capRes.data.results || capRes.data || []
+    rules.value = priceRes.data.results || priceRes.data || []
   } catch (err) {
     console.error('Failed to fetch metadata:', err)
   }
+}
+
+const getFacilityPrice = (facId) => {
+    const rule = rules.value.find(r => {
+        const rFacId = r.facility?.id || r.facility
+        return String(rFacId) === String(facId)
+    })
+    if (!rule) return '0.00'
+    return parseFloat(rule.base_price || 0).toFixed(2)
+}
+
+const getCategoryFacilities = (catId) => {
+    return facilities.value.filter(f => {
+        const fCatId = f.category?.id || f.category
+        return String(fCatId) === String(catId)
+    })
 }
 
 const groupedCapabilities = computed(() => {
@@ -280,31 +299,53 @@ const submit = async () => {
       let catId = null
       let facId = null
 
-      if (key.startsWith('svc_')) svcId = key.split('_')[1]
+      if (key.startsWith('svc_')) {
+        svcId = key.split('_')[1]
+      }
       else if (key.startsWith('cat_')) {
         catId = key.split('_')[1]
 
-
         // Find service for this category
-        const cat = categories.value.find(c => c.id === catId)
+        const cat = categories.value.find(c => String(c.id) === String(catId))
         if (cat) svcId = cat.service
       }
       else if (key.startsWith('fac_')) {
         facId = key.split('_')[1]
 
-
-        // Find service for this facility
-        const fac = facilities.value.find(f => f.id === facId)
-        if (fac) svcId = fac.service
+        // Find service/category for this facility
+        const fac = facilities.value.find(f => String(f.id) === String(facId))
+        if (fac) {
+            // Priority: Service > Category > Service via Category
+            if (fac.service) { // Direct service link
+                svcId = fac.service
+            } 
+            
+            // Check Category regardless
+            const fCatId = fac.category?.id || fac.category
+            if (fCatId) {
+                catId = fCatId // Send category_id too?
+                const cat = categories.value.find(c => String(c.id) === String(fCatId))
+                if (cat) {
+                    svcId = cat.service // Derive service from category if not already set
+                }
+            }
+        }
       }
 
       const existingCap = findCap(svcId, catId, facId)
 
       if (capData.enabled) {
+        // Backend requires service_id or category_id
+        // If simply facility_id provided, backend rejects.
+        if (!svcId && !catId && facId) {
+             console.warn('Skipping facility capability save due to missing context:', facId)
+             continue
+        }
+
         const payload = {
           plan_id: planId,
           service_id: svcId || null,
-          category_id: catId || null,
+          category_id: catId || null, // Include category context if available
           facility_id: facId || null,
           permissions: capData.permissions,
         }
@@ -1364,64 +1405,84 @@ onMounted(() => {
                                   </div>
                                 </div>
                               </VExpandTransition>
+
+                              <!-- Facilities (Nested in Category) -->
+                              <div
+                                v-if="getCategoryFacilities(cat.id).length > 0"
+                                class="mt-3 ml-1"
+                              >
+                                <div class="text-caption font-weight-bold opacity-60 mb-2 text-uppercase spacing-1">
+                                  Facilities
+                                </div>
+                                <div class="d-flex flex-column gap-2 border rounded-lg pa-3 bg-grey-lighten-5">
+                                  <div
+                                    v-for="fac in getCategoryFacilities(cat.id)"
+                                    :key="fac.id"
+                                    class="d-flex flex-column"
+                                  >
+                                    <div class="d-flex align-center justify-space-between">
+                                      <div class="d-flex align-center gap-2">
+                                          <VIcon icon="tabler-tool" size="14" class="text-medium-emphasis" />
+                                          <span class="text-body-2 font-weight-medium">{{ fac.name }}</span>
+                                          <VChip size="x-small" variant="tonal" color="secondary" class="ml-1">
+                                            ₹{{ getFacilityPrice(fac.id) }}
+                                          </VChip>
+                                      </div>
+                                      <VSwitch
+                                        :model-value="!!form.capabilities[`fac_${fac.id}`]?.enabled"
+                                        density="compact"
+                                        hide-details
+                                        color="warning"
+                                        label="Enable"
+                                        class="ml-4"
+                                        @update:model-value="(val) => toggleCapability('fac', fac.id, val)"
+                                      />
+                                    </div>
+
+                                    <VExpandTransition>
+                                      <div v-if="form.capabilities[`fac_${fac.id}`]?.enabled" class="pl-6 mt-1 border-s pb-1">
+                                        <div class="d-flex flex-wrap gap-x-4 gap-y-1">
+                                          <VCheckbox
+                                            v-model="form.capabilities[`fac_${fac.id}`].permissions.can_view"
+                                            label="View"
+                                            density="compact"
+                                            hide-details
+                                          />
+                                          <VCheckbox
+                                            v-model="form.capabilities[`fac_${fac.id}`].permissions.can_create"
+                                            label="Create"
+                                            density="compact"
+                                            hide-details
+                                          />
+                                          <VCheckbox
+                                            v-model="form.capabilities[`fac_${fac.id}`].permissions.can_edit"
+                                            label="Edit"
+                                            density="compact"
+                                            hide-details
+                                          />
+                                          <VCheckbox
+                                            v-model="form.capabilities[`fac_${fac.id}`].permissions.can_delete"
+                                            label="Delete"
+                                            density="compact"
+                                            hide-details
+                                          />
+                                        </div>
+                                      </div>
+                                    </VExpandTransition>
+                                    
+                                    <!-- Divider between items unless last -->
+                                    <VDivider 
+                                      v-if="fac.id !== getCategoryFacilities(cat.id)[getCategoryFacilities(cat.id).length - 1].id" 
+                                      class="my-2 border-dashed" 
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
 
                           <!-- Facilities (Directly under Service) -->
-                          <div
-                            v-if="facilities.filter(f => f.service === svc.id).length > 0"
-                            class="pl-4 border-l-2 mt-4"
-                          >
-                            <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
-                              Facilities
-                            </div>
-                            <div
-                              v-for="fac in facilities.filter(f => f.service === svc.id)"
-                              :key="fac.id"
-                              class="mb-2"
-                            >
-                              <div class="d-flex align-center justify-space-between mb-2">
-                                <span class="text-body-2">{{ fac.name }}</span>
-                                <VSwitch
-                                  :model-value="!!form.capabilities[`fac_${fac.id}`]?.enabled"
-                                  density="compact"
-                                  hide-details
-                                  color="warning"
-                                  @update:model-value="(val) => toggleCapability('fac', fac.id, val)"
-                                />
-                              </div>
-                              <VExpandTransition>
-                                <div v-if="form.capabilities[`fac_${fac.id}`]?.enabled">
-                                  <div class="d-flex flex-wrap gap-x-6 gap-y-2 mb-3">
-                                    <VCheckbox
-                                      v-model="form.capabilities[`fac_${fac.id}`].permissions.can_view"
-                                      label="View"
-                                      density="compact"
-                                      hide-details
-                                    />
-                                    <VCheckbox
-                                      v-model="form.capabilities[`fac_${fac.id}`].permissions.can_create"
-                                      label="Create"
-                                      density="compact"
-                                      hide-details
-                                    />
-                                    <VCheckbox
-                                      v-model="form.capabilities[`fac_${fac.id}`].permissions.can_edit"
-                                      label="Edit"
-                                      density="compact"
-                                      hide-details
-                                    />
-                                    <VCheckbox
-                                      v-model="form.capabilities[`fac_${fac.id}`].permissions.can_delete"
-                                      label="Delete"
-                                      density="compact"
-                                      hide-details
-                                    />
-                                  </div>
-                                </div>
-                              </VExpandTransition>
-                            </div>
-                          </div>
+
                         </div>
                       </VExpandTransition>
                     </VCard>

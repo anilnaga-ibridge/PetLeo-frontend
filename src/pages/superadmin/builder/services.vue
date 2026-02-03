@@ -5,7 +5,7 @@ import BuilderLayout from './components/BuilderLayout.vue'
 import ServiceList from './components/ServiceList.vue'
 import StepServiceTypes from './components/StepServiceTypes.vue'
 import StepFacilities from './components/StepFacilities.vue'
-import StepPricing from './components/StepPricing.vue'
+import StepSummary from './components/StepSummary.vue'
 import ServiceForm from './components/ServiceForm.vue' // CREATE / EDIT SERVICE FORM
 
 // =====================
@@ -29,9 +29,9 @@ const builderState = computed(() => ({
 }))
 
 const tabs = [
-  { value: 'types', title: 'Types & Features', icon: 'tabler-hierarchy-2' },
-  { value: 'facilities', title: 'Facilities', icon: 'tabler-building-hospital' },
-  { value: 'pricing', title: 'Pricing Rules', icon: 'tabler-currency-dollar' },
+  { value: 'types', title: 'Categories', icon: 'tabler-hierarchy-2' },
+  { value: 'facilities', title: 'Facilities & Pricing', icon: 'tabler-building-hospital' },
+  { value: 'summary', title: 'Summary', icon: 'tabler-list-check' },
 ]
 
 // =====================
@@ -167,8 +167,8 @@ const closeDrawer = () => {
               </VTabs>
             </div>
 
-            <!-- SCROLLABLE WORKSPACE -->
-            <div class="flex-grow-1 overflow-y-auto pa-6 workplace-bg">
+            <!-- WORKSPACE -->
+            <div class="flex-grow-1 pa-6 workplace-bg">
               <VWindow
                 v-model="activeTab"
                 class="h-100"
@@ -196,21 +196,20 @@ const closeDrawer = () => {
                       v-if="activeTab === 'facilities'"
                       :state="builderState" 
                       @update:state="handleStateUpdate"
-                      @next="activeTab = 'pricing'"
+                      @next="activeTab = 'summary'"
                       @prev="activeTab = 'types'"
                     />
                   </VFadeTransition>
                 </VWindowItem>
 
                 <VWindowItem
-                  value="pricing"
+                  value="summary"
                   class="h-100"
                 >
                   <VFadeTransition hide-on-leave>
-                    <StepPricing 
-                      v-if="activeTab === 'pricing'"
+                    <StepSummary 
+                      v-if="activeTab === 'summary'"
                       :state="builderState" 
-                      @update:state="handleStateUpdate"
                       @prev="activeTab = 'facilities'"
                     />
                   </VFadeTransition>
@@ -274,7 +273,6 @@ const closeDrawer = () => {
 }
 
 .builder-canvas {
-  height: calc(100vh - 200px);
   min-height: 700px;
 }
 

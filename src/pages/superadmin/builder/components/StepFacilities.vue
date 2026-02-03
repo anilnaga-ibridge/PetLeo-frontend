@@ -1,41 +1,31 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { superAdminApi } from '@/plugins/axios'
+import FacilityForm from './FacilityForm.vue'
 
 const props = defineProps(['state', 'hideNavigation'])
 const emit = defineEmits(['next', 'prev', 'update:state'])
 
 const facilities = ref([])
+const categories = ref([])
+const pricingRules = ref([])
 const loading = ref(false)
 const drawerOpen = ref(false)
 const isEdit = ref(false)
 const editId = ref(null)
 
-const usesFacilities = ref(false)
+const usesFacilities = ref(true)
 const viewMode = ref('card')
 const searchQuery = ref('')
-
-const headers = [
-  { title: 'Name', key: 'name' },
-  { title: 'Description', key: 'description' },
-  { title: 'Status', key: 'is_active' },
-  { title: 'Actions', key: 'actions', sortable: false },
-]
-
-const filteredFacilities = computed(() => {
-  if (!searchQuery.value) return facilities.value
-  const query = searchQuery.value.toLowerCase()
-  
-  return facilities.value.filter(f => 
-    f.name.toLowerCase().includes(query) || 
-    (f.description && f.description.toLowerCase().includes(query)),
-  )
-})
 
 const form = ref({
   name: '',
   description: '',
   service: props.state.selectedServiceId,
+  category: props.state.selectedCategoryId || null,
+  base_price: 0,
+  duration_minutes: null,
+  billing_unit: 'PER_SESSION',
   is_active: true,
 })
 
@@ -44,10 +34,21 @@ const services = ref([])
 const fetchServices = async () => {
   try {
     const res = await superAdminApi.get('/api/superadmin/services/')
-
     services.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch services:', err)
+  }
+}
+
+const fetchCategories = async () => {
+  if (!props.state.selectedServiceId) return
+  try {
+    const res = await superAdminApi.get('/api/superadmin/categories/', {
+      params: { service: props.state.selectedServiceId }
+    })
+    categories.value = res.data.results || res.data || []
+  } catch (err) {
+    console.error('Failed to fetch categories:', err)
   }
 }
 
@@ -55,11 +56,19 @@ const fetchFacilities = async () => {
   if (!props.state.selectedServiceId) return
   loading.value = true
   try {
-    const res = await superAdminApi.get('/api/superadmin/facilities/', {
-      params: { service: props.state.selectedServiceId },
-    })
+    // Fetch both facilities and pricing rules to build the hierarchy
+    const [facRes, priceRes] = await Promise.all([
+      superAdminApi.get('/api/superadmin/facilities/', {
+        params: { service: props.state.selectedServiceId },
+      }),
+      superAdminApi.get('/api/superadmin/pricing-rules/', {
+        params: { service: props.state.selectedServiceId },
+      })
+    ])
 
-    facilities.value = res.data.results || res.data || []
+    facilities.value = facRes.data.results || facRes.data || []
+    pricingRules.value = priceRes.data.results || priceRes.data || []
+    
     if (facilities.value.length > 0) {
       usesFacilities.value = true
     }
@@ -70,58 +79,152 @@ const fetchFacilities = async () => {
   }
 }
 
-const openAddDrawer = () => {
+// Group facilities by Category using Pricing Rules as the link
+const categorizedMenu = computed(() => {
+  const menu = categories.value.map(cat => {
+    const rules = pricingRules.value.filter(rule => rule.category?.id === cat.id && rule.facility)
+    return {
+      ...cat,
+      items: rules.map(rule => ({
+        id: rule.facility.id,
+        ruleId: rule.id,
+        name: rule.facility.name,
+        description: rule.facility.description,
+        price: rule.base_price,
+        duration: rule.duration_minutes,
+        billing_unit: rule.billing_unit,
+        is_active: rule.is_active
+      }))
+    }
+  })
+
+  // Add "Global/Uncategorized" if any exist (though we want to discourage this)
+  const uncategorizedRules = pricingRules.value.filter(rule => !rule.category && rule.facility)
+  if (uncategorizedRules.length > 0) {
+    menu.push({
+      id: 'uncategorized',
+      name: 'Global / Unassigned',
+      is_active: true,
+      items: uncategorizedRules.map(rule => ({
+        id: rule.facility.id,
+        ruleId: rule.id,
+        name: rule.facility.name,
+        description: rule.facility.description,
+        price: rule.base_price,
+        duration: rule.duration_minutes,
+        billing_unit: rule.billing_unit,
+        is_active: rule.is_active
+      }))
+    })
+  }
+
+  return menu
+})
+
+const openAddDrawer = (preselectedCat = null) => {
   isEdit.value = false
   form.value = {
     name: '',
     description: '',
     service: props.state.selectedServiceId,
+    category: preselectedCat?.id || props.state.selectedCategoryId || null,
+    base_price: 0,
+    duration_minutes: null,
+    billing_unit: 'PER_SESSION',
     is_active: true,
   }
   drawerOpen.value = true
 }
 
-const openEditDrawer = facility => {
+const openEditDrawer = (item, category) => {
   isEdit.value = true
-  editId.value = facility.id
-  form.value = { ...facility, service: facility.service?.id || facility.service }
+  editId.value = item.id
+  form.value = {
+    ...item,
+    service: props.state.selectedServiceId,
+    category: category.id === 'uncategorized' ? null : category.id,
+    base_price: item.price,
+    duration_minutes: item.duration,
+    billing_unit: item.billing_unit
+  }
   drawerOpen.value = true
 }
 
 const submit = async () => {
   try {
     if (isEdit.value) {
-      await superAdminApi.put(`/api/superadmin/facilities/${editId.value}/`, form.value)
+      // 1. Update Facility Name/Desc/Category
+      await superAdminApi.put(`/api/superadmin/facilities/${editId.value}/`, {
+        name: form.value.name,
+        description: form.value.description,
+        service: form.value.service,
+        category: form.value.category
+      })
+      
+      // 2. Update Pricing Rule
+      const rule = pricingRules.value.find(r => r.facility?.id === editId.value && (r.category?.id === form.value.category || (!r.category && !form.value.category)))
+      if (rule) {
+        await superAdminApi.put(`/api/superadmin/pricing-rules/${rule.id}/`, {
+          service: form.value.service,
+          category: form.value.category,
+          facility: editId.value,
+          base_price: form.value.base_price,
+          duration_minutes: form.value.duration_minutes,
+          billing_unit: form.value.billing_unit,
+          is_active: form.value.is_active
+        })
+      }
     } else {
-      await superAdminApi.post('/api/superadmin/facilities/', form.value)
+      // 1. Create Facility
+      const facRes = await superAdminApi.post('/api/superadmin/facilities/', {
+        name: form.value.name,
+        description: form.value.description,
+        service: form.value.service,
+        category: form.value.category
+      })
+      
+      // 2. Create Pricing Rule (The actual link)
+      await superAdminApi.post('/api/superadmin/pricing-rules/', {
+        service: form.value.service,
+        category: form.value.category,
+        facility: facRes.data.id,
+        base_price: form.value.base_price,
+        duration_minutes: form.value.duration_minutes,
+        billing_unit: form.value.billing_unit,
+        is_active: form.value.is_active
+      })
     }
     drawerOpen.value = false
     fetchFacilities()
   } catch (err) {
-    console.error('Failed to save facility:', err)
+    console.error('Failed to save facility menu item:', err)
   }
 }
 
-const toggleStatus = async facility => {
+const toggleStatus = async (item, category) => {
   try {
-    await superAdminApi.patch(`/api/superadmin/facilities/${facility.id}/`, {
-      is_active: facility.is_active,
-    })
+    const rule = pricingRules.value.find(r => r.facility?.id === item.id && (r.category?.id === category.id || (!r.category && category.id === 'uncategorized')))
+    if (rule) {
+      await superAdminApi.patch(`/api/superadmin/pricing-rules/${rule.id}/`, {
+        is_active: item.is_active,
+      })
+    }
   } catch (err) {
     console.error('Failed to toggle status:', err)
-    facility.is_active = !facility.is_active
+    item.is_active = !item.is_active
   }
 }
 
 const selectFacility = facilityId => {
   emit('update:state', { ...props.state, selectedFacilityId: facilityId })
-  emit('next')
 }
 
 const skipStep = () => {
   emit('update:state', { ...props.state, selectedFacilityId: null })
-  emit('next')
+  emit('next') // This will move to the next service
 }
+
+const isDurationShown = computed(() => ['PER_SESSION', 'HOURLY'].includes(form.value.billing_unit))
 
 const deleteDialog = ref(false)
 const deleteItem = ref(null)
@@ -133,23 +236,40 @@ const openDeleteDialog = item => {
 
 const deleteFacility = async () => {
   try {
-    await superAdminApi.delete(`/api/superadmin/facilities/${deleteItem.value.id}/`)
+    // Delete the Rule first
+    const rule = pricingRules.value.find(r => r.facility?.id === deleteItem.value.id)
+    if (rule) {
+      await superAdminApi.delete(`/api/superadmin/pricing-rules/${rule.id}/`)
+    }
+    
+    // Optionally delete facility if shared? For now let's just delete the rule which defines the item in the category
+    // await superAdminApi.delete(`/api/superadmin/facilities/${deleteItem.value.id}/`)
+    
     deleteDialog.value = false
     fetchFacilities()
   } catch (err) {
-    console.error('Failed to delete facility:', err)
+    console.error('Failed to delete menu item:', err)
   }
 }
 
-onMounted(() => {
-  fetchServices()
-  fetchFacilities()
+onMounted(async () => {
+  await Promise.all([
+    fetchServices(),
+    fetchCategories(),
+    fetchFacilities()
+  ])
 })
-watch(() => props.state.selectedServiceId, fetchFacilities)
+
+watch(() => props.state.selectedServiceId, async () => {
+  await Promise.all([
+    fetchCategories(),
+    fetchFacilities()
+  ])
+})
 </script>
 
 <template>
-  <div>
+  <div class="h-100 position-relative">
     <!-- Consolidated Toolbar -->
     <div class="d-flex flex-wrap align-center gap-4 mb-6">
       <div style="min-width: 250px; flex: 1;">
@@ -229,199 +349,203 @@ watch(() => props.state.selectedServiceId, fetchFacilities)
     <VExpandTransition>
       <div v-if="usesFacilities">
         <VRow v-if="loading">
-          <VCol
-            v-for="i in 3"
-            :key="i"
-            cols="12"
-            sm="6"
-            md="4"
-          >
-            <VSkeletonLoader
-              type="card"
-              class="rounded-lg"
-            />
+          <VCol v-for="i in 3" :key="i" cols="12" sm="6" md="4">
+            <VSkeletonLoader type="card" class="rounded-lg" />
           </VCol>
         </VRow>
 
-        <template v-else-if="facilities.length > 0">
-          <!-- Card View with Animation -->
-          <TransitionGroup 
-            v-if="viewMode === 'card'"
-            name="list-fade" 
-            tag="div" 
-            class="v-row"
-          >
-            <VCol
-              v-for="facility in filteredFacilities"
-              :key="facility.id"
-              cols="12"
-              sm="6"
-              md="4"
-            >
-              <VCard 
-                class="premium-card-v2 h-100"
-                :class="[{ 'is-selected': props.state.selectedFacilityId === facility.id }]"
-                @click="selectFacility(facility.id)"
+        <template v-else>
+          <!-- NESTED MENU VIEW -->
+          <div v-for="category in categorizedMenu" :key="category.id" class="mb-12">
+            <!-- CATEGORY HEADER -->
+            <div class="d-flex align-center justify-space-between mb-6 border-b pb-4">
+              <div class="d-flex align-center gap-4">
+                <VAvatar color="primary" variant="tonal" rounded="xl">
+                  <VIcon icon="tabler-category" />
+                </VAvatar>
+                <div>
+                  <h2 class="text-h4 font-weight-bold gradient-text mb-0">{{ category.name }} Facilities</h2>
+                  <p class="text-caption text-medium-emphasis mb-0">Define facilities and prices for {{ category.name }}</p>
+                </div>
+              </div>
+              
+              <VBtn 
+                color="primary" 
+                variant="tonal" 
+                prepend-icon="tabler-plus" 
+                rounded="lg"
+                class="text-none"
+                @click="openAddDrawer(category)"
               >
-                <VCardText class="pa-6 d-flex flex-column h-100">
-                  <!-- Header -->
-                  <div class="d-flex justify-space-between align-start mb-4">
-                    <VAvatar 
-                      size="48" 
-                      :color="props.state.selectedFacilityId === facility.id ? 'primary' : 'secondary'" 
-                      variant="tonal"
-                      class="rounded-xl"
-                    >
-                      <VIcon
-                        icon="tabler-building-hospital"
-                        size="26"
-                      />
-                    </VAvatar>
-                  
-                    <div class="d-flex gap-1 action-buttons">
-                      <VBtn 
-                        icon="tabler-edit" 
-                        size="x-small" 
-                        variant="tonal" 
-                        color="primary"
-                        rounded="lg"
-                        @click.stop="openEditDrawer(facility)"
-                      />
-                      <VBtn 
-                        icon="tabler-trash" 
-                        size="x-small" 
-                        variant="tonal" 
-                        color="error"
-                        rounded="lg"
-                        @click.stop="openDeleteDialog(facility)"
-                      />
-                    </div>
-                  </div>
-                
-                  <div class="mb-4">
-                    <h3 class="text-h6 font-weight-bold text-truncate mb-1">
-                      {{ facility.name }}
-                    </h3>
-                    <p 
-                      v-if="facility.description && facility.description !== facility.name" 
-                      class="text-body-2 text-medium-emphasis line-clamp-2 mb-0"
-                    >
-                      {{ facility.description }}
-                    </p>
-                    <p
-                      v-else
-                      class="text-caption text-disabled font-italic mb-0"
-                    >
-                      Standard facility configuration
-                    </p>
-                  </div>
+                Add {{ category.name }} Facility & Price
+              </VBtn>
+            </div>
 
-                  <!-- Footer -->
-                  <div class="mt-auto pt-4 border-t d-flex align-center justify-space-between">
-                    <VChip 
-                      size="x-small" 
-                      :color="facility.is_active ? 'success' : 'secondary'" 
-                      variant="tonal"
-                      label
-                      class="rounded-sm"
-                    >
-                      {{ facility.is_active ? 'ACTIVE' : 'INACTIVE' }}
-                    </VChip>
-                  
-                    <VSwitch
-                      v-model="facility.is_active"
-                      density="compact"
-                      hide-details
-                      color="success"
-                      @click.stop
-                      @update:model-value="toggleStatus(facility)"
-                    />
-                  </div>
-                </VCardText>
-              </VCard>
-            </VCol>
-          </TransitionGroup>
+            <!-- FACILITIES UNDER THIS CATEGORY -->
+            <div v-if="category.items.length > 0">
+              
+              <!-- TABLE VIEW -->
+              <VTable v-if="viewMode === 'table'" density="comfortable" class="bg-transparent mb-4">
+                <thead>
+                  <tr>
+                    <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis pl-0">Facility</th>
+                    <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis">Details</th>
+                    <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis text-right pr-0">Pricing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in category.items" :key="item.id" class="facility-row">
+                    <td class="pl-0 py-3">
+                      <div class="d-flex align-center gap-3">
+                        <VIcon icon="tabler-building-hospital" size="20" color="primary" />
+                        <div>
+                          <div class="text-body-2 font-weight-bold text-high-emphasis">{{ item.name }}</div>
+                           <VSwitch
+                            v-model="item.is_active"
+                            color="success"
+                            density="compact"
+                            hide-details
+                            label="Active"
+                            class="compact-switch"
+                            @click.stop
+                            @update:model-value="toggleStatus(item, category)"
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td class="py-3">
+                      <p class="text-body-2 text-medium-emphasis mb-0 line-clamp-1" style="max-width: 300px;">
+                        {{ item.description || '-' }}
+                      </p>
+                    </td>
+                    <td class="text-right pr-0 py-3">
+                      <div class="d-flex flex-column align-end">
+                        <span class="text-body-2 font-weight-bold text-primary">₹{{ item.price }}</span>
+                        <div class="d-flex align-center gap-1">
+                          <span class="text-caption text-medium-emphasis">{{ item.billing_unit.replace('_', ' ') }}</span>
+                          <span v-if="item.duration" class="text-caption text-warning font-weight-medium"> • {{ item.duration }}m</span>
+                        </div>
+                        
+                        <div class="d-flex gap-2 mt-2">
+                           <VBtn 
+                            icon="tabler-edit" 
+                            size="x-small" 
+                            variant="text" 
+                            color="primary"
+                            @click="openEditDrawer(item, category)"
+                          />
+                           <VBtn 
+                            icon="tabler-trash" 
+                            size="x-small" 
+                            variant="text" 
+                            color="error"
+                            @click="openDeleteDialog(item)"
+                          />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </VTable>
 
-          <!-- Table View -->
-          <VCard
-            v-else
-            class="border"
-          >
-            <VDataTable
-              :headers="headers"
-              :items="filteredFacilities"
-              density="comfortable"
-              hover
-              @click:row="(e, { item }) => selectFacility(item.id)"
-            >
-              <template #item.name="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <VIcon
-                    v-if="props.state.selectedFacilityId === item.id"
-                    icon="tabler-check"
-                    color="primary"
-                    size="18"
-                  />
-                  <span :class="{ 'font-weight-bold text-primary': props.state.selectedFacilityId === item.id }">
-                    {{ item.name }}
-                  </span>
-                </div>
-              </template>
-              <template #item.is_active="{ item }">
-                <VSwitch
-                  v-model="item.is_active"
-                  density="compact"
-                  hide-details
-                  color="success"
-                  @click.stop
-                  @update:model-value="toggleStatus(item)"
-                />
-              </template>
-              <template #item.actions="{ item }">
-                <div class="d-flex gap-1">
-                  <IconBtn
-                    size="small"
-                    @click.stop="openEditDrawer(item)"
+              <!-- CARD VIEW -->
+              <VRow v-else>
+                <VCol
+                  v-for="item in category.items"
+                  :key="item.ruleId"
+                  cols="12"
+                  sm="6"
+                  md="4"
+                >
+                  <VCard 
+                    class="premium-card-v2 h-100"
+                    :class="[{ 'is-selected': props.state.selectedFacilityId === item.id }]"
+                    @click="selectFacility(item.id)"
                   >
-                    <VIcon icon="tabler-edit" />
-                  </IconBtn>
-                  <IconBtn
-                    size="small"
-                    color="error"
-                    @click.stop="openDeleteDialog(item)"
-                  >
-                    <VIcon icon="tabler-trash" />
-                  </IconBtn>
-                </div>
-              </template>
-            </VDataTable>
-          </VCard>
+                    <VCardText class="pa-6 d-flex flex-column h-100">
+                      <!-- Price Tag -->
+                      <div class="d-flex justify-space-between align-start mb-4">
+                        <div class="price-badge pa-2 px-3 rounded-lg bg-primary-lighten-5 text-primary font-weight-bold">
+                          ₹{{ item.price }} <span class="text-caption font-weight-medium">/ {{ item.billing_unit.toLowerCase().replace('_', ' ') }}</span>
+                        </div>
+
+                        <div v-if="item.duration" class="pa-2 px-3 rounded-lg bg-warning-lighten-5 text-warning font-weight-bold d-flex align-center gap-1">
+                          <VIcon icon="tabler-clock" size="14" />
+                          <span class="text-caption">{{ item.duration }}m</span>
+                        </div>
+                      
+                        <div class="d-flex gap-1 action-buttons">
+                          <VBtn 
+                            icon="tabler-edit" 
+                            size="x-small" 
+                            variant="tonal" 
+                            color="primary"
+                            rounded="lg"
+                            @click.stop="openEditDrawer(item, category)"
+                          />
+                          <VBtn 
+                            icon="tabler-trash" 
+                            size="x-small" 
+                            variant="tonal" 
+                            color="error"
+                            rounded="lg"
+                            @click.stop="openDeleteDialog(item)"
+                          />
+                        </div>
+                      </div>
+                    
+                      <div class="mb-4">
+                        <h3 class="text-h6 font-weight-bold text-truncate mb-1">
+                          {{ item.name }}
+                        </h3>
+                        <p 
+                          v-if="item.description" 
+                          class="text-body-2 text-medium-emphasis line-clamp-2 mb-0"
+                        >
+                          {{ item.description }}
+                        </p>
+                        <p v-else class="text-caption text-disabled font-italic mb-0">
+                          No description provided
+                        </p>
+                      </div>
+
+                      <!-- Footer -->
+                      <div class="mt-auto pt-4 border-t d-flex align-center justify-space-between">
+                        <VChip 
+                          size="x-small" 
+                          :color="item.is_active ? 'success' : 'secondary'" 
+                          variant="tonal"
+                          label
+                          class="rounded-sm"
+                        >
+                          {{ item.is_active ? 'ENABLED' : 'DISABLED' }}
+                        </VChip>
+                      
+                        <VSwitch
+                          v-model="item.is_active"
+                          density="compact"
+                          hide-details
+                          color="success"
+                          @click.stop
+                          @update:model-value="toggleStatus(item, category)"
+                        />
+                      </div>
+                    </VCardText>
+                  </VCard>
+                </VCol>
+              </VRow>
+            </div>
+
+            <!-- EMPTY STATE FOR CATEGORY -->
+            <div v-else class="text-center py-10 bg-light rounded-xl border-dashed">
+              <VIcon icon="tabler-building-hospital" size="40" color="disabled" class="mb-2" />
+              <p class="text-body-2 text-disabled mb-4">No items defined for this category yet.</p>
+              <VBtn variant="text" color="primary" rounded="lg" @click="openAddDrawer(category)">
+                Create First Item
+              </VBtn>
+            </div>
+          </div>
         </template>
-
-        <div
-          v-else
-          class="text-center py-12 bg-light rounded-lg border-dashed"
-        >
-          <VIcon
-            icon="tabler-building-hospital"
-            size="48"
-            color="medium-emphasis"
-            class="mb-4"
-          />
-          <h3 class="text-h6 font-weight-bold mb-2">
-            No Facilities Defined
-          </h3>
-          <p class="text-body-2 text-medium-emphasis mb-6">
-            Add facilities that providers can use for this service.
-          </p>
-          <VBtn
-            variant="tonal"
-            color="primary"
-            @click="openAddDrawer"
-          >
-            Add First Facility
-          </VBtn>
-        </div>
       </div>
     </VExpandTransition>
 
@@ -429,214 +553,85 @@ watch(() => props.state.selectedServiceId, fetchFacilities)
       v-if="!usesFacilities"
       class="text-center py-12 bg-light rounded-lg border-dashed"
     >
-      <VIcon
-        icon="tabler-info-circle"
-        size="48"
-        color="medium-emphasis"
-        class="mb-4"
-      />
-      <h3 class="text-h6 font-weight-bold mb-2">
-        Facilities Disabled
-      </h3>
-      <p class="text-body-2 text-medium-emphasis">
-        Toggle the switch above if this service requires specific facilities.
-      </p>
+      <VIcon icon="tabler-info-circle" size="48" color="medium-emphasis" class="mb-4" />
+      <h3 class="text-h6 font-weight-bold mb-2">Facilities Disabled</h3>
+      <p class="text-body-2 text-medium-emphasis">Toggle the switch above if this service requires specific facilities.</p>
     </div>
 
-    <div
-      v-if="!hideNavigation"
-      class="d-flex justify-space-between mt-8"
-    >
-      <VBtn
-        variant="text"
-        prepend-icon="tabler-arrow-left"
-        @click="emit('prev')"
-      >
+    <div v-if="!hideNavigation" class="d-flex justify-space-between mt-8">
+      <VBtn variant="text" prepend-icon="tabler-arrow-left" @click="emit('prev')">
         Back
       </VBtn>
-      <VBtn
-        color="primary"
-        append-icon="tabler-arrow-right"
-        @click="emit('next')"
-      >
+      <VBtn color="primary" append-icon="tabler-arrow-right" @click="emit('next')">
         Next Step
       </VBtn>
     </div>
 
     <!-- DELETE CONFIRMATION -->
-    <VDialog
-      v-model="deleteDialog"
-      width="420"
-      transition="dialog-bottom-transition"
-      persistent
-    >
-      <VCard
-        class="pa-4 rounded-xl"
-        elevation="12"
-      >
+    <VDialog v-model="deleteDialog" width="420" transition="dialog-bottom-transition" persistent>
+      <VCard class="pa-4 rounded-xl" elevation="12">
         <div class="text-center mb-3">
-          <VAvatar
-            size="60"
-            color="red"
-            variant="tonal"
-            class="mb-3"
-          >
-            <VIcon
-              icon="tabler-alert-triangle"
-              size="32"
-              color="red-darken-2"
-            />
+          <VAvatar size="60" color="red" variant="tonal" class="mb-3">
+            <VIcon icon="tabler-alert-triangle" size="32" color="red-darken-2" />
           </VAvatar>
-
-          <h2 class="text-h6 font-weight-bold text-high-emphasis">
-            Delete Facility?
-          </h2>
-
+          <h2 class="text-h6 font-weight-bold text-high-emphasis">Delete Menu Item?</h2>
           <p class="text-body-2 mt-1 text-medium-emphasis">
-            Delete <strong class="text-primary">{{ deleteItem?.name }}</strong> permanently?
+            Remove <strong class="text-primary">{{ deleteItem?.name }}</strong> and its pricing from this category?
           </p>
         </div>
-
         <VDivider class="my-3" />
-
         <div class="d-flex justify-end gap-2">
-          <VBtn
-            variant="text"
-            @click="deleteDialog = false"
-          >
-            Cancel
-          </VBtn>
-          <VBtn
-            color="red"
-            prepend-icon="tabler-trash"
-            @click="deleteFacility"
-          >
-            Delete
-          </VBtn>
+          <VBtn variant="text" @click="deleteDialog = false">Cancel</VBtn>
+          <VBtn color="red" prepend-icon="tabler-trash" @click="deleteFacility">Delete</VBtn>
         </div>
       </VCard>
     </VDialog>
 
-    <!-- Add/Edit Drawer -->
-    <Teleport to="body">
-      <VNavigationDrawer
-        v-model="drawerOpen"
-        location="end"
-        temporary
-        :scrim="false"
-        width="500"
-        class="builder-drawer"
-        style="z-index: 8888 !important; top: 0 !important; height: 100vh !important; position: fixed !important;"
-      >
-        <div class="d-flex flex-column h-100">
+    <!-- Add/Edit Drawer (Implemented as Dialog to avoid recursion) -->
+    <VDialog
+      v-model="drawerOpen"
+      fullscreen
+      transition="slide-x-reverse-transition"
+      class="sidebar-dialog"
+      :scrim="true"
+    >
+      <div class="d-flex w-100 h-100">
+        <!-- Overlay/Scrim click area -->
+        <div class="flex-grow-1" style="background: rgba(0,0,0,0.3); cursor: pointer;" @click="drawerOpen = false"></div>
+        
+        <!-- Sidebar Content -->
+        <VCard
+          width="500"
+          max-width="100%"
+          class="h-100 rounded-0 border-s d-flex flex-column"
+          elevation="10"
+          @click.stop
+        >
           <div class="pa-6 border-b d-flex justify-space-between align-center bg-surface sticky-header">
             <h3 class="text-h6 font-weight-bold">
-              {{ isEdit ? 'Edit Facility' : 'Add Facility' }}
+              {{ isEdit ? 'Edit Facility & Price' : 'Add Facility & Price' }}
             </h3>
-            <VBtn
-              icon="tabler-x"
-              variant="text"
-              @click="drawerOpen = false"
-            />
+            <VBtn icon="tabler-x" variant="text" @click="drawerOpen = false" />
           </div>
 
           <div class="flex-grow-1 overflow-y-auto pa-6">
-            <VForm
-              id="facilityForm"
-              @submit.prevent="submit"
-            >
-              <VCard
-                variant="tonal"
-                color="primary"
-                class="pa-4 mb-6 border-0"
-              >
-                <h4 class="text-subtitle-1 font-weight-bold mb-4">
-                  Facility Information
-                </h4>
-                
-                <VSelect
-                  v-model="form.service"
-                  :items="services"
-                  item-title="display_name"
-                  item-value="id"
-                  label="Select Service *"
-                  placeholder="Choose parent service"
-                  class="mb-4"
-                  density="comfortable"
-                  variant="outlined"
-                  bg-color="surface"
-                  readonly
-                />
-
-                <AppTextField
-                  v-model="form.name"
-                  label="Facility Name *"
-                  placeholder="e.g. Full Spa Treatment"
-                  class="mb-4"
-                  required
-                  density="comfortable"
-                  variant="outlined"
-                  bg-color="surface"
-                />
-
-                <AppTextarea
-                  v-model="form.description"
-                  label="Description"
-                  placeholder="Briefly describe this facility..."
-                  class="mb-0"
-                  density="comfortable"
-                  variant="outlined"
-                  bg-color="surface"
-                  rows="3"
-                />
-              </VCard>
-
-              <VCard
-                variant="tonal"
-                color="error"
-                class="pa-4 mb-8 border-0"
-              >
-                <h4 class="text-subtitle-1 font-weight-bold mb-2">
-                  Status Options
-                </h4>
-                <div class="d-flex justify-space-between align-center">
-                  <span class="text-body-2">Active</span>
-                  <VSwitch
-                    v-model="form.is_active"
-                    color="success"
-                    hide-details
-                    inset
-                  />
-                </div>
-              </VCard>
-            </VForm>
+            <FacilityForm
+              v-model="form"
+              :categories="categories"
+              :is-edit="isEdit"
+              :loading="loading"
+              @submit="submit"
+              @cancel="drawerOpen = false"
+            />
           </div>
-
-          <div class="pa-6 border-t bg-surface">
-            <div class="d-flex justify-end gap-4">
-              <VBtn
-                variant="outlined"
-                color="secondary"
-                @click="drawerOpen = false"
-              >
-                Cancel
-              </VBtn>
-              <VBtn
-                color="primary"
-                type="submit"
-                form="facilityForm"
-              >
-                {{ isEdit ? 'Update Facility' : 'Create Facility' }}
-              </VBtn>
-            </div>
-          </div>
-        </div>
-      </VNavigationDrawer>
-    </Teleport>
+        </VCard>
+      </div>
+    </VDialog>
   </div>
 </template>
 
 <style lang="scss" scoped>
+/* ... existing scoped styles ... */
 .premium-card-v2 {
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -704,6 +699,14 @@ watch(() => props.state.selectedServiceId, fetchFacilities)
   }
 }
 
+.facility-row {
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(var(--v-theme-primary), 0.02) !important;
+  }
+}
+
 /* Animations */
 .list-fade-enter-active,
 .list-fade-leave-active {
@@ -727,24 +730,29 @@ watch(() => props.state.selectedServiceId, fetchFacilities)
   overflow: hidden;
 }
 
+.compact-switch {
+  :deep(.v-selection-control) {
+    min-height: 24px !important;
+  }
+  :deep(.v-label) {
+    font-size: 12px;
+  }
+}
+
 .sticky-header {
   position: sticky;
   top: 0;
   z-index: 2;
 }
-</style>
 
-<style lang="scss">
-.builder-drawer {
-  position: fixed !important;
-  top: 0 !important;
-  height: 100vh !important;
-  z-index: 100000 !important;
-  
-  .v-navigation-drawer__content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+/* Sidebar Dialog Override */
+:deep(.sidebar-dialog) {
+  .v-overlay__content {
+    margin: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
   }
 }
 </style>

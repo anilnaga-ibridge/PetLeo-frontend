@@ -19,16 +19,18 @@ const getProviderNavigation = () => {
     return []
   }
 
-  // STRICT: Veterinary Staff (Non-Admins) see NO Provider navigation
-  if (permissionStore.hasCapability('VETERINARY_CORE') && !isProviderAdmin) {
-    return []
-  }
+  /* [REMOVED] STRICT block - Employees can see mixed navigation */
 
   // Base navigation items that are always visible
   // [FIX] Dashboard link depends on role
   const dashboardRoute = isProviderAdmin ? { name: 'provider-dashboard' } : { name: 'employee-service-dashboard' }
 
   const navigation = [
+    {
+      title: 'Home',
+      to: { name: 'provider-providerhome' },
+      icon: { icon: 'tabler-home' },
+    },
     {
       title: 'Dashboard',
       to: dashboardRoute,
@@ -65,12 +67,25 @@ const getProviderNavigation = () => {
     navigation.push({ heading: 'Services' })
 
     let addedVet = false
+    const processedServiceIds = new Set()
+    const processedServiceNames = new Set()
 
     enabledServices.forEach(service => {
       console.log('🧭 Navigation Debug:', { name: service.service_name, id: service.service_id })
 
       const serviceId = (service.service_id || '').toUpperCase()
-      const serviceName = (service.service_name || '').toLowerCase()
+      const serviceName = (service.service_name || '').toLowerCase().trim()
+
+      // Deduplication Check (ID or Name)
+      if (processedServiceIds.has(serviceId)) {
+        return
+      }
+      if (processedServiceNames.has(serviceName)) {
+        return
+      }
+
+      processedServiceIds.add(serviceId)
+      processedServiceNames.add(serviceName)
 
       // Skip granular veterinary keys (they are handled by the internal Veterinary Menu)
       const granularVetKeys = [
@@ -88,7 +103,7 @@ const getProviderNavigation = () => {
         serviceId === '2DFF446F-C95F-4310-BA4D-05E3395DD7EB' || // Legacy ID
         serviceId === 'VETERINARY_CORE'
 
-      // Clean Duplicate Veterinary items
+      // Clean Duplicate Veterinary items (Double check just in case legacy ID vs name mismatch)
       if (isVeterinary) {
         if (addedVet) return
         addedVet = true
@@ -98,10 +113,9 @@ const getProviderNavigation = () => {
         title: service.service_name,
         to: isVeterinary
           ? { name: 'veterinary-dashboard' }
-          : {
-            name: 'provider-service-details',
-            params: { serviceId: service.service_id },
-          },
+          : (isProviderAdmin
+            ? { name: 'provider-service-details', params: { serviceId: service.service_id } }
+            : { path: `/employee/services/${service.service_id}` }),
         icon: { icon: service.icon || (isVeterinary ? 'tabler-stethoscope' : 'tabler-box') },
         canView: () => permissionStore.canViewService(service.service_name),
       })
