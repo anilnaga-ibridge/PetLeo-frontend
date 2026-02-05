@@ -75,20 +75,21 @@ export default [
   },
   {
     heading: 'Clinic Settings',
-    capability: 'VETERINARY_ADMIN_SETTINGS',
+    capability: 'PROVIDER_ADMIN',
   },
   {
     title: 'Metadata Management',
     to: { name: 'veterinary-admin-metadata' },
     icon: { icon: 'tabler-settings-automation' },
-    capability: 'VETERINARY_ADMIN_SETTINGS',
+    capability: 'PROVIDER_ADMIN',
   },
-  { heading: 'Exit Module' },
+  { heading: 'Exit Module', capability: 'PROVIDER_ADMIN' },
   {
     title: 'Back to Provider',
     to: { name: 'provider-dashboard' },
     icon: { icon: 'tabler-arrow-left' },
     action: 'read',
     subject: 'Auth',
+    capability: 'PROVIDER_ADMIN',
   },
 ]

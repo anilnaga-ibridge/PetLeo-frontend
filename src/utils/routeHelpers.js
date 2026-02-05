@@ -23,33 +23,14 @@ export const getPostLoginRoute = userData => {
     return '/superadmin/dashboard'
   }
 
-  // 2. Tenant Owner (Provider/Organization)
-  // Robust check: Role variants OR Provider Capability OR presence of provider_type
-  const isProvider = ['ORGANIZATION', 'PROVIDER', 'INDIVIDUAL', 'SERVICEPROVIDER', 'SERVICE_PROVIDER', 'SERVICE PROVIDER'].includes(role)
-    || permissionStore.hasCapability('PROVIDER_MODULE')
-    || userData.capabilities?.includes('PROVIDER_MODULE')
-    || !!userData.provider_type
+  // 2. Tenant Owner (Provider/Organization) -> Provider Home
+  const isProviderAdmin = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER'].includes(role)
+    || userData.provider_type // Fallback if role is missing but provider_type exists
 
-  console.log('🚀 [Redirection] isProvider:', isProvider)
-
-  if (isProvider) {
+  if (isProviderAdmin) {
     return '/provider/providerhome'
   }
 
-  // 3. Veterinary Staff (Strict Capability Check via Store)
-  if (permissionStore.hasCapability('VETERINARY_CORE')) {
-    return '/veterinary/dashboard'
-  }
-
-  // 3.5 Dynamic Capabilities Routing (First Available)
-  if (permissionStore.dynamicModules && permissionStore.dynamicModules.length > 0) {
-    const sorted = [...permissionStore.dynamicModules].sort((a, b) => (a.sequence || 99) - (b.sequence || 99))
-    const first = sorted[0];
-    if (first && first.route) {
-      return first.route.startsWith('/') ? first.route : `/${first.route}`
-    }
-  }
-
-  // 4. Other Employees (Fallback to Service Dashboard)
-  return '/employee/service-dashboard'
+  // 3. Employees / Veterinary Staff -> Employee Dashboard
+  return '/employee/dashboard'
 }

@@ -105,13 +105,57 @@ onMounted(async () => {
   checkPermissions()
 })
 
-// Placeholder Analytics Data
-const analytics = [
-  { title: 'Total Revenue', value: '$12,450', change: '+12%', icon: 'tabler-currency-dollar', color: 'primary' },
-  { title: 'Bookings', value: '145', change: '+5%', icon: 'tabler-calendar-check', color: 'success' },
-  { title: 'Profile Views', value: '1,204', change: '+24%', icon: 'tabler-eye', color: 'info' },
-  { title: 'Avg. Rating', value: '4.8', change: '+0.2', icon: 'tabler-star', color: 'warning' },
-]
+import { veterinaryApi } from '@/api/veterinary'
+
+// ... existing code ...
+
+const analyticsStats = ref([
+  { title: 'Total Revenue', value: '$0', change: '0%', icon: 'tabler-currency-dollar', color: 'primary' },
+  { title: 'Bookings', value: '0', change: '0%', icon: 'tabler-calendar-check', color: 'success' },
+  { title: 'Profile Views', value: '0', change: '0%', icon: 'tabler-eye', color: 'info' },
+  { title: 'Avg. Rating', value: '0', change: '0', icon: 'tabler-star', color: 'warning' },
+])
+
+const recentActivity = ref([])
+const loadingAnalytics = ref(false)
+
+const fetchServiceAnalytics = async () => {
+  if (!serviceId.value) return 
+  
+  loadingAnalytics.value = true
+  try {
+     const today = new Date().toISOString().slice(0, 10)
+     const res = await veterinaryApi.getAnalytics({ date: today, service_id: serviceId.value })
+     const data = res.data
+     
+     if (data) {
+        analyticsStats.value = [
+            { title: 'Total Revenue', value: `$${data.revenue?.value || 0}`, change: `${data.revenue?.change || 0}%`, icon: 'tabler-currency-dollar', color: 'primary' },
+            { title: 'Bookings', value: data.bookings?.value || 0, change: `${data.bookings?.change || 0}%`, icon: 'tabler-calendar-check', color: 'success' },
+            { title: 'Profile Views', value: data.profile_views?.value || 0, change: `${data.profile_views?.change || 0}%`, icon: 'tabler-eye', color: 'info' },
+            { title: 'Avg. Rating', value: data.avg_rating?.value || 4.8, change: `${data.avg_rating?.change || 0}`, icon: 'tabler-star', color: 'warning' },
+        ]
+        recentActivity.value = data.recent_activity || []
+     }
+  } catch (e) {
+     console.error("Failed to fetch service analytics", e)
+  } finally {
+     loadingAnalytics.value = false
+  }
+}
+
+onMounted(async () => {
+  // Always fetch fresh permissions to ensure we have the latest access rights
+  await permissionStore.fetchPermissions()
+  checkPermissions()
+  // Fetch Analytics if not veterinary (Veterinary has its own dashboard)
+  if (!isVeterinary.value) {
+      fetchServiceAnalytics()
+  }
+})
+
+// ... rest of code ...
+
 
 const showUpgradeDialog = ref(false)
 const router = useRouter()
@@ -351,9 +395,14 @@ const handleOpenDashboard = () => {
 
           <!-- REGULAR: Catalog Service UI -->
           <div v-else>
-            <VRow>
+            <VRow v-if="loadingAnalytics">
+                <VCol cols="12" class="text-center py-10">
+                    <VProgressCircular indeterminate color="primary" />
+                </VCol>
+            </VRow>
+            <VRow v-else>
               <VCol
-                v-for="stat in analytics"
+                v-for="stat in analyticsStats"
                 :key="stat.title"
                 cols="12"
                 sm="6"
@@ -373,7 +422,7 @@ const handleOpenDashboard = () => {
                         <VIcon :icon="stat.icon" />
                       </VAvatar>
                       <VChip
-                        color="success"
+                        :color="stat.change.includes('-') ? 'error' : 'success'"
                         size="x-small"
                         variant="tonal"
                       >
@@ -423,23 +472,23 @@ const handleOpenDashboard = () => {
                   class="h-100"
                 >
                   <VList lines="two">
-                    <VListItem
-                      title="New Booking"
-                      subtitle="2 mins ago"
-                      prepend-icon="tabler-calendar-plus"
-                    />
-                    <VDivider inset />
-                    <VListItem
-                      title="Review Received"
-                      subtitle="1 hour ago"
-                      prepend-icon="tabler-star"
-                    />
-                    <VDivider inset />
-                    <VListItem
-                      title="Pricing Updated"
-                      subtitle="Yesterday"
-                      prepend-icon="tabler-tag"
-                    />
+                    <template v-if="recentActivity.length > 0">
+                        <template v-for="(activity, index) in recentActivity" :key="index">
+                             <VListItem
+                                :title="activity.title"
+                                :subtitle="activity.subtitle"
+                                :prepend-icon="activity.icon"
+                            />
+                            <VDivider v-if="index < recentActivity.length - 1" inset />
+                        </template>
+                    </template>
+                    <template v-else>
+                        <VListItem
+                            title="No recent activity"
+                            subtitle="Bookings will appear here"
+                            prepend-icon="tabler-info-circle"
+                        />
+                    </template>
                   </VList>
                 </VCard>
               </VCol>

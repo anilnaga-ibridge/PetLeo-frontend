@@ -20,6 +20,7 @@ const form = ref({
   sex: null,
   dob: '',
   color: '',
+  owner_name: '',
   owner_phone: '',
   owner_email: '',
   owner_address: '',
@@ -27,7 +28,6 @@ const form = ref({
 })
 
 const countryCodes = ['+91', '+1', '+44', '+61', '+81', '+49', '+33', '+86']
-
 const sexOptions = ['Male', 'Female', 'Unknown']
 
 const petTypes = computed(() => veterinaryStore.petTypes)
@@ -64,7 +64,6 @@ const createNewType = async name => {
   creatingType.value = true
   try {
     const newType = await veterinaryStore.createPetType(name)
-
     form.value.species = newType
   } catch (err) {
     console.error('Failed to create type:', err)
@@ -86,14 +85,12 @@ const createNewBreed = async breedName => {
 
   if (!speciesId) {
     alert('Please select or create a valid species first.')
-    
     return
   }
 
   creatingBreed.value = true
   try {
     const newBreed = await veterinaryStore.createPetBreed(speciesId, breedName)
-
     form.value.breed = newBreed.breed
   } catch (err) {
     console.error('Failed to create breed:', err)
@@ -128,7 +125,6 @@ const submit = async () => {
       if (typeof val === 'object') {
         return val.breed || val.name || val.title || val.label || val.id || ''
       }
-      
       return String(val)
     }
 
@@ -148,263 +144,270 @@ const submit = async () => {
 
 <template>
   <component :is="currentLayout">
-    <div class="new-pet-page pa-4">
-      <div class="d-flex align-center mb-6">
-        <VBtn
-          icon="tabler-arrow-left"
-          variant="tonal"
-          to="/veterinary/dashboard"
-          class="me-2"
-          color="primary"
-        />
-        <div>
-          <h1 class="text-h3 font-weight-bold text-primary">
-            New Patient
-          </h1>
-          <div class="text-body-1 text-medium-emphasis">
-            Register a new pet into the clinic system
+    <div class="new-pet-page">
+      <!-- Header -->
+      <div class="d-flex align-center justify-space-between mb-6 pa-4 pb-0">
+        <div class="d-flex align-center">
+          <VBtn
+            icon="tabler-arrow-left"
+            variant="text"
+            color="secondary"
+            to="/veterinary/dashboard"
+            class="me-2"
+          />
+          <div>
+            <h1 class="text-h4 font-weight-bold text-primary mb-1">
+              New Patient
+            </h1>
+            <div class="text-body-2 text-medium-emphasis">
+              Register a new furry friend
+            </div>
           </div>
+        </div>
+        <div class="d-none d-sm-flex gap-2">
+           <VBtn
+            variant="tonal"
+            color="secondary"
+            to="/veterinary/dashboard"
+          >
+            Cancel
+          </VBtn>
+           <VBtn
+            color="primary"
+            :loading="loading"
+            @click="submit"
+            prepend-icon="tabler-check"
+          >
+            Register Patient
+          </VBtn>
         </div>
       </div>
 
-      <VCard
-        elevation="0"
-        border
-      >
-        <VCardText>
-          <VForm @submit.prevent="submit">
-            <div class="d-flex align-center gap-2 mb-4">
-              <VAvatar
-                color="primary"
-                variant="tonal"
-                size="32"
-              >
-                <VIcon
-                  icon="tabler-paw"
-                  size="20"
-                />
-              </VAvatar>
-              <span class="text-h6 font-weight-bold">Pet Information</span>
-            </div>
+      <VForm @submit.prevent="submit" class="pa-4">
+        <VRow>
+          <!-- Left Column: Pet Details -->
+          <VCol cols="12" md="7" lg="8">
+            <VCard class="mb-6 h-100" elevation="0" border>
+              <VCardItem class="pb-0">
+                <template #prepend>
+                   <VAvatar
+                      color="primary"
+                      variant="tonal"
+                      size="40"
+                      class="me-2"
+                    >
+                      <VIcon icon="tabler-paw" size="24" />
+                    </VAvatar>
+                </template>
+                <VCardTitle>Pet Information</VCardTitle>
+                <VCardSubtitle>Basic details about the patient</VCardSubtitle>
+              </VCardItem>
 
-            <VRow>
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppTextField
-                  v-model="form.name"
-                  label="Pet Name *"
-                  placeholder="e.g. Max"
-                  prepend-inner-icon="tabler-id"
-                  :rules="[v => !!v || 'Name is required']"
-                />
-              </VCol>
-              
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppCombobox
-                  v-model="form.species"
-                  :items="petTypes"
-                  item-title="name"
-                  item-value="name"
-                  label="Species"
-                  placeholder="Dog, Cat, etc."
-                  prepend-inner-icon="tabler-dna"
-                  :return-object="true"
-                  :loading="creatingType"
-                >
-                  <template #no-data>
-                    <VListItem @click="createNewType(form.species)">
-                      <template #prepend>
-                        <VIcon
-                          icon="tabler-plus"
-                          color="primary"
-                        />
-                      </template>
-                      <VListItemTitle>
-                        Create new species: <span class="font-weight-bold">"{{ form.species }}"</span>
-                      </VListItemTitle>
-                    </VListItem>
-                  </template>
-                </AppCombobox>
-              </VCol>
-
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppCombobox
-                  v-model="form.breed"
-                  :items="filteredBreeds"
-                  item-title="breed"
-                  item-value="breed"
-                  label="Breed"
-                  placeholder="e.g. Golden Retriever"
-                  prepend-inner-icon="tabler-category"
-                  :return-object="false"
-                  :disabled="!form.species"
-                  :loading="creatingBreed"
-                >
-                  <template #no-data>
-                    <VListItem @click="createNewBreed(form.breed)">
-                      <template #prepend>
-                        <VIcon
-                          icon="tabler-plus"
-                          color="primary"
-                        />
-                      </template>
-                      <VListItemTitle>
-                        Create new breed: <span class="font-weight-bold">"{{ form.breed }}"</span>
-                      </VListItemTitle>
-                    </VListItem>
-                  </template>
-                </AppCombobox>
-              </VCol>
-
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppSelect
-                  v-model="form.sex"
-                  :items="sexOptions"
-                  label="Sex"
-                  placeholder="Select Sex"
-                  prepend-inner-icon="tabler-gender-bigender"
-                />
-              </VCol>
-
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppTextField
-                  v-model="form.dob"
-                  type="date"
-                  label="Date of Birth"
-                  prepend-inner-icon="tabler-calendar"
-                />
-              </VCol>
-
-              <VCol
-                cols="12"
-                md="6"
-              >
-                <AppTextField
-                  v-model="form.color"
-                  label="Color/Markings"
-                  placeholder="e.g. Brown with white spots"
-                  prepend-inner-icon="tabler-palette"
-                />
-              </VCol>
-
-              <VCol cols="12">
-                <VDivider class="my-2 border-dashed" />
-              </VCol>
-
-              <div class="d-flex align-center gap-2 mb-4 px-3 mt-4 w-100">
-                <VAvatar
-                  color="info"
-                  variant="tonal"
-                  size="32"
-                >
-                  <VIcon
-                    icon="tabler-user"
-                    size="20"
-                  />
-                </VAvatar>
-                <span class="text-h6 font-weight-bold">Owner Information</span>
-              </div>
-
-              <VCol
-                cols="12"
-                md="4"
-              >
-                <AppTextField
-                  v-model="form.owner_name"
-                  label="Owner Name *"
-                  placeholder="Full Legal Name"
-                  prepend-inner-icon="tabler-user"
-                  :rules="[v => !!v || 'Owner name is required']"
-                />
-              </VCol>
-
-              <VCol
-                cols="12"
-                md="4"
-              >
-                <div class="d-flex gap-1">
-                  <AppSelect
-                    v-model="form.country_code"
-                    :items="countryCodes"
-                    label="Code"
-                    style="max-width: 110px;"
-                  />
-                  <AppTextField
-                    v-model="form.owner_phone"
-                    label="Phone *"
-                    placeholder="9876543210"
-                    :rules="[v => !!v || 'Phone is required']"
-                  />
+              <VCardText class="pt-6">
+                <!-- Avatar Placeholder (Visual only for now) -->
+                <div class="d-flex justify-center mb-6">
+                  <div class="text-center">
+                    <VAvatar
+                      size="100"
+                      color="secondary"
+                      variant="tonal"
+                      class="mb-2"
+                      style="border: 2px dashed rgba(var(--v-theme-primary), 0.3)"
+                    >
+                      <VIcon icon="tabler-camera-plus" size="40" color="primary" />
+                    </VAvatar>
+                    <div class="text-caption text-disabled">Upload Photo</div>
+                  </div>
                 </div>
-              </VCol>
 
-              <VCol
-                cols="12"
-                md="4"
+                <VRow>
+                  <VCol cols="12">
+                     <AppTextField
+                      v-model="form.name"
+                      label="Pet Name *"
+                      placeholder="e.g. Max"
+                      prepend-inner-icon="tabler-id"
+                      :rules="[v => !!v || 'Name is required']"
+                      variant="outlined"
+                    />
+                  </VCol>
+
+                  <VCol cols="12" md="6">
+                     <AppCombobox
+                      v-model="form.species"
+                      :items="petTypes"
+                      item-title="name"
+                      item-value="name"
+                      label="Species"
+                      placeholder="Dog, Cat..."
+                      prepend-inner-icon="tabler-dna"
+                      :return-object="true"
+                      :loading="creatingType"
+                    >
+                      <template #no-data>
+                        <VListItem @click="createNewType(form.species)">
+                          <VListItemTitle>
+                            Create "<span class="font-weight-bold">{{ form.species }}</span>"
+                          </VListItemTitle>
+                        </VListItem>
+                      </template>
+                    </AppCombobox>
+                  </VCol>
+
+                  <VCol cols="12" md="6">
+                    <AppCombobox
+                      v-model="form.breed"
+                      :items="filteredBreeds"
+                      item-title="breed"
+                      item-value="breed"
+                      label="Breed"
+                      placeholder="Select Breed"
+                      prepend-inner-icon="tabler-category"
+                      :return-object="false"
+                      :disabled="!form.species"
+                      :loading="creatingBreed"
+                    >
+                      <template #no-data>
+                        <VListItem @click="createNewBreed(form.breed)">
+                          <VListItemTitle>
+                            Create "<span class="font-weight-bold">{{ form.breed }}</span>"
+                          </VListItemTitle>
+                        </VListItem>
+                      </template>
+                    </AppCombobox>
+                  </VCol>
+
+                  <VCol cols="12" md="6">
+                    <AppSelect
+                      v-model="form.sex"
+                      :items="sexOptions"
+                      label="Sex"
+                      placeholder="Select Sex"
+                      prepend-inner-icon="tabler-gender-bigender"
+                    />
+                  </VCol>
+
+                  <VCol cols="12" md="6">
+                    <AppTextField
+                      v-model="form.dob"
+                      type="date"
+                      label="Date of Birth"
+                      prepend-inner-icon="tabler-calendar"
+                    />
+                  </VCol>
+
+                   <VCol cols="12">
+                    <AppTextField
+                      v-model="form.color"
+                      label="Color / Markings"
+                      placeholder="e.g. Brown with white spots"
+                      prepend-inner-icon="tabler-palette"
+                    />
+                  </VCol>
+                </VRow>
+              </VCardText>
+            </VCard>
+          </VCol>
+
+          <!-- Right Column: Owner Details -->
+          <VCol cols="12" md="5" lg="4">
+             <VCard class="h-100" elevation="0" border>
+              <VCardItem class="pb-0">
+                <template #prepend>
+                   <VAvatar
+                      color="info"
+                      variant="tonal"
+                      size="40"
+                      class="me-2"
+                    >
+                      <VIcon icon="tabler-user" size="24" />
+                    </VAvatar>
+                </template>
+                <VCardTitle>Owner Information</VCardTitle>
+                <VCardSubtitle>Contact details</VCardSubtitle>
+              </VCardItem>
+
+              <VCardText class="pt-6">
+                <VRow>
+                  <VCol cols="12">
+                    <AppTextField
+                      v-model="form.owner_name"
+                      label="Owner Name *"
+                      placeholder="Full Legal Name"
+                      prepend-inner-icon="tabler-user"
+                      :rules="[v => !!v || 'Owner name is required']"
+                    />
+                  </VCol>
+
+                  <VCol cols="12">
+                    <div class="d-flex gap-2">
+                       <AppSelect
+                        v-model="form.country_code"
+                        :items="countryCodes"
+                        label="Code"
+                        style="max-width: 100px;"
+                      />
+                      <AppTextField
+                        v-model="form.owner_phone"
+                        label="Phone *"
+                        placeholder="9876543210"
+                        :rules="[v => !!v || 'Phone is required']"
+                        type="number"
+                      />
+                    </div>
+                  </VCol>
+
+                  <VCol cols="12">
+                     <AppTextField
+                      v-model="form.owner_email"
+                      label="Email"
+                      placeholder="owner@example.com"
+                      prepend-inner-icon="tabler-mail"
+                      type="email"
+                    />
+                  </VCol>
+
+                  <VCol cols="12">
+                    <AppTextarea
+                      v-model="form.owner_address"
+                      label="Current Address"
+                      placeholder="Street, City, Zip Code"
+                      prepend-inner-icon="tabler-map-pin"
+                      rows="3"
+                      auto-grow
+                    />
+                  </VCol>
+                </VRow>
+              </VCardText>
+            </VCard>
+          </VCol>
+        </VRow>
+        
+        <!-- Mobile Actions -->
+        <VRow class="d-sm-none mt-4">
+           <VCol cols="12">
+             <VBtn
+                color="primary"
+                :loading="loading"
+                block
+                size="large"
+                @click="submit"
               >
-                <AppTextField
-                  v-model="form.owner_email"
-                  label="Owner Email"
-                  placeholder="e.g. owner@example.com"
-                  prepend-inner-icon="tabler-mail"
-                  type="email"
-                />
-              </VCol>
-
-              <VCol cols="12">
-                <AppTextarea
-                  v-model="form.owner_address"
-                  label="Current Address"
-                  placeholder="Street, City, Zip Code"
-                  prepend-inner-icon="tabler-map-pin"
-                  rows="2"
-                  auto-grow
-                />
-              </VCol>
-
-              <VCol
-                cols="12"
-                class="d-flex justify-end gap-3 mt-4"
-              >
-                <VBtn
-                  variant="outlined"
-                  color="secondary"
-                  to="/veterinary/dashboard"
-                  size="large"
-                >
-                  Cancel
-                </VBtn>
-                <VBtn
-                  type="submit"
-                  color="primary"
-                  :loading="loading"
-                  size="large"
-                  prepend-icon="tabler-check"
-                >
-                  Register Pet
-                </VBtn>
-              </VCol>
-            </VRow>
-          </VForm>
-        </VCardText>
-      </VCard>
+                Register Patient
+              </VBtn>
+           </VCol>
+        </VRow>
+      </VForm>
     </div>
   </component>
 </template>
+
+<style scoped>
+.new-pet-page {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+</style>
 
 <route lang="yaml">
 meta:

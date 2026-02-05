@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { providerApi } from '@/plugins/axios'
+import { useCookie } from '@/@core/composable/useCookie'
 
 const props = defineProps({
   serviceId: {
@@ -28,16 +29,26 @@ const loading = ref(false)
 const submitting = ref(false)
 const viewMode = ref('card') // 'card' or 'table'
 const searchQuery = ref('')
-const showPermissionDialog = ref(false)
-const showPermissions = ref(false)
+const showPermissions = ref(false) // Default collapsed
 const permissionDeniedAction = ref('')
 
+const userData = useCookie('userData')
+const userRole = computed(() => (userData.value?.role?.name || userData.value?.role || '').toLowerCase())
+
+const isAdmin = computed(() => {
+  const adminRoles = ['organization', 'individual', 'organization_provider', 'organization_admin', 'super_admin', 'provider']
+  
+  return adminRoles.includes(userRole.value)
+})
+
 const normalizedPerms = computed(() => ({
-  can_create: props.permissions.can_create ?? props.permissions.canCreate ?? false,
-  can_edit: props.permissions.can_edit ?? props.permissions.canEdit ?? false,
-  can_delete: props.permissions.can_delete ?? props.permissions.canDelete ?? false,
-  can_view: props.permissions.can_view ?? props.permissions.canView ?? true
+  can_create: isAdmin.value || !!(props.permissions.can_create || props.permissions.canCreate),
+  can_edit: isAdmin.value || !!(props.permissions.can_edit || props.permissions.canEdit),
+  can_delete: isAdmin.value || !!(props.permissions.can_delete || props.permissions.canDelete),
+  can_view: !!(props.permissions.can_view || props.permissions.canView || true),
 }))
+
+const showPermissionDialog = ref(false)
 
 const permissionMatrix = computed(() => [
   { entity: 'Category', create: normalizedPerms.value.can_create, edit: normalizedPerms.value.can_edit, delete: normalizedPerms.value.can_delete },
@@ -92,7 +103,6 @@ const fetchData = async () => {
       providerApi.get(`/api/provider/categories/?service=${props.serviceId}`),
       providerApi.get(`/api/provider/pricing/?service=${props.serviceId}`)
     ])
-
     categories.value = catRes.data.results || catRes.data || []
     pricingRules.value = priceRes.data.results || priceRes.data || []
   } catch (err) {
@@ -105,13 +115,11 @@ const fetchData = async () => {
 // Hierarchy Logic
 const hierarchy = computed(() => {
   let filteredCats = categories.value
-  
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
     filteredCats = categories.value.filter(c => c.name.toLowerCase().includes(q))
   }
 
-  // Helper to safely get category ID from a rule
   const getCategoryId = (rule) => {
     if (rule.category_id) return rule.category_id
     if (!rule.category) return null
@@ -119,41 +127,34 @@ const hierarchy = computed(() => {
   }
 
   const processedRuleIds = new Set()
-
   const menu = filteredCats.map(cat => {
     const rules = pricingRules.value.filter(rule => {
        const ruleCatId = getCategoryId(rule)
-       
        const isMatch = ruleCatId === cat.id && rule.facility
        if (isMatch) processedRuleIds.add(rule.id)
        return isMatch
     })
-    
     return {
       ...cat,
       items: rules.map(rule => ({
-        // Backend returns facility as ID (string) and facility_name (string)
-        // Check if it's an object (legacy) or just ID
         id: (typeof rule.facility === 'object' && rule.facility) ? rule.facility.id : rule.facility,
-        ruleId: rule.id, // Keep track of rule ID for pricing updates
+        ruleId: rule.id,
         name: rule.facility_name || (typeof rule.facility === 'object' ? rule.facility.name : 'Unknown Facility'),
         description: rule.facility_description || (typeof rule.facility === 'object' ? rule.facility.description : ''),
-        price: rule.price, // Backend sends 'price', not 'base_price'
-        duration: null, // Backend schema lacks separate duration_minutes, skipping for now
-        billing_unit: rule.duration, // Backend 'duration' field holds the Billing Unit (e.g. PER_SESSION)
+        price: rule.price,
+        duration: rule.duration,
+        billing_unit: rule.billing_unit,
         is_active: rule.is_active,
-        // Helper for permission checks if per-item permission needed
-        can_edit: rule.can_edit, 
+        can_edit: rule.can_edit,
         can_delete: rule.can_delete
       }))
     }
   })
 
-  // Add Uncategorized AND Orphaned rules (rules with category ID that wasn't found in fetched categories)
+  // Uncategorized Rules
   const leftoverRules = pricingRules.value.filter(rule => 
       !processedRuleIds.has(rule.id) && rule.facility
   )
-
   if (leftoverRules.length > 0 && !searchQuery.value) {
     menu.push({
       id: 'uncategorized',
@@ -162,18 +163,17 @@ const hierarchy = computed(() => {
       items: leftoverRules.map(rule => ({
         id: (typeof rule.facility === 'object' && rule.facility) ? rule.facility.id : rule.facility,
         ruleId: rule.id,
-        name: rule.facility_name || (typeof rule.facility === 'object' ? rule.facility.name : 'Unknown Facility'),
-        description: rule.facility_description || (typeof rule.facility === 'object' ? rule.facility.description : ''),
+        name: rule.facility_name,
+        description: rule.facility_description,
         price: rule.price,
-        duration: null,
-        billing_unit: rule.duration,
+        billing_unit: rule.billing_unit,
+        duration: rule.duration,
         is_active: rule.is_active,
         can_edit: rule.can_edit,
         can_delete: rule.can_delete
       }))
     })
   }
-
   return menu
 })
 
@@ -219,7 +219,7 @@ const submitCategory = async () => {
 }
 
 const deleteCategory = async (id) => {
-  if (!confirm('Delete this category and all its facilities?')) return
+  if (!confirm('Delete this category?')) return
   try {
     await providerApi.delete(`/api/provider/categories/${id}/`)
     fetchData()
@@ -243,7 +243,7 @@ const toggleCategoryStatus = async (category) => {
 const openFacilityDrawer = (category, item = null) => {
   if (item) {
     isEdit.value = true
-    editId.value = item.id // Facility ID
+    editId.value = item.id
     facilityForm.value = {
       name: item.name,
       description: item.description,
@@ -253,7 +253,6 @@ const openFacilityDrawer = (category, item = null) => {
       duration_minutes: item.duration,
       billing_unit: item.billing_unit,
       is_active: item.is_active,
-      // Store rule ID for update
       ruleId: item.ruleId
     }
   } else {
@@ -276,48 +275,35 @@ const submitFacility = async () => {
   if (submitting.value) return
   submitting.value = true
   try {
-    if (isEdit.value) {
-      // 1. Update Facility
-      await providerApi.put(`/api/provider/facilities/${editId.value}/`, {
-        name: facilityForm.value.name,
-        description: facilityForm.value.description,
-        service: facilityForm.value.service,
-        category: facilityForm.value.category
-      })
-      
-      // 2. Update Pricing Rule
-      if (facilityForm.value.ruleId) {
-        await providerApi.put(`/api/provider/pricing/${facilityForm.value.ruleId}/`, {
-          service_id: facilityForm.value.service,
-          category_id: facilityForm.value.category,
-          facility: editId.value,
-          price: facilityForm.value.base_price,
-          duration: facilityForm.value.billing_unit,
-          is_active: facilityForm.value.is_active,
-          description: facilityForm.value.description
-        })
-      }
+    const payload = { ...facilityForm.value }
+    
+    // We update Price Rule mostly
+    if (isEdit.value && payload.ruleId) {
+       await providerApi.put(`/api/provider/facilities/${editId.value}/`, {
+         name: payload.name, description: payload.description,
+         service: payload.service, category: payload.category
+       })
+       await providerApi.put(`/api/provider/pricing/${payload.ruleId}/`, {
+         service_id: payload.service, category_id: payload.category,
+         facility: editId.value, price: payload.base_price,
+         billing_unit: payload.billing_unit,
+         duration: payload.duration_minutes,
+         is_active: payload.is_active,
+         description: payload.description
+       })
     } else {
-      // 1. Create Facility
-      const facRes = await providerApi.post('/api/provider/facilities/', {
-        name: facilityForm.value.name,
-        description: facilityForm.value.description,
-        service: facilityForm.value.service,
-        category: facilityForm.value.category
-      })
-      
-      // 2. Create Pricing Rule
-      const pricingPayload = {
-        service_id: facilityForm.value.service,
-        category_id: facilityForm.value.category,
-        facility: facRes.data.id,
-        price: facilityForm.value.base_price,
-        duration: facilityForm.value.billing_unit,
-        is_active: facilityForm.value.is_active,
-        description: facilityForm.value.description
-      }
-
-      await providerApi.post('/api/provider/pricing/', pricingPayload)
+       const facRes = await providerApi.post('/api/provider/facilities/', {
+         name: payload.name, description: payload.description,
+         service: payload.service, category: payload.category
+       })
+       await providerApi.post('/api/provider/pricing/', {
+         service_id: payload.service, category_id: payload.category,
+         facility: facRes.data.id, price: payload.base_price,
+         billing_unit: payload.billing_unit,
+         duration: payload.duration_minutes,
+         is_active: payload.is_active,
+         description: payload.description
+       })
     }
     facilityDrawerOpen.value = false
     fetchData()
@@ -331,29 +317,11 @@ const submitFacility = async () => {
 const deleteFacility = async (item) => {
   if (!confirm('Delete this facility?')) return
   try {
-    // Delete the Rule first (or just facility, backend might cascade)
-    // Best practice: Delete pricing rule, then facility if strictly coupled
-    if (item.ruleId) {
-       await providerApi.delete(`/api/provider/pricing/${item.ruleId}/`)
-    }
-    // Attempt deleting facility (might fail if shared, but here assumed 1:1 context)
-    // await providerApi.delete(`/api/provider/facilities/${item.id}/`)
-
+    if (item.ruleId) await providerApi.delete(`/api/provider/pricing/${item.ruleId}/`)
+    if (item.id) await providerApi.delete(`/api/provider/facilities/${item.id}/`)
     fetchData()
   } catch (err) {
     console.error('Failed to delete item:', err)
-  }
-}
-
-const toggleFacilityStatus = async (item) => {
-  try {
-    if (item.ruleId) {
-       await providerApi.patch(`/api/provider/pricing/${item.ruleId}/`, {
-         is_active: item.is_active
-       })
-    }
-  } catch (err) {
-    item.is_active = !item.is_active
   }
 }
 
@@ -362,381 +330,297 @@ watch(() => props.serviceId, fetchData)
 </script>
 
 <template>
-  <div class="h-100 d-flex flex-column position-relative">
-    <!-- Permission Summary Card -->
-    <VCard class="mb-6 border" elevation="0" v-if="mode === 'categories'">
-      <div @click="showPermissions = !showPermissions" class="cursor-pointer py-2 px-4">
-        <div class="d-flex align-center justify-space-between">
-            <div class="d-flex align-center">
-                <VAvatar color="primary" variant="tonal" size="40" class="me-3">
-                    <VIcon icon="tabler-lock-access" size="24" />
-                </VAvatar>
-                <div class="d-flex flex-wrap align-center gap-x-2">
-                    <h3 class="text-h6 font-weight-bold mb-0">Your Plan Permissions</h3>
-                    <div class="text-caption text-medium-emphasis mb-0">Access level based on your current subscription</div>
-                </div>
-                <VIcon :icon="showPermissions ? 'tabler-chevron-up' : 'tabler-chevron-down'" class="ms-2 text-medium-emphasis" />
+  <div class="d-flex flex-column h-100">
+    <!-- 1. Permissions Card (Collapsible) -->
+    <VCard 
+      class="mb-6 border overflow-hidden" 
+      elevation="0" 
+      v-if="mode === 'categories'"
+      variant="flat"
+      color="surface"
+    >
+      <div 
+        @click="showPermissions = !showPermissions" 
+        class="cursor-pointer py-3 px-5 d-flex align-center justify-space-between bg-var-theme-background"
+        style="transition: background 0.2s"
+        v-ripple
+      >
+        <div class="d-flex align-center gap-3">
+            <VAvatar color="primary" variant="tonal" size="36">
+                <VIcon icon="tabler-shield-lock" size="20" />
+            </VAvatar>
+            <div>
+                 <div class="text-subtitle-1 font-weight-bold">Plan Permissions</div>
+                 <div class="text-caption text-medium-emphasis">View your access level</div>
             </div>
-            <VBtn variant="text" size="small" color="primary" append-icon="tabler-external-link" :to="{ name: 'provider-providerhome', hash: '#plans' }" @click.stop>
-                Upgrade Plan
-            </VBtn>
+        </div>
+        <div class="d-flex align-center gap-2">
+           <VIcon :icon="showPermissions ? 'tabler-chevron-up' : 'tabler-chevron-down'" size="20" class="text-medium-emphasis" />
         </div>
       </div>
+      
       <VExpandTransition>
         <div v-show="showPermissions">
-            <VDivider />
-            <div class="d-flex flex-wrap pa-4 gap-4">
-        <div v-for="row in permissionMatrix" :key="row.entity" class="flex-grow-1 border rounded pa-3 bg-surface">
-             <div class="text-subtitle-2 font-weight-bold mb-2">{{ row.entity }}</div>
-             <div class="d-flex gap-3">
-                 <div class="d-flex align-center text-caption" :class="row.create ? 'text-success' : 'text-disabled'">
-                     <VIcon :icon="row.create ? 'tabler-check' : 'tabler-lock'" size="16" class="me-1" /> Create
-                 </div>
-                 <div class="d-flex align-center text-caption" :class="row.edit ? 'text-success' : 'text-disabled'">
-                     <VIcon :icon="row.edit ? 'tabler-check' : 'tabler-lock'" size="16" class="me-1" /> Update
-                 </div>
-                 <div class="d-flex align-center text-caption" :class="row.delete ? 'text-success' : 'text-disabled'">
-                     <VIcon :icon="row.delete ? 'tabler-check' : 'tabler-lock'" size="16" class="me-1" /> Delete
-                 </div>
-             </div>
+          <VDivider />
+            <div class="d-flex flex-wrap gap-4 pa-5 bg-grey-lighten-5">
+              <div v-for="row in permissionMatrix" :key="row.entity" class="bg-surface border rounded-lg px-4 py-3 flex-grow-1" style="min-width: 200px">
+                  <div class="text-caption font-weight-bold text-uppercase mb-2 text-medium-emphasis">{{ row.entity }}</div>
+                  <div class="d-flex align-center justify-space-between">
+                      <div class="d-flex align-center gap-1" :class="row.create ? 'text-success' : 'text-medium-emphasis'">
+                         <VIcon :icon="row.create ? 'tabler-circle-check-filled' : 'tabler-circle-x'" size="16" />
+                         <span class="text-caption font-weight-medium">Create</span>
+                      </div>
+                      <div class="d-flex align-center gap-1" :class="row.edit ? 'text-success' : 'text-medium-emphasis'">
+                         <VIcon :icon="row.edit ? 'tabler-circle-check-filled' : 'tabler-circle-x'" size="16" />
+                         <span class="text-caption font-weight-medium">Edit</span>
+                      </div>
+                      <div class="d-flex align-center gap-1" :class="row.delete ? 'text-success' : 'text-medium-emphasis'">
+                         <VIcon :icon="row.delete ? 'tabler-circle-check-filled' : 'tabler-circle-x'" size="16" />
+                         <span class="text-caption font-weight-medium">Delete</span>
+                      </div>
+                  </div>
+              </div>
+            </div>
         </div>
-        </div>
-      </div>
       </VExpandTransition>
     </VCard>
 
-
-
-    <!-- Toolbar -->
-    <div class="d-flex flex-wrap align-center gap-4 mb-6">
-       <div style="min-width: 250px; flex: 1;">
-        <AppTextField
+    <!-- 2. Toolbar & Search -->
+    <div class="d-flex flex-wrap align-center justify-space-between gap-4 mb-6">
+       <!-- Search -->
+       <div style="flex: 1; min-width: 280px; max-width: 500px;">
+        <VTextField
           v-model="searchQuery"
           placeholder="Search categories & facilities..."
           prepend-inner-icon="tabler-search"
           density="comfortable"
+          variant="outlined"
           hide-details
-          class="premium-search-v2"
-        />
-      </div>
-
-      <div class="d-flex align-center gap-3">
-        <VBtnToggle
-          v-if="mode !== 'categories'"
-          v-model="viewMode"
-          mandatory
-          density="compact"
-          color="primary"
-          variant="tonal"
-          class="premium-toggle-v2 rounded-lg"
+          class="rounded-lg bg-surface"
         >
-          <VBtn value="card" icon="tabler-layout-grid" size="small" />
-          <VBtn value="table" icon="tabler-list" size="small" />
-        </VBtnToggle>
-
-        <VDivider vertical class="mx-2" />
-
-
-
-        <div v-if="mode === 'categories'">
-            <VTooltip v-if="!normalizedPerms.can_create" location="top" text="Not allowed in your current plan">
-                <template #activator="{ props }">
-                    <div v-bind="props" class="d-inline-block">
-                        <VBtn
-                          disabled
-                          color="medium-emphasis"
-                          prepend-icon="tabler-lock"
-                          rounded="lg"
-                          class="premium-btn shadow-v2"
-                        >
-                          Add Category
-                        </VBtn>
-                    </div>
-                </template>
-            </VTooltip>
-            
-            <VBtn
-              v-else
-              color="primary"
-              prepend-icon="tabler-plus"
-              rounded="lg"
-              class="premium-btn shadow-v2"
-              @click="openCategoryDrawer()"
-            >
-              Add Category
-            </VBtn>
-        </div>
+        </VTextField>
       </div>
+
+       <!-- Actions -->
+       <div class="d-flex align-center gap-3">
+          <VBtnToggle
+            v-if="mode !== 'categories'"
+            v-model="viewMode"
+            mandatory
+            density="comfortable"
+            color="primary"
+            variant="outlined"
+            class="rounded-lg"
+          >
+            <VBtn value="card" icon="tabler-layout-grid" />
+            <VBtn value="table" icon="tabler-list" />
+          </VBtnToggle>
+          
+          <VDivider v-if="mode !== 'categories'" vertical class="mx-1" />
+
+          <div v-if="mode === 'categories'">
+               <VBtn
+                v-if="normalizedPerms.can_create"
+                color="primary"
+                prepend-icon="tabler-plus"
+                height="44"
+                class="px-6"
+                @click="openCategoryDrawer()"
+              >
+                Add Category
+              </VBtn>
+               <VBtn v-else disabled color="medium-emphasis" prepend-icon="tabler-lock">Add Category</VBtn>
+          </div>
+       </div>
     </div>
 
-    <!-- Content -->
-    <div v-if="loading" class="d-flex justify-center align-center py-12">
-       <VProgressCircular indeterminate color="primary" size="64" />
+    <!-- 3. Content Area -->
+    <div v-if="loading" class="d-flex justify-center align-center py-12 flex-grow-1">
+       <VProgressCircular indeterminate color="primary" size="48" />
     </div>
 
     <template v-else-if="hierarchy.length > 0">
-       <!-- CATEGORIES MODE: GRID VIEW -->
+       
+       <!-- MODE: Categories (Grid) -->
        <div v-if="mode === 'categories'">
-         <VRow>
-            <VCol v-for="category in hierarchy" :key="category.id" cols="12" sm="6" md="4">
-              <VCard class="premium-card-v2 h-100">
-                <VCardText class="pa-5 d-flex flex-column h-100">
-                  <div class="d-flex justify-space-between align-start mb-4">
-                     <VAvatar color="primary" variant="tonal" rounded="lg" size="48">
-                        <VIcon icon="tabler-category" size="24" />
-                     </VAvatar>
-                     
-                     <div class="d-flex gap-1 action-buttons-card">
-                      <div class="d-flex gap-1 action-buttons-card">
-                        <!-- Edit Button -->
-                        <div v-if="!category.is_system">
-                             <VBtn
-                                v-if="normalizedPerms.can_edit"
-                                icon="tabler-pencil"
-                                size="x-small"
-                                variant="tonal"
-                                color="primary"
-                                rounded="lg"
-                                @click="openCategoryDrawer(category)"
-                            />
-                            <VBtn 
-                                v-else
-                                icon="tabler-lock"
-                                size="x-small"
-                                variant="tonal"
-                                color="medium-emphasis"
-                                rounded="lg"
-                                disabled
-                                v-bind="props"
-                                @click="handleRestrictedAction('Update Category')"
-                            />
-                        </div>
-
-                        <!-- Delete Button -->
-                        <div v-if="!category.is_system">
-                            <VBtn
-                                v-if="normalizedPerms.can_delete"
-                                icon="tabler-trash"
-                                size="x-small"
-                                variant="tonal"
-                                color="error"
-                                rounded="lg"
-                                @click="deleteCategory(category.id)"
-                            />
-                            <VBtn
-                                v-else
-                                icon="tabler-lock"
-                                size="x-small"
-                                variant="tonal"
-                                color="medium-emphasis"
-                                rounded="lg"
-                                disabled
-                                @click="handleRestrictedAction('Delete Category')"
-                            />
-                        </div>
+          <VRow>
+             <VCol v-for="category in hierarchy" :key="category.id" cols="12" sm="6" md="4" lg="3">
+                <VCard 
+                  class="h-100 d-flex flex-column hover-card border"
+                  elevation="0" 
+                  @click="normalizedPerms.can_edit ? openCategoryDrawer(category) : null"
+                >
+                   <VCardItem class="items-start">
+                      <template #prepend>
+                         <VAvatar color="primary" variant="tonal" rounded="lg">
+                            <VIcon icon="tabler-category" />
+                         </VAvatar>
+                      </template>
+                      <template #append>
+                         <VChip size="x-small" :color="category.is_active ? 'success' : 'secondary'">
+                            {{ category.is_active ? 'Active' : 'Inactive' }}
+                         </VChip>
+                      </template>
+                      <VCardTitle class="mt-1">{{ category.name }}</VCardTitle>
+                      <VCardSubtitle class="line-clamp-2 mt-1">{{ category.description || 'No description' }}</VCardSubtitle>
+                   </VCardItem>
+                   
+                   <VCardText class="d-flex align-end mt-auto pt-2">
+                       <span class="text-caption text-medium-emphasis bg-grey-lighten-4 px-2 py-1 rounded">
+                         {{ category.items?.length || 0 }} Facilities
+                       </span>
+                       <VSpacer />
+                       <!-- Actions on Hover -->
+                       <div class="hover-actions d-flex gap-1" v-if="normalizedPerms.can_delete">
+                          <VBtn 
+                            icon="tabler-trash" 
+                            variant="text" 
+                            size="x-small" 
+                            color="error" 
+                            @click.stop="deleteCategory(category.id)" 
+                          />
                        </div>
-                  </div>
-               </div>
-
-                  <div class="mb-4">
-                     <h3 class="text-h6 font-weight-bold mb-1">{{ category.name }}</h3>
-                     <p v-if="category.description" class="text-body-2 text-medium-emphasis mb-0 line-clamp-2">{{ category.description }}</p>
-                  </div>
-
-                  <div class="mt-auto pt-3 border-t d-flex align-center justify-space-between">
-                     <VChip 
-                        size="x-small" 
-                        :color="category.is_active ? 'success' : 'secondary'" 
-                        variant="tonal"
-                        label
-                     >
-                        {{ category.is_active ? 'ENABLED' : 'DISABLED' }}
-                     </VChip>
-                     
-                      <VSwitch
-                          v-if="normalizedPerms.can_edit"
-                          v-model="category.is_active"
-                          density="compact"
-                          hide-details
-                          color="success"
-                          @click.stop
-                          @update:model-value="toggleCategoryStatus(category)"
-                        />
-                        <VIcon v-else icon="tabler-lock" size="18" color="disabled" />
-                  </div>
-                </VCardText>
-              </VCard>
-            </VCol>
-         </VRow>
+                   </VCardText>
+                </VCard>
+             </VCol>
+          </VRow>
        </div>
 
-       <!-- FACILITIES & SUMMARY MODES -->
+       <!-- MODE: Facilities / Summary -->
        <div v-else class="d-flex flex-column gap-6">
-          <div v-for="category in hierarchy" :key="category.id" class="category-section">
-             <!-- Category Header -->
-             <div class="category-header d-flex align-center gap-4 mb-4 pb-2 border-b">
-                 <div class="d-flex align-center gap-3">
-                    <VIcon icon="tabler-category" size="24" color="primary" />
-                    <div>
-                       <h3 class="text-h6 font-weight-bold">{{ category.name }}</h3>
-                       <p v-if="category.description" class="text-caption text-medium-emphasis mb-0">{{ category.description }}</p>
-                    </div>
-                 </div>
-                 <div class="ml-auto" v-if="mode === 'facilities'">
-                     <VTooltip v-if="!normalizedPerms.can_create" location="top" text="Not allowed in your current plan">
-                        <template #activator="{ props }">
-                            <div v-bind="props">
-                                <VBtn variant="tonal" size="small" prepend-icon="tabler-lock" disabled>Add Item</VBtn>
-                            </div>
-                        </template>
-                     </VTooltip>
-                    <VBtn 
-                      v-else
-                      variant="tonal" 
-                      size="small" 
+          <div v-for="category in hierarchy" :key="category.id">
+             <!-- Section Header -->
+             <div class="d-flex align-center justify-space-between mb-4 mt-2">
+                <div class="d-flex align-center gap-3">
+                   <div class="bg-primary-lighten-5 pa-2 rounded-lg text-primary">
+                      <VIcon icon="tabler-category" size="20" />
+                   </div>
+                   <div>
+                      <h4 class="text-h6 font-weight-bold">{{ category.name }}</h4>
+                      <div class="text-caption text-medium-emphasis">{{ category.items?.length || 0 }} Items available</div>
+                   </div>
+                </div>
+                <!-- Action for Facility Create -->
+                <div v-if="mode === 'facilities'">
+                   <VBtn 
+                      v-if="normalizedPerms.can_create"
+                      variant="text" 
+                      color="primary" 
                       prepend-icon="tabler-plus"
                       @click="openFacilityDrawer(category)"
                     >
-                      Add Item
+                      New Item
                     </VBtn>
-                 </div>
+                </div>
              </div>
 
-             <!-- Facilities List (Always Cards) -->
+             <!-- Items Grid -->
              <div v-if="category.items && category.items.length > 0">
-                 <VRow>
-                    <VCol v-for="item in category.items" :key="item.id" cols="12" sm="6" md="4" lg="3">
-                       <VCard class="facility-card h-100 border" elevation="0">
-                          <VCardText class="pa-4 d-flex flex-column h-100">
-                             
-                             <!-- Title & Status -->
+                <VRow>
+                   <VCol v-for="item in category.items" :key="item.id" cols="12" sm="6" md="4" lg="3">
+                      <VCard class="border h-100 d-flex flex-column hover-card-v2" elevation="0">
+                          <div class="pa-4 flex-grow-1">
                              <div class="d-flex justify-space-between align-start mb-2">
-                                <h4 class="text-subtitle-1 font-weight-bold text-high-emphasis text-truncate">{{ item.name }}</h4>
-                                <VChip 
-                                   size="x-small" 
-                                   :color="item.is_active ? 'success' : 'error'" 
-                                   variant="tonal"
-                                   label
-                                   class="font-weight-bold"
-                                >
-                                   {{ item.is_active ? 'Enabled' : 'Disabled' }}
-                                </VChip>
+                                <h5 class="text-subtitle-1 font-weight-bold">{{ item.name }}</h5>
+                                <div class="d-flex gap-1 align-center hover-actions">
+                                  <VIcon 
+                                    v-if="mode === 'facilities' && normalizedPerms.can_edit"
+                                    icon="tabler-pencil" 
+                                    size="16" 
+                                    class="text-medium-emphasis cursor-pointer edit-icon"
+                                    @click="openFacilityDrawer(category, item)" 
+                                  />
+                                  <VIcon 
+                                    v-if="mode === 'facilities' && normalizedPerms.can_delete"
+                                    icon="tabler-trash" 
+                                    size="16" 
+                                    class="text-error cursor-pointer delete-icon"
+                                    @click="deleteFacility(item)" 
+                                  />
+                                </div>
                              </div>
-
-                             <!-- Price Info -->
-                             <div class="price-info mb-3">
-                                 <div class="d-flex align-center gap-2 text-body-2 font-weight-medium text-primary bg-primary-lighten-5 pa-2 rounded-lg" style="width: fit-content;">
-                                    <span>₹{{ item.price }}</span>
-                                    <span class="text-disabled">•</span>
-                                    <span v-if="item.duration">{{ item.duration }} min</span>
-                                    <span v-if="item.duration" class="text-disabled">•</span>
-                                    <span class="text-capitalize">{{ (item.billing_unit || '').toLowerCase().replace('_', ' ') }}</span>
-                                 </div>
-                             </div>
-
-                             <!-- Description -->
-                             <p v-if="item.description" class="text-caption text-medium-emphasis line-clamp-2 mb-4 flex-grow-1">
-                                {{ item.description }}
+                             
+                             <p class="text-body-2 text-medium-emphasis line-clamp-2 mb-3" style="min-height: 40px;">
+                                {{ item.description || 'No description provided.' }}
                              </p>
-                             <div v-else class="flex-grow-1"></div>
-
-                             <!-- Actions -->
-                             <div class="d-flex gap-2 pt-3 border-t mt-auto" v-if="mode === 'facilities'">
-                                <template v-if="normalizedPerms.can_edit">
-                                    <VBtn
-                                       block
-                                       variant="tonal"
-                                       color="primary"
-                                       size="small"
-                                       prepend-icon="tabler-pencil"
-                                       @click="openFacilityDrawer(category, item)"
-                                    >
-                                       Edit
-                                    </VBtn>
-                                </template>
-                                <template v-else>
-                                    <VBtn block variant="tonal" color="medium-emphasis" size="small" prepend-icon="tabler-lock" disabled>Edit</VBtn>
-                                </template>
-
-                                <template v-if="normalizedPerms.can_delete">
-                                    <VBtn
-                                       icon="tabler-trash"
-                                       variant="text"
-                                       color="error"
-                                       size="small"
-                                       class="ml-auto"
-                                       @click="deleteFacility(item)"
-                                    />
-                                </template>
-                                <template v-else>
-                                    <VBtn icon="tabler-lock" variant="text" color="medium-emphasis" size="small" class="ml-auto" disabled />
-                                </template>
+                             
+                             <div class="d-flex align-center gap-2 mt-auto">
+                                <VChip color="primary" variant="flat" size="small" class="font-weight-bold">
+                                   ${{ item.price }}
+                                </VChip>
+                                <span class="text-caption text-medium-emphasis">
+                                   per {{ String(item.billing_unit || '').replace('_', ' ').toLowerCase() }}
+                                </span>
                              </div>
-                          </VCardText>
-                       </VCard>
-                    </VCol>
-                 </VRow>
+                          </div>
+                      </VCard>
+                   </VCol>
+                </VRow>
              </div>
-                          <div v-else class="text-center py-6 bg-surface-variant-light rounded-lg border-dashed">
-                  <p class="text-caption text-disabled font-italic mb-2">No facilities in this category</p>
-                  
-                  <div v-if="mode === 'facilities'">
-                      <VBtn v-if="normalizedPerms.can_create" variant="text" size="small" color="primary" @click="openFacilityDrawer(category)">
-                        + Add Item
-                      </VBtn>
-                      <VBtn v-else variant="text" size="small" color="medium-emphasis" prepend-icon="tabler-lock" disabled>
-                         Add Item
-                      </VBtn>
-                  </div>
-              </div>
+             <div v-else class="text-center py-6 border-dashed rounded-lg bg-grey-lighten-5">
+                 <span class="text-medium-emphasis text-body-2">No facilities yet.</span>
+                 <VBtn 
+                   v-if="mode === 'facilities' && normalizedPerms.can_create"
+                   variant="text" 
+                   size="small" 
+                   color="primary" 
+                   class="ms-2"
+                   @click="openFacilityDrawer(category)"
+                 >
+                   Add One
+                 </VBtn>
+             </div>
           </div>
        </div>
+
     </template>
     
-    <div v-else class="text-center py-12 bg-light rounded-lg border-dashed">
-       <VIcon icon="tabler-category" size="48" color="medium-emphasis" class="mb-4" />
-       <h3 class="text-h6 font-weight-bold mb-2">Service Structure Empty</h3>
-       <p class="text-body-2 text-medium-emphasis mb-6">Start by adding a category to organize your facilities.</p>
-       <VBtn v-if="permissions.canCreate" variant="tonal" color="primary" @click="openCategoryDrawer()">
-          Create First Category
-       </VBtn>
+    <div v-else class="text-center py-12 flex-grow-1 d-flex flex-column align-center justify-center">
+        <VAvatar color="secondary" variant="tonal" size="64" class="mb-4">
+           <VIcon icon="tabler-layout-grid-add" size="32" />
+        </VAvatar>
+        <h3 class="text-h6 font-weight-bold">No Categories Configured</h3>
+        <p class="text-medium-emphasis mb-6">Create your first category to start adding facilities.</p>
+        <VBtn v-if="normalizedPerms.can_create" color="primary" @click="openCategoryDrawer()">
+           Create Category
+        </VBtn>
     </div>
 
     <!-- Category Drawer -->
-    <VNavigationDrawer
-       v-model="categoryDrawerOpen"
-       location="end"
-       temporary
-       width="400"
-       class="builder-drawer"
-    >
-       <div class="drawer-container">
-          <div class="drawer-header bg-surface">
+    <VNavigationDrawer v-model="categoryDrawerOpen" location="end" temporary width="400">
+       <div class="d-flex flex-column h-100">
+          <div class="pa-4 border-b d-flex align-center justify-space-between bg-surface">
              <h3 class="text-h6 font-weight-bold">{{ isEdit ? 'Edit Category' : 'New Category' }}</h3>
-             <VBtn icon="tabler-x" variant="text" @click="categoryDrawerOpen = false" />
+             <VBtn icon="tabler-x" variant="text" density="compact" @click="categoryDrawerOpen = false" />
           </div>
-          <div class="drawer-body">
+          <div class="pa-4 flex-grow-1 overflow-y-auto">
              <VForm @submit.prevent="submitCategory">
                 <AppTextField
                   v-model="categoryForm.name"
                   label="Category Name *"
                   placeholder="e.g. Grooming"
                   class="mb-4"
-                  required
+                  :rules="[v => !!v || 'Required']"
                 />
                 <AppTextarea
                   v-model="categoryForm.description"
                   label="Description"
+                  placeholder="Describe this category..."
                   rows="3"
                   class="mb-4"
                 />
-                <VSwitch
-                  v-model="categoryForm.is_active"
-                  label="Active"
-                  color="success"
-                />
-                <VBtn block color="primary" type="submit" class="mt-6" :loading="submitting">
-                   {{ isEdit ? 'Update Category' : 'Create Category' }}
+                <VSwitch v-model="categoryForm.is_active" label="Enabled" color="success" />
+                
+                <VBtn block color="primary" type="submit" class="mt-6" :loading="submitting" size="large">
+                   {{ isEdit ? 'Save Changes' : 'Create Category' }}
+                </VBtn>
+
+                <VBtn 
+                  v-if="isEdit && normalizedPerms.can_delete" 
+                  block variant="text" color="error" class="mt-2" 
+                  @click="deleteCategory(editId); categoryDrawerOpen=false;"
+                >
+                   Delete Category
                 </VBtn>
              </VForm>
           </div>
@@ -744,80 +628,80 @@ watch(() => props.serviceId, fetchData)
     </VNavigationDrawer>
 
     <!-- Facility Drawer -->
-    <VNavigationDrawer
-       v-model="facilityDrawerOpen"
-       location="end"
-       temporary
-       width="450"
-       class="builder-drawer"
-    >
-       <div class="drawer-container">
-          <div class="drawer-header bg-surface">
-             <h3 class="text-h6 font-weight-bold">{{ isEdit ? 'Edit Item' : 'New Item' }}</h3>
-             <VBtn icon="tabler-x" variant="text" @click="facilityDrawerOpen = false" />
+    <VNavigationDrawer v-model="facilityDrawerOpen" location="end" temporary width="450">
+       <div class="d-flex flex-column h-100">
+          <div class="pa-4 border-b d-flex align-center justify-space-between bg-surface">
+             <h3 class="text-h6 font-weight-bold">{{ isEdit ? 'Edit Facility' : 'New Facility' }}</h3>
+             <VBtn icon="tabler-x" variant="text" density="compact" @click="facilityDrawerOpen = false" />
           </div>
-          <div class="drawer-body">
+          <div class="pa-4 flex-grow-1 overflow-y-auto">
              <VForm @submit.prevent="submitFacility">
-                <VCard variant="tonal" color="primary" class="pa-4 mb-4 border-0">
-                   <h4 class="text-subtitle-2 font-weight-bold mb-3">Facility Details</h4>
-                   <AppTextField
-                     v-model="facilityForm.name"
-                     label="Name *"
-                     placeholder="e.g. Deluxe Suite"
-                     class="mb-3"
-                     required
-                   />
-                   <AppTextarea
-                     v-model="facilityForm.description"
-                     label="Description"
-                     rows="2"
-                     placeholder="Brief description..."
-                   />
-                </VCard>
+                <!-- Facility Info -->
+                <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">Facility Details</div>
+                <AppTextField
+                  v-model="facilityForm.name"
+                  label="Name *"
+                  placeholder="e.g. Deluxe Suite"
+                  class="mb-4"
+                  :rules="[v => !!v || 'Required']"
+                />
+                <AppTextarea
+                  v-model="facilityForm.description"
+                  label="Description"
+                  rows="2"
+                  class="mb-6"
+                />
 
-                <VCard variant="tonal" color="secondary" class="pa-4 mb-4 border-0">
-                   <h4 class="text-subtitle-2 font-weight-bold mb-3">Pricing</h4>
-                   <VSelect
-                     v-model="facilityForm.billing_unit"
-                     :items="billingUnitOptions"
-                     item-title="label"
-                     item-value="value"
-                     label="Billing Type *"
-                     class="mb-3"
-                   />
-                   <div class="d-flex gap-3">
+                <VDivider class="mb-6" />
+
+                <!-- Pricing Info -->
+                <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">Pricing Configuration</div>
+                <VRow>
+                   <VCol cols="12">
+                      <VSelect
+                        v-model="facilityForm.billing_unit"
+                        :items="billingUnitOptions"
+                        item-title="label"
+                        item-value="value"
+                        label="Billing Type *"
+                      />
+                   </VCol>
+                   <VCol cols="6">
                       <AppTextField
                         v-model.number="facilityForm.base_price"
                         label="Price ($) *"
                         type="number"
-                        class="flex-grow-1"
-                        required
                       />
+                   </VCol>
+                   <VCol cols="6" v-if="['PER_SESSION', 'HOURLY'].includes(facilityForm.billing_unit)">
                       <AppTextField
-                        v-if="['PER_SESSION', 'HOURLY'].includes(facilityForm.billing_unit)"
                         v-model.number="facilityForm.duration_minutes"
                         label="Duration (min)"
                         type="number"
-                        class="flex-grow-1"
                       />
-                   </div>
-                </VCard>
+                   </VCol>
+                </VRow>
 
-                <VSwitch
-                  v-model="facilityForm.is_active"
-                  label="Active Status"
-                  color="success"
-                  class="mb-4"
-                />
+                <div class="mt-4">
+                  <VSwitch v-model="facilityForm.is_active" label="Available for Booking" color="success" />
+                </div>
 
-                <VBtn block color="primary" type="submit" :loading="submitting">
-                   {{ isEdit ? 'Update Item' : 'Create Item' }}
-                </VBtn>
+                <div class="mt-auto pt-6">
+                   <VBtn block color="primary" type="submit" size="large" :loading="submitting">
+                      {{ isEdit ? 'Save Changes' : 'Create Item' }}
+                   </VBtn>
+                   <VBtn 
+                      v-if="isEdit && facilityForm.ruleId && normalizedPerms.can_delete" 
+                      block variant="text" color="error" class="mt-2"
+                      @click="deleteFacility({ ruleId: facilityForm.ruleId }); facilityDrawerOpen=false;" 
+                    >
+                      Delete Item
+                   </VBtn>
+                </div>
              </VForm>
           </div>
        </div>
     </VNavigationDrawer>
-
 
      <!-- Permission Denied Dialog -->
     <VDialog v-model="showPermissionDialog" max-width="450">
@@ -872,6 +756,26 @@ watch(() => props.serviceId, fetchData)
     border-color: rgba(var(--v-theme-primary), 0.3) !important;
     box-shadow: 0 8px 20px rgba(var(--v-theme-primary), 0.1) !important;
     background: rgba(var(--v-theme-surface), 0.8) !important;
+  }
+}
+
+.hover-card, .hover-card-v2 {
+  transition: all 0.2s ease-in-out;
+  border-radius: 12px !important;
+  
+  .hover-actions {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: rgba(var(--v-theme-primary), 0.3) !important;
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15) !important;
+    
+    .hover-actions {
+      opacity: 1;
+    }
   }
 }
 

@@ -237,15 +237,33 @@ export const useVeterinaryStore = defineStore('veterinary', {
         let selectedClinic = isValid ? clinics.find(c => c.id === activeId) : null
 
         // If no active ID, OR the current active ID is not in the user's list (stale)
-        if (!isValid && clinics.length > 0) {
-          const primary = clinics.find(c => c.is_primary) || clinics[0]
-
-          this.setActiveClinic(primary.id)
-          selectedClinic = primary
+        if (!isValid) {
+          if (clinics.length > 0) {
+            const primary = clinics.find(c => c.is_primary) || clinics[0]
+            this.setActiveClinic(primary.id)
+            selectedClinic = primary
+          } else {
+            console.warn("User has no clinics. Clearing activeClinicId.")
+            this.activeClinicId = null
+            localStorage.removeItem('activeClinicId')
+          }
         }
 
-        // [NEW] Sync Permissions to PermissionStore
-        if (selectedClinic && selectedClinic.permissions) {
+        // [CRITICAL FIX - DISABLED] Clinic Permission Sync
+        // This logic was INCORRECTLY creating new SERVICE objects from capability strings
+        // For example, turning 'VETERINARY_VISITS' capability into a full service object
+        // This granted unauthorized access to employees!
+        // 
+        // The backend `/api/provider/permissions/` already correctly filters permissions
+        // based on employee roles, so this frontend merging is:
+        // 1. Unnecessary - permissions are already correct from backend
+        // 2. Dangerous - adds services/capabilities that employees shouldn't have
+        // 3. Buggy - conflates capability strings with service definitions
+        //
+        // SOLUTION: Remove this sync entirely. Permissions come ONLY from backend API.
+
+        if (false && selectedClinic && selectedClinic.permissions) {
+          console.warn('⚠️ DISABLED: Clinic permission sync (was causing unauthorized access)')
           try {
             const { usePermissionStore } = await import('./permissionStore')
             const permStore = usePermissionStore()
@@ -488,6 +506,22 @@ export const useVeterinaryStore = defineStore('veterinary', {
         return response.data
       } catch (err) {
         console.error('Failed to fetch analytics:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // [NEW] Fetch Live Dashboard Summary
+    async fetchLiveSummary(clinicId, date = null) {
+      this.loading = true
+      try {
+        const params = { clinic_id: clinicId }
+        if (date) params.date = date
+        const response = await veterinaryApi.get('/veterinary/analytics/summary/', { params })
+        return response.data
+      } catch (err) {
+        console.error('Failed to fetch live summary:', err)
         throw err
       } finally {
         this.loading = false

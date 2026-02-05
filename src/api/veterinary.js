@@ -68,3 +68,12 @@ veterinaryApi.deleteForm = code => {
 veterinaryApi.createEntity = data => {
   return api.post('/veterinary/entities/', data)
 }
+
+// --- Analytics ---
+veterinaryApi.getAnalytics = (params) => {
+  return api.get('/veterinary/analytics/dashboard/', { params })
+}
+
+veterinaryApi.getSummary = (params) => {
+  return api.get('/veterinary/analytics/summary/', { params })
+}

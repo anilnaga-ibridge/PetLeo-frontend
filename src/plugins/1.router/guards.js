@@ -74,7 +74,7 @@ export const setupGuards = router => {
       if (!permissionStore.hasPermission(to.meta.permission)) {
         console.warn(`Access denied. Missing permission: ${to.meta.permission}`)
 
-        return { name: 'provider-dashboard' } // Redirect to dashboard
+        return '/' // Let getPostLoginRoute handle the correct dashboard redirection
       }
     }
 
@@ -119,33 +119,15 @@ export const setupGuards = router => {
       }
 
       // 3. Protect Provider Routes (Tenant Admin Area)
-      if (to.path.startsWith('/provider')) {
-        // STRICT BLOCK: Veterinary Staff must NEVER see Provider screens
-        // EXCEPTION: Organization/Provider Admins ARE allowed (they have all capabilities)
+      if (to.path.startsWith('/provider/dashboard') || to.path.startsWith('/provider/providerhome')) {
         const roleUpper = (user.role?.name || user.role || '').toUpperCase()
-        const isProviderAdmin = ['ORGANIZATION', 'PROVIDER', 'INDIVIDUAL', 'SERVICEPROVIDER', 'SERVICE_PROVIDER', 'SERVICE PROVIDER'].includes(roleUpper)
-          || permissionStore.hasCapability('PROVIDER_MODULE')
-          || user.capabilities?.includes('PROVIDER_MODULE')
+        const isProviderAdmin = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER'].includes(roleUpper)
           || !!user.provider_type
 
-        console.log('🛡️ Provider Guard Debug:', { roleUpper, isProviderAdmin, hasVetCore: permissionStore.hasCapability('VETERINARY_CORE'), hasProviderMod: permissionStore.hasCapability('PROVIDER_MODULE'), providerType: user.provider_type })
-
-        if (permissionStore.hasCapability('VETERINARY_CORE') && !isProviderAdmin) {
-          console.log('🩺 Veterinary staff entering Provider area - Checking mixed access')
-          // [FIX] If they have OTHER services (Grooming, etc.), allow them to see the sidebar/pages
-          // If they ONLY have Veterinary, they stay in /veterinary/
-        }
-
-        // Allow if they are a Provider admin
-        if (isProviderAdmin) return
-
-        // Fallback for others (employees etc.)
+        // STRICT: Only Admins can see the Main Dashboard/Home
+        // Employees are redirected to their restricted dashboard
         if (!isProviderAdmin) {
-          // Allow specific sub-routes if needed (e.g. service details)
-          if (to.name === 'provider-service-details') return
-
-          console.warn('⛔ Employee attempted to access Provider area')
-
+          console.warn('⛔ Employee attempted to access Admin Dashboard -> Redirecting to Employee Dashboard')
           return '/employee/dashboard'
         }
       }

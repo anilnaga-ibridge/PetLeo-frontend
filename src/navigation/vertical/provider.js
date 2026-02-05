@@ -1,3 +1,4 @@
+import veterinaryNavigation from './veterinary'
 import { usePermissionStore } from '@/stores/permissionStore'
 
 const getProviderNavigation = () => {
@@ -11,7 +12,6 @@ const getProviderNavigation = () => {
     console.error('❌ provider.js: Error parsing userData', e)
   }
   const roleUpper = (userData.role?.name || userData.role || '').toUpperCase()
-  const isProviderAdmin = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER'].includes(roleUpper)
 
   // STRICT: Internal Wait for Dynamic Access
   if (!permissionStore.isDynamicAccessLoaded || !permissionStore.isPermissionsLoaded) {
@@ -21,9 +21,11 @@ const getProviderNavigation = () => {
 
   /* [REMOVED] STRICT block - Employees can see mixed navigation */
 
-  // Base navigation items that are always visible
-  // [FIX] Dashboard link depends on role
-  const dashboardRoute = isProviderAdmin ? { name: 'provider-dashboard' } : { name: 'employee-service-dashboard' }
+  // Check for Admin Roles
+  const isProviderOrOrg = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER'].includes(roleUpper)
+
+  // [FIX] Dynamic Dashboard Link
+  const dashboardRoute = isProviderOrOrg ? { name: 'provider-dashboard' } : { name: 'employee-dashboard' }
 
   const navigation = [
     {
@@ -38,8 +40,7 @@ const getProviderNavigation = () => {
     }
   ]
 
-  // Admin-only items
-  if (isProviderAdmin) {
+  if (isProviderOrOrg) {
     navigation.push(
       {
         title: 'Plan Cart',
@@ -61,65 +62,82 @@ const getProviderNavigation = () => {
 
   // Add dynamic service items based on permissions
   const enabledServices = permissionStore.enabledServices
+  console.log('🧭 ProviderNav: enabledServices received:', enabledServices.length, enabledServices.map(s => s.service_name))
+  const serviceItems = []
+  const clinicItems = []
 
   if (enabledServices && enabledServices.length > 0) {
-    // Optional: Add a section header
-    navigation.push({ heading: 'Services' })
-
-    let addedVet = false
     const processedServiceIds = new Set()
     const processedServiceNames = new Set()
 
     enabledServices.forEach(service => {
-      console.log('🧭 Navigation Debug:', { name: service.service_name, id: service.service_id })
+      // console.log('🧭 Navigation Debug:', { name: service.service_name, id: service.service_id })
 
       const serviceId = (service.service_id || '').toUpperCase()
       const serviceName = (service.service_name || '').toLowerCase().trim()
 
-      // Deduplication Check (ID or Name)
-      if (processedServiceIds.has(serviceId)) {
-        return
-      }
-      if (processedServiceNames.has(serviceName)) {
-        return
-      }
-
+      // Deduplication Check
+      if (processedServiceIds.has(serviceId) || processedServiceNames.has(serviceName)) return
       processedServiceIds.add(serviceId)
       processedServiceNames.add(serviceName)
 
-      // Skip granular veterinary keys (they are handled by the internal Veterinary Menu)
-      const granularVetKeys = [
-        'VETERINARY_VISITS',
-        'VETERINARY_VITALS',
-        'VETERINARY_PRESCRIPTIONS',
-        'VETERINARY_LABS',
-        'VETERINARY_MEDICINE_REMINDERS',
-        'VETERINARY_DOCTOR',
-        'VETERINARY_PHARMACY'
-      ]
-      if (granularVetKeys.includes(serviceId)) return
-
+      // CHECK: Is this Veterinary?
+      // Strict check for ANY veterinary key to exclude from Business Services list
       const isVeterinary = serviceName.includes('veterinary') ||
-        serviceId === '2DFF446F-C95F-4310-BA4D-05E3395DD7EB' || // Legacy ID
-        serviceId === 'VETERINARY_CORE'
+        serviceId.startsWith('VETERINARY_')
 
-      // Clean Duplicate Veterinary items (Double check just in case legacy ID vs name mismatch)
-      if (isVeterinary) {
-        if (addedVet) return
-        addedVet = true
+      // We explicitly Separated Clinic. So we DO NOT add Veterinary to serviceItems loop.
+      // And we handle ClinicItems separately via explicit permission check below.
+      if (!isVeterinary) {
+        // It is a Business Service (Grooming, Daycare, etc)
+        serviceItems.push({
+          title: service.service_name,
+          to: { name: 'provider-service-details', params: { serviceId: service.service_id } },
+          icon: { icon: service.icon || 'tabler-box' },
+          canView: () => permissionStore.canViewService(service.service_name),
+        })
       }
-
-      navigation.push({
-        title: service.service_name,
-        to: isVeterinary
-          ? { name: 'veterinary-dashboard' }
-          : (isProviderAdmin
-            ? { name: 'provider-service-details', params: { serviceId: service.service_id } }
-            : { path: `/employee/services/${service.service_id}` }),
-        icon: { icon: service.icon || (isVeterinary ? 'tabler-stethoscope' : 'tabler-box') },
-        canView: () => permissionStore.canViewService(service.service_name),
-      })
     })
+  }
+
+  // --- STRICT CLINIC CHECK (Permission-Driven) ---
+  // Check if user has ANY veterinary permission (even if VETERINARY_CORE is missing from enabledServices list)
+  // We check the raw permissions array or use hasCapability check helper if available
+  const hasVeterinaryAccess = permissionStore.permissions.some(p => {
+    const key = (p.service_key || '').toUpperCase()
+    const name = (p.service_name || '').toLowerCase()
+    // Check for enabled VETERINARY_* permission
+    // Note: p.can_view is already filtered in enabledServices check usually,
+    // but here we check raw store permissions just to be safe if filtering logic differs.
+    // Actually permissionStore.permissions IS the source.
+    return (key.startsWith('VETERINARY_') || name.includes('veterinary')) && p.can_view
+  })
+
+  // Also check if they triggered the VETERINARY_CORE "implicit grant" logic in store
+  const implicitVetAccess = permissionStore.hasCapability('VETERINARY_CORE')
+
+  if (hasVeterinaryAccess || implicitVetAccess) {
+    // Filter children to show only what they have access to 
+    // AND exclude the dashboard/heading items to keep it clean if nested
+    clinicItems.push({
+      title: 'Veterinary', // Hardcoded clean name
+      to: { name: 'veterinary-dashboard' },
+      icon: { icon: 'tabler-stethoscope' },
+      canView: () => true // Access is verified above
+    })
+  }
+  // -----------------------------------------------
+
+  // Push "Clinic" Section
+  if (clinicItems.length > 0) {
+    navigation.push({ heading: 'Clinic' })
+    navigation.push(...clinicItems)
+  }
+
+  // Push "Services" Section
+  if (serviceItems.length > 0) {
+    navigation.push({ heading: 'Services' })
+    navigation.push(...serviceItems)
   }
 
   // Add other conditional items
@@ -132,22 +150,25 @@ const getProviderNavigation = () => {
   }
 
   // Check for Organization role to show Employees and Roles
-  if (roleUpper === 'ORGANIZATION') {
-    navigation.push({
-      title: 'Employees',
-      to: { name: 'provider-employees' },
-      icon: { icon: 'tabler-users' },
-    })
-    navigation.push({
-      title: 'Roles',
-      to: { name: 'provider-roles' },
-      icon: { icon: 'tabler-user-shield' },
-    })
-    navigation.push({
-      title: 'Clinics',
-      to: { name: 'provider-clinics' },
-      icon: { icon: 'tabler-building-hospital' },
-    })
+  if (roleUpper === 'ORGANIZATION' || roleUpper === 'ORGANIZATION_PROVIDER') {
+    navigation.push(
+      { heading: 'Organization' },
+      {
+        title: 'Employees',
+        to: { name: 'provider-employees' },
+        icon: { icon: 'tabler-users' },
+      },
+      {
+        title: 'Roles',
+        to: { name: 'provider-roles' },
+        icon: { icon: 'tabler-user-shield' },
+      },
+      {
+        title: 'Clinics',
+        to: { name: 'provider-clinics' },
+        icon: { icon: 'tabler-building-hospital' },
+      }
+    )
   }
 
 

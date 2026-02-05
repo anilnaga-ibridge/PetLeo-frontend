@@ -39,19 +39,28 @@ const filteredNavItems = computed(() => {
   })
 
   // 1. Filter for all users (Admins & Employees) based on assigned capabilities
-  return veterinaryNavigation.filter(item => {
+  console.log('🧭 Filtering Veterinary Navigation...')
+  console.log('   Total Items:', veterinaryNavigation.length)
+  
+  const filtered = veterinaryNavigation.filter(item => {
     // Check capability presence in user's permission list (for both items and headings)
     if (item.capability) {
-      // Map store structure if needed, but if store has { service_key: '...' }, we check that
-      // Assuming permissionStore.hasCapability logic or direct list check
-      // The store permissions are objects: { service_key: 'VETERINARY_CORE', ... }
-      return permissionStore.hasCapability(item.capability)
+      const hasAccess = permissionStore.hasCapability(item.capability)
+      console.log(`   ${item.title || item.heading}: capability=${item.capability} → ${hasAccess ? '✅' : '❌'}`)
+      return hasAccess
     }
     
-    if (item.heading) return true
+    if (item.heading) {
+      console.log(`   ${item.heading}: (heading) → ✅`)
+      return true
+    }
     
+    console.log(`   ${item.title}: (no capability check) → ✅`)
     return true
   })
+  
+  console.log('   Filtered Items:', filtered.length)
+  return filtered
 })
 </script>
 

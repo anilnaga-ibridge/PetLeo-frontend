@@ -46,7 +46,13 @@ export const usePermissionStore = defineStore('permission', {
   getters: {
     // Get all services that have can_view = true
     enabledServices: state => {
-      return state.permissions.filter(p => p.can_view)
+      // console.log('🔍 enabledServices DEBUG: Raw Permissions:', JSON.stringify(state.permissions, null, 2))
+      return state.permissions.filter(p => {
+        // [FIX] Ensure we only check boolean true, not just truthy existence if strict
+        const canView = p.can_view === true || p.can_view === 'true'
+        // console.log(`   - Service: ${p.service_name} (${p.service_key}) -> can_view: ${canView}`)
+        return canView
+      })
     },
 
     // Check if a specific service is viewable
@@ -88,7 +94,16 @@ export const usePermissionStore = defineStore('permission', {
 
         const res = await providerApi.get('/api/provider/permissions/')
 
-        console.log('🔑 PermissionStore: API Response:', res.data)
+        console.log('🚨 VINOD FIX DEBUG - RAW API RESPONSE:')
+        console.log('  Response Status:', res.status)
+        console.log('  Permissions Count:', res.data.permissions?.length)
+        console.log('  Services:')
+        res.data.permissions?.forEach(p => {
+          console.log(`    - ${p.service_name} (${p.service_key}) can_view=${p.can_view}`)
+        })
+
+        console.log('🔑 PermissionStore: RAW API Response:', JSON.stringify(res.data, null, 2))
+        console.log('🔑 PermissionStore: Permissions Array:', res.data.permissions?.length)
         const vetCore = res.data.permissions?.find(p => p.service_key === 'VETERINARY_CORE' || p.service_name === 'Veterinary')
         if (vetCore) {
           console.log('🔑 PermissionStore: VETERINARY_CORE Categories:', vetCore.categories?.map(c => c.name || c.category_key))
@@ -102,10 +117,12 @@ export const usePermissionStore = defineStore('permission', {
         const seenServices = new Set()
 
         rawPermissions.forEach(p => {
-          if (!p || !p.service_id) return
-          if (seenServices.has(p.service_id)) return // Skip duplicates
+          // Relaxed Check: Allow if ID OR Name is present
+          if (!p || (!p.service_id && !p.service_name)) return
+          const uniqueKey = p.service_id || p.service_name
+          if (seenServices.has(uniqueKey)) return // Skip duplicates
 
-          seenServices.add(p.service_id)
+          seenServices.add(uniqueKey)
 
           // Ensure booleans
           p.can_view = !!p.can_view
@@ -119,20 +136,15 @@ export const usePermissionStore = defineStore('permission', {
             uniquePermissions.push(p)
           }
         })
+        console.log('✅ PermissionStore: Normalization Complete. Valid Items:', uniquePermissions.map(p => `${p.service_name} (${p.can_view})`))
 
-        // 3. Logic to prevent overwriting rich (injected) permissions with empty/dummy backend data
-        const hasValidPlan = !!res.data.plan
-        const isNewStateEmpty = uniquePermissions.length === 0 ||
-          (uniquePermissions.length === 1 && uniquePermissions[0].service_key === 'VETERINARY_CORE')
 
-        const isCurrentStateRich = this.permissions.length > 0 &&
-          this.permissions.some(p => p.categories?.length > 0)
-
-        if (hasValidPlan && isNewStateEmpty && isCurrentStateRich) {
-          console.log('⚠️ PermissionStore: Backend sync pending. Preserving injected permissions.')
-        } else {
-          this.permissions = uniquePermissions
-        }
+        // CRITICAL FIX: Always update with fresh API data
+        // The old "preservation logic" was incorrectly treating employee permissions
+        // (1 service with categories) as "empty" and preserving stale org data (4 services)
+        // Employees should ONLY see what the backend returns for their role!
+        console.log('✅ PermissionStore: Updating with fresh API data')
+        this.permissions = uniquePermissions
 
         // 2. Normalize Plan Details (Prevent null crashes)
         const rawPlan = res.data.plan || {}
@@ -383,6 +395,27 @@ export const usePermissionStore = defineStore('permission', {
 
       if (!serviceName) return false
 
+      // [FIX] Virtual Capability: PROVIDER_ADMIN & VETERINARY_CORE Bypass
+      // Used to hide "Back to Provider" and "Settings" from Employees
+      // Also ensures Admins can see all Veterinary modules (Visits, Vitals etc.) regardless of sync
+
+      const adminRoles = [
+        'organization',
+        'individual',
+        'organization_provider',
+        'organization_admin',
+        'super_admin',
+        'provider' // Just in case
+      ]
+      const isAdmin = adminRoles.includes(role)
+
+      if (serviceName === 'PROVIDER_ADMIN') {
+        return isAdmin
+      }
+
+      // NOTE: Admin roles must still purchase services to access them
+      // We removed the unconditional veterinary bypass - admins see only what's in their plan
+
       const service = this.permissions.find(
         p => (p.service_key?.toLowerCase() === serviceName.toLowerCase()) ||
           (p.service_name?.toLowerCase() === serviceName.toLowerCase()) ||
@@ -394,7 +427,7 @@ export const usePermissionStore = defineStore('permission', {
         // This is crucial for granular permissions like VETERINARY_VISITS which are inside VETERINARY_CORE
         for (const s of this.permissions) {
           if (s.categories) {
-            console.log(`🔍 Deep Search in ${s.service_key}:`, s.categories.map(c => c.name))
+            // console.log(`🔍 Deep Search in ${s.service_key}:`, s.categories.map(c => c.name))
             const nestedCategory = s.categories.find(c =>
               c.name?.toLowerCase() === serviceName.toLowerCase() ||
               c.category_key?.toLowerCase() === serviceName.toLowerCase()
@@ -419,15 +452,8 @@ export const usePermissionStore = defineStore('permission', {
           console.log(`🚫 hasCapability('${serviceName}'): Service/Category NOT FOUND even after deep search. Available keys:`, this.permissions.map(p => p.service_key))
         }
 
-        // [FIX] Special Case: VETERINARY_CORE is required for layout, but user might only have specific sub-capabilities
-        // If asking for VETERINARY_CORE, and it wasn't found, check if they have ANY veterinary access.
-        if (serviceName === 'VETERINARY_CORE') {
-          const hasAnyVet = this.permissions.some(p => p.service_key?.startsWith('VETERINARY_'))
-          if (hasAnyVet) {
-            console.log('✅ hasCapability: Implicitly granting VETERINARY_CORE because user has other VETERINARY_* permissions')
-            return true
-          }
-        }
+        // Backend now correctly includes VETERINARY_CORE in all cases,
+        // so we don't need the implicit grant fallback anymore
 
         return false
       }
