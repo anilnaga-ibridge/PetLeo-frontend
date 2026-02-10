@@ -1,30 +1,80 @@
 <script setup>
 import { kFormatter, avatarText } from '@/@core/utils/formatters'
+import { authApi } from '@/plugins/axios'
+import { usePermissionStore } from '@/stores/permissionStore'
+import { useCookie } from '@/@core/composable/useCookie'
 
 const props = defineProps({
   userData: {
     type: Object,
     required: true,
   },
+  providerProfile: {
+    type: Array,
+    default: () => [],
+  },
+})
+
+const permissionStore = usePermissionStore()
+
+// Filter out fields already shown in standard UI
+const extendedFields = computed(() => {
+  const ignoredFields = [
+    'first_name', 'last_name', 'email', 'phone_number', 'country', 'language', 'profile_image'
+  ]
+  
+  return props.providerProfile.filter(
+    f => !ignoredFields.includes(f.name) && 
+         !['file', 'section'].includes(f.field_type) &&
+         f.value
+  ).map(f => ({
+    label: f.label,
+    value: f.value
+  }))
 })
 
 // Transform API response into UI-friendly data
 const user = computed(() => ({
-  fullName: props.userData.full_name ?? '',
-  email: props.userData.email ?? '',
-  avatar: props.userData.avatar ?? null,
-  role: props.userData.role ?? 'user',
-  status: props.userData.status ?? 'active',
-  taxId: props.userData.tax_id ?? 'N/A',
-  contact: props.userData.phone ?? '',
-  language: props.userData.language ?? 'English',
-  country: props.userData.country ?? '',
-  taskDone: props.userData.task_done ?? 0,
-  projectDone: props.userData.project_done ?? 0,
+  id: props.userData.id || props.userData.auth_user_id,
+  fullName: props.userData.fullName || props.userData.full_name || '',
+  email: props.userData.email || '',
+  avatar: props.userData.avatar || null,
+  role: props.userData.role || 'user',
+  status: props.userData.status || 'active',
+  taxId: props.userData.taxId || props.userData.tax_id || 'N/A',
+  contact: props.userData.contact || props.userData.phone || props.userData.phoneNumber || '',
+  language: props.userData.language || 'English',
+  country: props.userData.country || '',
+  taskDone: props.userData.taskDone || props.userData.task_done || 0,
+  projectDone: props.userData.projectDone || props.userData.project_done || 0,
 }))
 
 const isUserInfoEditDialogVisible = ref(false)
 const isUpgradePlanDialogVisible = ref(false)
+
+const updateUser = async (updatedData) => {
+  try {
+    const payload = {
+      full_name: updatedData.fullName,
+      email: updatedData.email,
+      // Add other fields as supported by UserUpdateSerializer
+    }
+    
+    await authApi.patch(`/users/${user.value.id}/`, payload)
+    
+    // Update local state
+    const userDataCookie = useCookie('userData')
+    const finalData = { ...props.userData, ...updatedData }
+    
+    permissionStore.userData = finalData
+    userDataCookie.value = finalData
+    localStorage.setItem('userData', JSON.stringify(finalData))
+    
+    console.log("✅ UserBioPanel: Profile updated successfully")
+  } catch (err) {
+    console.error("❌ UserBioPanel: Failed to update profile", err)
+  }
+}
 
 const standardPlan = {
   plan: 'Standard',
@@ -192,6 +242,20 @@ const resolveUserRoleVariant = role => {
                 </h6>
               </VListItemTitle>
             </VListItem>
+
+            <!-- Extended / Dynamic Fields -->
+            <template
+              v-for="field in extendedFields"
+              :key="field.label"
+            >
+              <VListItem>
+                <VListItemTitle>
+                  <h6 class="text-h6">
+                    {{ field.label }}: <span class="text-body-1">{{ field.value }}</span>
+                  </h6>
+                </VListItemTitle>
+              </VListItem>
+            </template>
           </VList>
         </VCardText>
 
@@ -217,6 +281,7 @@ const resolveUserRoleVariant = role => {
   <UserInfoEditDialog
     v-model:is-dialog-visible="isUserInfoEditDialogVisible"
     :user-data="user"
+    @submit="updateUser"
   />
 
   <UserUpgradePlanDialog v-model:is-dialog-visible="isUpgradePlanDialogVisible" />

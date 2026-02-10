@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useIdleTimer } from '@/composables/useIdleTimer'
 import { useRouter } from 'vue-router'
@@ -27,83 +27,14 @@ const { userData: user } = storeToRefs(permissionStore)
 // Dynamic PIN length based on user's stored pin_length
 const pinLength = ref(4) // Default to 4
 
-const fetchPinLength = async () => {
-  // Check both storages, prioritize localStorage as it persists longer, but check session if local is empty
-  let userData = JSON.parse(localStorage.getItem('userData') || 'null')
-  if (!userData) {
-    userData = JSON.parse(sessionStorage.getItem('userData') || '{}')
-  }
-
-  // Backup phone source if userData is incomplete
-  // Priority: 1. Dedicated lock_screen_phone, 2. Storage userData, 3. Store user ref
-  const phone = localStorage.getItem('lock_screen_phone') || sessionStorage.getItem('lock_screen_phone') || 
-                userData.phone_number || userData.phoneNumber || 
-                user.value?.phone_number || user.value?.phoneNumber || '' 
-  
-  // Try to use stored PIN length first
-  if (userData.pin_length) {
-    pinLength.value = Number(userData.pin_length)
-  } else if (user.value?.pin_length) {
-    pinLength.value = Number(user.value.pin_length)
-  }
-  
-  // Always verify/update from backend if phone number exists
-  if (phone) {
-    try {
-      const res = await axios.get(`${API_BASE}/auth/api/auth/check-pin-length/`, {
-        params: { phone_number: phone }
-      })
-      
-      if (res.data?.pin_length) {
-        const length = Number(res.data.pin_length)
-        if (!isNaN(length) && length > 0) {
-          pinLength.value = length
-          
-          // Update BOTH storages to be safe
-          if (localStorage.getItem('userData')) {
-             const localData = JSON.parse(localStorage.getItem('userData') || '{}')
-             localData.pin_length = length
-             localStorage.setItem('userData', JSON.stringify(localData))
-          }
-          if (sessionStorage.getItem('userData')) {
-             const sessionData = JSON.parse(sessionStorage.getItem('userData') || '{}')
-             sessionData.pin_length = length
-             sessionStorage.setItem('userData', JSON.stringify(sessionData))
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Failed to fetch PIN length for lock screen', e)
-    }
-  }
-}
-
-// Check PIN length when component mounts OR when screen locks
-
-watch(pinLength, () => {
-  pin.value = ''
-  error.value = ''
-})
-
-// Check PIN length when component mounts OR when screen locks OR when user changes
-watch([isLocked, user], async ([newLocked, newUser], [oldLocked, oldUser]) => {
-  if (newLocked) {
-    await fetchPinLength()
-    checkAvailability()
-  }
-  
-  // If user changed (login/logout/switch), refresh PIN length
-  if (JSON.stringify(newUser) !== JSON.stringify(oldUser)) {
-     if (!newUser) {
-       pinLength.value = 4 // Reset to default on logout
-     } else {
-       await fetchPinLength() // Fetch for new user
-     }
-  }
-})
-
 onMounted(async () => {
-  await fetchPinLength()
+  // Fetch pin_length from localStorage userData
+  const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+  if (userData.pin_length) {
+    pinLength.value = userData.pin_length
+  }
+  
+  // Check biometric availability
   await checkAvailability()
 })
 
@@ -148,26 +79,6 @@ const unlock = async () => {
   }
 }
 
-const unlockWithBiometric = async () => {
-  error.value = ''
-  
-  const result = await authenticate()
-  
-  if (result.success) {
-    // Biometric verified, unlock the screen
-    const card = document.querySelector('.glass-card')
-    if (card) {
-      card.style.transform = 'scale(1.1) translateY(-20px)'
-      card.style.opacity = '0'
-    }
-    
-    setTimeout(() => {
-      isLocked.value = false
-    }, 300)
-  } else {
-    error.value = result.error || 'Biometric authentication failed. Please use PIN.'
-  }
-}
 
 
 // Canvas Particle Logic
@@ -265,6 +176,28 @@ onUnmounted(() => {
   }
 })
 
+const unlockWithBiometric = async () => {
+  error.value = ''
+  
+  const result = await authenticate()
+  
+  if (result.success) {
+    // Biometric verified, unlock the screen
+    const card = document.querySelector('.glass-card')
+    if (card) {
+      card.style.transform = 'scale(1.1) translateY(-20px)'
+      card.style.opacity = '0'
+    }
+    
+    setTimeout(() => {
+      isLocked.value = false
+    }, 300)
+  } else {
+    error.value = result.error || 'Biometric authentication failed. Please use PIN.'
+  }
+}
+
+
 const logout = async () => {
   console.log("🔒 Logout clicked - Clearing session...")
   loading.value = true 
@@ -291,7 +224,7 @@ const logout = async () => {
     v-if="isLocked"
     class="lock-overlay"
   >
-    <!-- Animated Particle Background -->
+    <!-- Moderate Animated Particle Background -->
     <canvas
       ref="canvasRef"
       class="particle-canvas"
@@ -342,11 +275,30 @@ const logout = async () => {
       </div>
 
       <VCard
-        width="460"
-        class="pa-8 pb-10 rounded-xl elevation-24 glass-card"
+        width="400"
+        class="pa-8 rounded-xl elevation-24 glass-card"
       >
         <p class="text-center text-body-1 mb-6 text-medium-emphasis font-weight-medium">
           Enter your PIN to unlock screen
+        <!-- Biometric Button (if available) -->
+        <VBtn
+          v-if="biometricAvailable"
+          block
+          color="secondary"
+          size="large"
+          rounded="lg"
+          variant="tonal"
+          :loading="biometricLoading"
+          class="mb-4 font-weight-bold"
+          @click="unlockWithBiometric"
+        >
+          <VIcon
+            start
+            icon="tabler-fingerprint"
+          />
+          Unlock with Fingerprint
+        </VBtn>
+
         </p>
 
         <VAlert
@@ -370,53 +322,27 @@ const logout = async () => {
         </div>
 
         <VBtn
-          v-if="biometricAvailable"
-          block
-          variant="tonal"
-          color="secondary"
-          size="x-large"
-          rounded="lg"
-          prepend-icon="tabler-fingerprint"
-          :loading="biometricLoading"
-          class="mb-4 font-weight-bold"
-          @click="unlockWithBiometric"
-        >
-          Unlock with Fingerprint
-        </VBtn>
-
-        <VBtn
           block
           color="primary"
           size="x-large"
           rounded="lg"
-          prepend-icon="tabler-key"
           :loading="loading"
           class="mb-6 font-weight-bold text-button btn-gradient"
           elevation="4"
           @click="unlock"
         >
-          Unlock with PIN
+          Unlock
         </VBtn>
 
-        <div class="d-flex justify-center gap-4">
-          <VBtn
-            variant="text"
-            color="primary"
-            size="small"
-            class="text-caption font-weight-bold"
-            @click="router.push('/login')"
-          >
-            Forgot PIN?
-          </VBtn>
-          <span class="text-disabled">|</span>
+        <div class="text-center">
           <VBtn
             variant="text"
             color="error"
             size="small"
-            class="text-caption font-weight-bold"
+            class="text-caption font-weight-bold opacity-80 hover:opacity-100"
             @click="logout"
           >
-            Logout
+            Forgot PIN? / Logout
           </VBtn>
         </div>
       </VCard>
@@ -457,6 +383,8 @@ const logout = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Initial entrance animation handled by Vue transition or separate class if needed, 
+     but removed here to avoid conflict with dynamic tilt transform */
 }
 
 /* Pulse Animation for Avatar */
@@ -472,31 +400,26 @@ const logout = async () => {
 
 /* Premium Glass Card */
 .glass-card {
-  background: rgba(255, 255, 255, 0.4) !important;
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.2);
-  transform-style: preserve-3d;
-  perspective: 1000px;
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .v-theme--dark .glass-card {
-  background: rgba(15, 23, 42, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.5), inset 0 0 40px rgba(255, 255, 255, 0.02);
+  background: rgba(30, 41, 59, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Gradient Button */
 .btn-gradient {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
-  color: white !important;
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-gradient:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 15px 25px -5px rgba(79, 70, 229, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
 }
 
 @keyframes slideUpFade {
@@ -514,12 +437,7 @@ const logout = async () => {
 .typing-effect {
   overflow: hidden;
   white-space: nowrap;
-  border-right: 3px solid rgba(255, 255, 255, 0.75);
-  display: inline-block;
-  margin: 0 auto;
-  animation: 
-    typing 2s steps(20, end),
-    blink-caret .75s step-end infinite;
+  animation: typing 3.5s steps(40, end);
 }
 
 @keyframes typing {
@@ -527,16 +445,10 @@ const logout = async () => {
   to { width: 100% }
 }
 
-@keyframes blink-caret {
-  from, to { border-color: transparent }
-  50% { border-color: rgba(255, 255, 255, 0.75); }
-}
-
 /* Fade In Up */
 .fade-in-up {
   animation: fadeInUp 1s ease-out forwards;
   opacity: 0;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
   animation-delay: 0.5s;
 }
 
@@ -549,6 +461,16 @@ const logout = async () => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.lock-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Smooth transition for tilt effect */
+  transition: transform 0.1s ease-out; 
 }
 
 :deep(input::-webkit-outer-spin-button),

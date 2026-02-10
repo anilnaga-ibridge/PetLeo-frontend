@@ -10,7 +10,7 @@ watch(isLocked, newValue => {
 })
 
 const lastActivity = ref(Date.now())
-const IDLE_TIMEOUT = 5 * 60 * 1000 // 5 minutes
+const IDLE_TIMEOUT = 3 * 60 * 1000 // 3 minutes
 
 export function useIdleTimer() {
   const router = useRouter()

@@ -162,69 +162,73 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   margin: 1rem 0;
+  width: 100%;
 }
 
 .pin-inputs {
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: nowrap;
 }
 
 .pin-box {
-  width: 56px;
-  height: 64px;
-  font-size: 1.75rem;
+  width: 52px;
+  height: 60px;
+  font-size: 1.85rem;
   font-weight: 700;
   text-align: center;
-  border: 2px solid rgba(var(--v-theme-on-surface), 0.12);
-  border-radius: 16px;
-  background-color: rgba(var(--v-theme-surface), 0.8);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  border-radius: 12px;
+  background: rgba(var(--v-theme-surface), 0.6);
+  backdrop-filter: blur(8px);
   color: rgb(var(--v-theme-on-surface));
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   outline: none;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.1);
 }
 
 /* Dark mode adjustment */
 .v-theme--dark .pin-box {
   border-color: rgba(255, 255, 255, 0.1);
-  background-color: rgba(30, 41, 59, 0.5);
+  background: rgba(30, 41, 59, 0.4);
 }
 
 .pin-box:focus {
   border-color: rgb(var(--v-theme-primary));
-  background-color: rgb(var(--v-theme-surface));
-  box-shadow: 0 0 0 4px rgba(var(--v-theme-primary), 0.15), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  transform: translateY(-4px);
+  background: rgb(var(--v-theme-surface));
+  box-shadow: 0 0 0 4px rgba(var(--v-theme-primary), 0.15), 0 15px 25px -10px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px) scale(1.05);
+  z-index: 2;
 }
 
 .pin-box.is-filled {
-  border-color: rgb(var(--v-theme-primary));
-  background-color: rgba(var(--v-theme-primary), 0.05);
+  border-color: rgba(var(--v-theme-primary), 0.5);
+  background: rgba(var(--v-theme-primary), 0.03);
 }
 
 .pin-box.has-error {
   border-color: rgb(var(--v-theme-error));
   color: rgb(var(--v-theme-error));
   background-color: rgba(var(--v-theme-error), 0.05);
-  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  animation: shakePremium 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-@keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
+@keyframes shakePremium {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
 }
 
-/* Mobile responsiveness */
-@media (max-width: 400px) {
+/* Mobile responsiveness - even more compact for many boxes */
+@media (max-width: 480px) {
   .pin-inputs {
-    gap: 8px;
+    gap: 6px;
   }
   .pin-box {
-    width: 40px;
-    height: 48px;
-    font-size: 1.25rem;
+    width: 42px;
+    height: 52px;
+    font-size: 1.4rem;
+    border-radius: 10px;
   }
 }
 </style>

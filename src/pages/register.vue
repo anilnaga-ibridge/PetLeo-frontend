@@ -277,11 +277,13 @@ const fetchRoles = async () => {
   try {
     const res = await axios.get('http://127.0.0.1:8000/auth/roles/public/')
 
-    roles.value = res.data.map(role => ({
-      title: role.name.charAt(0).toUpperCase() + role.name.slice(1),
-      name: role.name.toLowerCase(),
-      value: role.id,
-    }))
+    roles.value = res.data
+      .filter(role => ['individual', 'organization'].includes(role.name.toLowerCase()))
+      .map(role => ({
+        title: role.name.charAt(0).toUpperCase() + role.name.slice(1),
+        name: role.name.toLowerCase(),
+        value: role.id,
+      }))
 
     if (roles.value.length > 0) {
       form.value.role = roles.value[0].value

@@ -1,6 +1,7 @@
 <script setup>
 import { PerfectScrollbar } from 'vue3-perfect-scrollbar'
 import { useAuthStore } from '@/stores/authStore'
+import { providerApi } from '@/plugins/axios'
 import { usePermissionStore } from '@/stores/permissionStore'
 import { useRouter } from 'vue-router'
 import { useCookie } from '@/@core/composable/useCookie'
@@ -11,6 +12,36 @@ const router = useRouter()
 const authStore = useAuthStore()
 const permissionStore = usePermissionStore()
 const { userData } = storeToRefs(permissionStore)
+const loading = ref(false)
+const refInputEl = ref()
+
+const uploadAvatar = async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+
+  loading.value = true
+  const fd = new FormData()
+  fd.append('avatar', file)
+  fd.append('auth_user_id', userData.value.id)
+
+  try {
+    const res = await providerApi.post(`/api/provider/profile/`, fd)
+    const newAvatar = res.data.avatar || (res.data.data && res.data.data.avatar)
+    if (newAvatar) {
+      // Update store and cookie manually for immediate feedback
+      const userDataCookie = useCookie('userData')
+      const updatedData = { ...userData.value, avatar: newAvatar }
+      
+      permissionStore.userData = updatedData
+      userDataCookie.value = updatedData
+      localStorage.setItem('userData', JSON.stringify(updatedData))
+    }
+  } catch (err) {
+    console.error('Failed to upload avatar', err)
+  } finally {
+    loading.value = false
+  }
+}
 
 const logout = async () => {
   await authStore.logout()
@@ -24,6 +55,12 @@ const userProfileList = [
     icon: 'tabler-user',
     title: 'Profile',
     to: { name: 'pages-user-profile-tab', params: { tab: 'profile' } },
+  },
+  {
+    type: 'navItem',
+    icon: 'tabler-camera',
+    title: 'Change Avatar',
+    onClick: () => refInputEl.value?.click(),
   },
   {
     type: 'navItem',
@@ -78,7 +115,16 @@ const userProfileList = [
     offset-y="3"
     color="success"
     bordered
+    :loading="loading"
   >
+    <input
+      ref="refInputEl"
+      type="file"
+      name="file"
+      accept=".jpeg,.png,.jpg,gif"
+      hidden
+      @input="uploadAvatar"
+    >
     <VAvatar
       class="cursor-pointer"
       color="primary"

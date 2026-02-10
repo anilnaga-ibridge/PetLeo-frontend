@@ -375,6 +375,7 @@
     "getServiceConfig": true,
     "ACTION_LABELS": true,
     "VETERINARY_FEATURES": true,
-    "getLabel": true
+    "getLabel": true,
+    "useBiometric": true
   }
 }

@@ -104,6 +104,7 @@ const logout = async () => {
 
 const showOnboarding = ref(false)
 const loadingVerification = ref(false)
+const isVerificationApproved = ref(false)
 
 const checkVerificationStatus = async () => {
   if (!isLoggedIn.value) return
@@ -124,7 +125,12 @@ const checkVerificationStatus = async () => {
     const uploads = uploaded_documents || uploaded_files || []
 
     // 1. Check Profile Fields
-    const isProfileComplete = fields.every(f => !f.is_required || (f.value && f.value.length > 0))
+    const missingFields = fields.filter(f => f.is_required && (!f.value || f.value.length === 0))
+    const isProfileComplete = missingFields.length === 0
+
+    if (missingFields.length > 0) {
+      console.log('🚨 Onboarding Popup Triggered by Missing Fields:', missingFields.map(f => f.label))
+    }
 
     // 2. Check Documents
     // Map uploaded docs by definition ID
@@ -135,18 +141,28 @@ const checkVerificationStatus = async () => {
       if (defId) uploadedMap[defId] = d
     })
 
-    const areDocumentsVerified = requested_documents.every(req => {
-      const uploaded = uploadedMap[req.id]
+    const missingDocuments = requested_documents.filter(req => !uploadedMap[req.id])
+    const areDocumentsUploaded = missingDocuments.length === 0
+    
+    // 3. Strict Approval Check
+    // All uploaded documents must be 'approved'
+    const unapprovedDocs = uploads.filter(d => d.status !== 'approved')
+    const allApproved = uploads.length > 0 && unapprovedDocs.length === 0
+    
+    // Update Global Approval State
+    isVerificationApproved.value = isProfileComplete && areDocumentsUploaded && allApproved
+    
+    if (missingDocuments.length > 0) {
+      console.log('🚨 Onboarding Popup Triggered by Missing Documents:', missingDocuments.map(d => d.label))
+    }
 
-      // Check if uploaded AND status is approved
-      // If status is missing, assume pending/not verified if we want strict verification
-      // User said: "documents is verefied"
-      return uploaded && uploaded.status === 'approved'
-    })
-
-    // Show popup if NOT complete OR NOT verified
-    if (!isProfileComplete || !areDocumentsVerified) {
+    // Show popup if NOT complete (meaning not all uploaded yet)
+    // We only force popup if things are MISSING. If pending, we just block purchase.
+    if (!isProfileComplete || !areDocumentsUploaded) {
+      console.log('❌ Profile/Docs Incomplete. Showing Popup.')
       showOnboarding.value = true
+    } else {
+      console.log('✅ Profile Submitted! Popup suppressed. Approval Status:', allApproved ? 'APPROVED' : 'PENDING')
     }
 
   } catch (err) {
@@ -378,7 +394,7 @@ const addToCart = async plan => {
                 color="secondary"
                 @click="showOnboarding = true"
               >
-                Complete Profile
+                {{ isVerificationApproved ? 'Profile Verified' : 'Complete Profile' }}
               </VBtn>
             </div>
           </VCol>
@@ -690,20 +706,30 @@ const addToCart = async plan => {
               
               <!-- Footer / Action -->
               <div class="pa-8 pt-0 bg-surface rounded-b-xl">
-                <VBtn 
+                <VTooltip
                   v-if="isLoggedIn"
-                  block 
-                  size="x-large"
-                  :color="isPlanInCart(plan.id) ? 'success' : 'primary'"
-                  variant="flat" 
-                  class="rounded-lg font-weight-bold"
-                  :loading="loadingCart === plan.id"
-                  :disabled="isPlanInCart(plan.id)"
-                  elevation="0"
-                  @click="addToCart(plan)"
+                  :model-value="!isVerificationApproved"
+                  location="top"
+                  text="Your documents must be approved before purchasing a plan."
                 >
-                  {{ isPlanInCart(plan.id) ? 'Added to Cart' : 'Select Plan' }}
-                </VBtn>
+                  <template #activator="{ props }">
+                    <div v-bind="props" class="w-100">
+                      <VBtn 
+                        block 
+                        size="x-large"
+                        :color="isPlanInCart(plan.id) ? 'success' : (isVerificationApproved ? 'primary' : 'grey')"
+                        variant="flat" 
+                        class="rounded-lg font-weight-bold"
+                        :loading="loadingCart === plan.id"
+                        :disabled="isPlanInCart(plan.id) || !isVerificationApproved"
+                        elevation="0"
+                        @click="addToCart(plan)"
+                      >
+                        {{ isPlanInCart(plan.id) ? 'Added to Cart' : (isVerificationApproved ? 'Select Plan' : 'Verification Pending') }}
+                      </VBtn>
+                    </div>
+                  </template>
+                </VTooltip>
                 
                 <VBtn 
                   v-else

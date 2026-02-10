@@ -37,7 +37,50 @@ const { data: userData, error } = await useApi(`http://127.0.0.1:8000/auth/users
 if (error.value) {
   console.error("User Profile API Error:", error.value)
 }
-console.log("User Profile Data:", userData.value)
+
+// FETCH PROVIDER PROFILE DATA (Dynamic Fields)
+// This is needed for fields not in Auth Service (e.g., Country, Language)
+const roleName = (userData.value?.role_name || userData.value?.role || '').toString().toLowerCase()
+const target = userData.value?.provider_type || (roleName === 'organization' ? 'organization' : 'individual')
+
+console.log('Fetching SA User Profile for:', { user: route.params.id, role: roleName, target })
+
+// Use providerApi directly to ensure correct token handling (useApi might miss non-cookie tokens)
+import { providerApi } from '@/plugins/axios'
+
+const providerProfileFields = ref([])
+
+try {
+  const res = await providerApi.get(`/api/provider/profile/`, {
+    params: { 
+      user: route.params.id,
+      target: target
+    }
+  })
+  
+  if (res.data && res.data.fields) {
+    const fields = res.data.fields
+    providerProfileFields.value = fields
+    
+    const getFieldValue = (name) => {
+      const field = fields.find(f => f.name === name)
+      return field ? field.value : null
+    }
+    
+    // MERGE INTO USER DATA (For standard fields)
+    userData.value = {
+      ...userData.value,
+      country: getFieldValue('country') || userData.value.country,
+      language: getFieldValue('language') || userData.value.language,
+      phone_number: getFieldValue('phone_number') || userData.value.phone_number,
+    }
+  }
+} catch (err) {
+  console.error("Failed to fetch provider profile:", err)
+}
+
+console.log("DEBUG: Final UserData passed to BioPanel:", userData.value)
+console.log("DEBUG: Provider Profile Fields:", providerProfileFields.value)
 </script>
 
 <template>
@@ -47,7 +90,10 @@ console.log("User Profile Data:", userData.value)
       md="5"
       lg="4"
     >
-      <UserBioPanel :user-data="userData" />
+      <UserBioPanel 
+        :user-data="userData" 
+        :provider-profile="providerProfileFields"
+      />
     </VCol>
 
     <VCol

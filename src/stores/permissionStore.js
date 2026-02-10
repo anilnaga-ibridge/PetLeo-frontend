@@ -169,16 +169,27 @@ export const usePermissionStore = defineStore('permission', {
           const userDataCookie = useCookie('userData')
           const currentData = userDataCookie.value || JSON.parse(localStorage.getItem('userData') || '{}')
 
+          // Only overwrite if the new value is truthy (prevent null/empty overwrite)
           const updatedData = {
             ...currentData,
-            fullName: res.data.user_profile.fullName,
-            // role: res.data.user_profile.role, // ⛔ DO NOT OVERWRITE ROLE - AUTH SERVICE IS SOURCE OF TRUTH
+            fullName: res.data.user_profile.fullName || currentData.fullName || currentData.username,
+            avatar: res.data.user_profile.avatar || currentData.avatar,
+            role: res.data.user_profile.role || currentData.role,
+            email: res.data.user_profile.email || currentData.email,
           }
 
           userDataCookie.value = updatedData
           localStorage.setItem('userData', JSON.stringify(updatedData))
-          this.userData = updatedData // ✅ Update Reactive State
-          console.log("✅ PermissionStore: Updated userData with profile info (Role preserved):", updatedData)
+          this.userData = updatedData
+
+          console.log("✅ PermissionStore: Profile Sync Result:", {
+            incoming: res.data.user_profile,
+            merged: {
+              fullName: updatedData.fullName,
+              avatar: updatedData.avatar,
+              role: updatedData.role
+            }
+          })
         }
         // -----------------------------------------
 

@@ -27,7 +27,7 @@ const changePin = async () => {
 
   loading.value = true
   try {
-    const { data, error } = await useApi('http://127.0.0.1:8000/auth/change-pin/', {
+    const { data, error } = await useApi('http://127.0.0.1:8000/api/auth/change-pin/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 <script setup>
 import axios from 'axios'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAbility } from '@casl/vue'
 import { useCookie } from '@/@core/composable/useCookie'
@@ -20,6 +20,17 @@ import authV2LoginIllustrationBorderedLight from '@images/pages/auth-v2-login-il
 import authV2LoginIllustrationBorderedDark from '@images/pages/auth-v2-login-illustration-bordered-dark.png'
 import authV2MaskDark from '@images/pages/misc-mask-dark.png'
 import authV2MaskLight from '@images/pages/misc-mask-light.png'
+import authAnimal1 from '@images/pages/login-bg-animal-1.jpg'
+import authAnimal2 from '@images/pages/login-bg-animal-2.jpg'
+import authAnimal3 from '@images/pages/login-bg-animal-3.jpg'
+import authAnimal4 from '@images/pages/login-bg-animal-4.jpg'
+
+const authBackgrounds = [
+  authAnimal1,
+  authAnimal2,
+  authAnimal3,
+  authAnimal4,
+]
 
 const router = useRouter()
 const ability = useAbility()
@@ -55,6 +66,37 @@ const pinPhone = ref('')
 const pin = ref('')
 const pinLoading = ref(false)
 const pinLength = ref(4)
+const fetchingPinLength = ref(false)
+
+// Watch pinPhone and fetch PIN length dynamically
+watch(pinPhone, async (newPhone) => {
+  // Reset to default if phone is cleared
+  if (!newPhone || newPhone.length < 10) {
+    pinLength.value = 4
+    return
+  }
+
+  // Fetch PIN length for this phone number
+  try {
+    fetchingPinLength.value = true
+    const res = await axios.get(`${API_BASE}/auth/api/auth/check-pin-length/`, {
+      params: { phone_number: newPhone }
+    })
+    
+    if (res.data?.pin_length) {
+      pinLength.value = res.data.pin_length
+      pin.value = '' // Reset PIN when length changes
+    } else {
+      pinLength.value = 4
+    }
+  } catch (err) {
+    // If endpoint doesn't exist or user not found, default to 4
+    console.log('PIN length check failed, defaulting to 4:', err.message)
+    pinLength.value = 4
+  } finally {
+    fetchingPinLength.value = false
+  }
+})
 
 // Reset PIN State
 const showResetPinDialog = ref(false)
@@ -132,36 +174,43 @@ import { fetchAndMergePermissions } from '@/utils/permissions'
 
 import { getPostLoginRoute } from '@/utils/routeHelpers'
 import { usePermissionStore } from '@/stores/permissionStore'
+import { useIdleTimer } from '@/composables/useIdleTimer'
 
 // ... imports
 
 const handleLoginSuccess = async data => {
   let { accessToken, userData, userAbilityRules } = data
 
-  // 1. Set token first to allow authenticated API calls
+  // 1. Set credentials and basic user data IMMEDIATELY
+  // This ensures permissionStore.fetchPermissions() has access to valid currentData
   useCookie("accessToken").value = accessToken
-  
-  // 2. Fetch dynamic permissions via Store
-  const permissionStore = usePermissionStore()
-  try {
-    await permissionStore.fetchPermissions()
-  } catch (e) {
-    console.error("Permission fetch failed", e)
-  }
-
-  // 3. Store updated userData
   useCookie("userData").value = userData
   useCookie("userAbilityRules").value = userAbilityRules
   useCookie("auth_user_id").value = userData.id
 
-  ability.update(userAbilityRules)
-
   if (rememberMe.value) {
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('userData', JSON.stringify(userData))
+    localStorage.setItem('lock_screen_phone', userData.phone_number || userData.phoneNumber || '')
   } else {
     sessionStorage.setItem('accessToken', accessToken)
     sessionStorage.setItem('userData', JSON.stringify(userData))
+    sessionStorage.setItem('lock_screen_phone', userData.phone_number || userData.phoneNumber || '')
+  }
+
+  // 2. Update Ability for CASL
+  ability.update(userAbilityRules)
+
+  // 3. Fetch dynamic permissions via Store
+  const permissionStore = usePermissionStore()
+  
+  // Sync store's reactive state manually to be safe
+  permissionStore.userData = userData
+
+  try {
+    await permissionStore.fetchPermissions()
+  } catch (e) {
+    console.error("Permission fetch failed", e)
   }
 
   await new Promise(resolve => setTimeout(resolve, 50))
@@ -230,6 +279,10 @@ onMounted(() => {
   const permissionStore = usePermissionStore()
 
   permissionStore.$reset()
+  
+  // Clear lock state for fresh login
+  const { isLocked } = useIdleTimer()
+  isLocked.value = false
 })
 </script>
 
@@ -238,35 +291,47 @@ onMounted(() => {
     no-gutters
     class="auth-wrapper bg-surface h-screen"
   >
-    <!-- LEFT PANEL -->
+    <!-- LEFT PANEL (Cinematic) -->
     <VCol
-      md="6"
-      class="d-none d-md-flex align-center justify-center bg-background"
+      md="8"
+      class="d-none d-md-flex align-center justify-center position-relative pa-0"
     >
-      <div class="text-center px-6">
-        <VImg
-          :src="imageVariant"
-          max-width="340"
-          class="auth-illustration mb-4"
+      <VCarousel
+        cycle
+        interval="3000"
+        height="100%"
+        hide-delimiters
+        :show-arrows="false"
+        class="h-100 w-100 carousel-fade"
+      >
+        <VCarouselItem
+          v-for="(item, i) in authBackgrounds"
+          :key="i"
+          :src="item"
+          cover
         />
-        <img
-          :src="authThemeMask"
-          height="140"
-          width="150%"
-        >
+      </VCarousel>
+
+      <!-- Static Overlay -->
+      <div class="position-absolute top-0 left-0 h-100 w-100 d-flex align-end pa-12" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); z-index: 2; pointer-events: none;">
+        <div class="text-white">
+          <h1 class="text-h2 font-weight-bold mb-4">Welcome to PetLeo</h1>
+          <p class="text-h5 font-weight-regular">Premium Veterinary & Pet Care Management</p>
+        </div>
       </div>
     </VCol>
+
 
     <!-- RIGHT PANEL -->
     <VCol
       cols="12"
-      md="6"
-      class="d-flex justify-center align-start pt-12"
+      md="4"
+      class="d-flex justify-center align-center bg-surface"
     >
       <VCard
         flat
-        class="pa-8 w-100 rounded-xl glass-login-card"
-        style="max-width:450px;"
+        class="pa-8 w-100 rounded-xl auth-card-hover"
+        max-width="480"
       >
         <!--
           ======================
@@ -550,24 +615,19 @@ onMounted(() => {
   </VDialog>
 </template>
 
+
+
 <style scoped>
-.glass-login-card {
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+/* CARD HOVER EFFECT */
+.auth-card-hover {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.05);
 }
 
-.v-theme--dark .glass-login-card {
-  background: rgba(30, 41, 59, 0.8) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3) !important;
-}
-
-.glass-login-card:hover {
+.auth-card-hover:hover {
   transform: translateY(-5px);
-  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(var(--v-theme-primary), 0.2);
 }
 
 /* Gradient Button */

@@ -47,10 +47,16 @@ export const useAuthStore = defineStore('authStore', () => {
     localStorage.removeItem('userData')
     localStorage.removeItem('session_id')
     localStorage.removeItem('remember_me')
+    localStorage.removeItem('auth_phone')
+    localStorage.removeItem('pin_phone')
+    localStorage.removeItem('reset_pin_phone')
+    localStorage.removeItem('pin_length')
+    localStorage.removeItem('lock_screen_phone')
 
     sessionStorage.removeItem('accessToken')
     sessionStorage.removeItem('refreshToken')
     sessionStorage.removeItem('userData')
+    sessionStorage.removeItem('lock_screen_phone')
 
     ability.update([])
 

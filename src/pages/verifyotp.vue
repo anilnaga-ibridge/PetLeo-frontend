@@ -10,13 +10,10 @@ import { useGenerateImageVariant } from '@core/composable/useGenerateImageVarian
 import MultiBoxPinInput from '@/components/MultiBoxPinInput.vue'
 import { getPostLoginRoute } from '@/utils/routeHelpers'
 import { usePermissionStore } from '@/stores/permissionStore'
+import { useIdleTimer } from '@/composables/useIdleTimer'
 
 import authV2MaskDark from '@images/pages/misc-mask-dark.png'
 import authV2MaskLight from '@images/pages/misc-mask-light.png'
-import authV2RegisterIllustrationLight from '@images/pages/auth-v2-register-illustration-light.png'
-import authV2RegisterIllustrationDark from '@images/pages/auth-v2-register-illustration-dark.png'
-import authV2RegisterIllustrationBorderedLight from '@images/pages/auth-v2-register-illustration-bordered-light.png'
-import authV2RegisterIllustrationBorderedDark from '@images/pages/auth-v2-register-illustration-bordered-dark.png'
 
 definePage({ meta: { layout: 'blank', unauthenticatedOnly: true } })
 
@@ -70,15 +67,10 @@ const pinError = ref('')
 const pinLoading = ref(false)
 
 /* Images */
-const imageVariant = useGenerateImageVariant(
-  authV2RegisterIllustrationLight,
-  authV2RegisterIllustrationDark,
-  authV2RegisterIllustrationBorderedLight,
-  authV2RegisterIllustrationBorderedDark,
-  true,
-)
+import authV2VerifyEmailIllustrationLight from '@images/pages/auth-v2-verify-email-illustration-light.png'
+import authV2VerifyEmailIllustrationDark from '@images/pages/auth-v2-verify-email-illustration-dark.png'
 
-const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
+const authThemeImg = useGenerateImageVariant(authV2VerifyEmailIllustrationLight, authV2VerifyEmailIllustrationDark)
 
 /* Store session */
 const storeSession = (accessToken, userData, abilityRules, rememberMeValue) => {
@@ -91,9 +83,11 @@ const storeSession = (accessToken, userData, abilityRules, rememberMeValue) => {
   if (rememberMeValue) {
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('userData', JSON.stringify(userData))
+    localStorage.setItem('lock_screen_phone', userData.phone_number || userData.phoneNumber || '')
   } else {
     sessionStorage.setItem('accessToken', accessToken)
     sessionStorage.setItem('userData', JSON.stringify(userData))
+    sessionStorage.setItem('lock_screen_phone', userData.phone_number || userData.phoneNumber || '')
   }
 }
 
@@ -106,6 +100,10 @@ const verifyOtp = async () => {
 
   errorMessage.value = ''
   successMessage.value = ''
+
+  // Clear any existing lock state initially
+  const { isLocked } = useIdleTimer()
+  isLocked.value = false
 
   try {
     const sessionId = localStorage.getItem('session_id')
@@ -149,19 +147,35 @@ const verifyOtp = async () => {
         accessToken,
         userData,
         userAbilityRules,
-        has_pin,
-        require_set_pin,
+        pin_set_today,
       } = res.data
+
+      console.log('🔐 DAILY PIN FLOW DEBUG:')
+      console.log('  pin_set_today:', pin_set_today)
 
       storeSession(accessToken, userData, userAbilityRules, rememberMe)
       localStorage.removeItem('session_id')
 
-      if (require_set_pin || !has_pin) {
-        showSetPinDrawer.value = true
+      // [UX FIX] If user needs to set PIN, navigate to dedicated setpin page
+      // Don't show popup on top of OTP page - that's confusing!
+      // DAILY PIN LOGIC:
+      // Case 1: PIN unset or not set TODAY -> Show SET PIN screen
+      if (!pin_set_today) {
+        console.log('⚠️ PIN not set TODAY -> Navigating to PIN setup...')
+        // We do NOT lock screen here. We redirect to setup.
+        isLocked.value = false 
+        
+        successMessage.value = "Verification successful! Please set your daily PIN."
+        await new Promise(resolve => setTimeout(resolve, 800))
+        await router.replace('/setpin')
         isLoading.value = false
         
         return
       }
+      
+      // Case 2: PIN already set TODAY -> Go directly to Dashboard
+      console.log('✅ PIN already set for today -> Going to dashboard')
+      isLocked.value = false
 
       // 2. Fetch dynamic permissions via Store
       const permissionStore = usePermissionStore()
@@ -294,25 +308,21 @@ const skipSetPin = () => {
 <template>
   <VRow
     no-gutters
-    class="auth-wrapper bg-surface no-scrollbar"
+    class="auth-wrapper bg-surface"
   >
     <!-- Left Illustration -->
     <VCol
       md="8"
       class="d-none d-md-flex"
     >
-      <div class="position-relative bg-background w-100 h-100 d-flex align-center justify-center">
-        <VImg
-          max-width="320"
-          :src="imageVariant"
-          class="mt-10 mb-4 fade-in-image"
-        />
-        <img
-          class="auth-footer-mask"
-          :src="authThemeMask"
-          height="150"
-          width="100"
-        >
+      <div class="position-relative bg-background rounded-lg w-100 ma-8 me-0">
+        <div class="d-flex align-center justify-center w-100 h-100 px-10">
+          <VImg
+            max-width="500"
+            :src="authThemeImg"
+            class="auth-illustration mt-16 mb-2"
+          />
+        </div>
       </div>
     </VCol>
 
@@ -320,28 +330,39 @@ const skipSetPin = () => {
     <VCol
       cols="12"
       md="4"
-      class="d-flex align-center justify-center px-4"
+      class="auth-card-v2 d-flex align-center justify-center"
     >
       <VCard
         flat
-        max-width="480"
-        class="pa-8 rounded-xl auth-card slide-up-card"
+        :max-width="500"
+        class="mt-12 mt-sm-0 pa-4 auth-card-hover"
       >
-        <VCardText class="text-center mb-6">
-          <h3 class="text-h4 font-weight-bold mb-2 text-high-emphasis">
-            Verify OTP
-          </h3>
-          <p class="text-body-1 text-medium-emphasis">
-            Enter the 6-digit code sent to your mobile number
-          </p>
-        </VCardText>
+        <VCardText>
+          <!-- Icon -->
+          <div class="mb-6 d-flex justify-center">
+            <div class="icon-circle elevation-3">
+              <VIcon
+                icon="tabler-lock-check"
+                size="42"
+                color="primary"
+              />
+            </div>
+          </div>
 
-        <VCardText class="px-0">
+          <h4 class="text-h4 font-weight-bold mb-1 text-center">
+            Two-Step Verification
+          </h4>
+          <p class="text-body-1 mb-6 text-center">
+            We sent a verification code to your mobile. Enter the code from the mobile in the field below.
+          </p>
+
           <VAlert
             v-if="successMessage"
             type="success"
             variant="tonal"
             class="mb-6 rounded-lg border-success"
+            icon="tabler-check"
+            closable
           >
             {{ successMessage }}
           </VAlert>
@@ -350,17 +371,22 @@ const skipSetPin = () => {
             type="error"
             variant="tonal"
             class="mb-6 rounded-lg border-error"
+            icon="tabler-alert-circle"
+            closable
           >
             {{ errorMessage }}
           </VAlert>
 
           <VForm @submit.prevent="verifyOtp">
-            <div class="mb-8 d-flex justify-center">
+            <div class="mb-6">
+              <label class="v-label mb-2 d-block text-body-2 font-weight-medium text-high-emphasis">
+                Type your 6 digit security code
+              </label>
               <MultiBoxPinInput
                 v-model="otp"
                 :length="6"
                 :error="!!errorMessage"
-                class="otp-input-container"
+                class="justify-center"
               />
             </div>
 
@@ -369,72 +395,64 @@ const skipSetPin = () => {
               type="submit"
               :loading="isLoading"
               color="primary"
-              size="x-large"
-              variant="flat"
-              class="rounded-lg font-weight-bold shadow-primary"
+              size="large"
+              class="mb-6 font-weight-bold"
             >
-              Verify OTP
+              Verify my account
             </VBtn>
           </VForm>
-        </VCardText>
 
-        <!-- Resend Section with Circular Timer -->
-        <div class="d-flex flex-column align-center mt-8">
-          <div
-            v-if="timeLeft > 0"
-            class="d-flex align-center gap-2 mb-2"
-          >
-            <VProgressCircular
-              :model-value="(timeLeft / 60) * 100"
-              color="primary"
-              size="24"
-              width="3"
-              class="mr-2"
-            />
-            <span class="text-body-2 text-medium-emphasis font-weight-medium">
-              Resend code in {{ timeLeft }}s
-            </span>
-          </div>
-
-          <div
-            v-else
-            class="text-center fade-in"
-          >
-            <span class="text-body-2 text-medium-emphasis">Didn't receive the code?</span>
-            <VBtn
-              variant="text"
-              color="primary"
-              class="ml-2 px-2 font-weight-bold text-body-2"
-              :loading="resendLoading"
-              :ripple="false"
-              @click="resendOtp"
+          <!-- Resend Section -->
+          <div class="d-flex flex-column align-center">
+            <div
+              v-if="timeLeft > 0"
+              class="d-flex align-center gap-2"
             >
-              Resend OTP
-            </VBtn>
-          </div>
-        </div>
+              <span class="text-body-2 text-medium-emphasis">
+                Resend code in <span class="text-primary font-weight-bold">{{ timeLeft }}s</span>
+              </span>
+            </div>
 
-        <!-- Resend Alerts -->
-        <div class="mt-4">
-          <VAlert
-            v-if="resendSuccess"
-            type="success"
-            variant="tonal"
-            density="compact"
-            class="rounded-lg mb-2 text-caption"
-          >
-            {{ resendSuccess }}
-          </VAlert>
-          <VAlert
-            v-if="resendError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            class="rounded-lg text-caption"
-          >
-            {{ resendError }}
-          </VAlert>
-        </div>
+            <div
+              v-else
+              class="text-center fade-in"
+            >
+              <span class="text-body-2 text-medium-emphasis">Didn't get the code?</span>
+              <VBtn
+                variant="text"
+                color="primary"
+                class="px-2 font-weight-bold text-body-2"
+                :loading="resendLoading"
+                :ripple="false"
+                @click="resendOtp"
+              >
+                Resend
+              </VBtn>
+            </div>
+          </div>
+
+          <!-- Resend Alerts -->
+          <div class="mt-4">
+            <VAlert
+              v-if="resendSuccess"
+              type="success"
+              variant="tonal"
+              density="compact"
+              class="rounded-lg mb-2 text-caption"
+            >
+              {{ resendSuccess }}
+            </VAlert>
+            <VAlert
+              v-if="resendError"
+              type="error"
+              variant="tonal"
+              density="compact"
+              class="rounded-lg text-caption"
+            >
+              {{ resendError }}
+            </VAlert>
+          </div>
+        </VCardText>
       </VCard>
     </VCol>
 
@@ -584,6 +602,31 @@ const skipSetPin = () => {
 .shadow-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 24px -8px rgba(var(--v-theme-primary), 0.6);
+}
+
+/* CARD HOVER EFFECT - MATCHING SET PIN */
+.auth-card-hover {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.05);
+}
+
+.auth-card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(var(--v-theme-primary), 0.2);
+}
+
+/* ICON CIRCLE */
+.icon-circle {
+  width: 80px;
+  height: 80px;
+  background: rgb(var(--v-theme-surface));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.1);
 }
 
 .border-success {

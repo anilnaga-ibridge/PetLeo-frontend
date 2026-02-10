@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useCookie } from '@/@core/composable/useCookie'
-import { api } from '@/plugins/axios'
+import { api, providerApi } from '@/plugins/axios'
+import { usePermissionStore } from '@/stores/permissionStore'
 
 const userData = useCookie('userData')
 
@@ -39,9 +40,10 @@ const loading = ref(false)
 const fetchProfile = async () => {
   loading.value = true
   try {
-    const target = userData.value?.provider_type || 'individual'
+    const role = typeof userData.value?.role === 'string' ? userData.value.role.toLowerCase() : ''
+    const target = userData.value?.provider_type || (role === 'superadmin' ? 'superadmin' : 'individual')
 
-    const res = await api.get(`/api/provider/profile/`, {
+    const res = await providerApi.get(`/api/provider/profile/`, {
       params: { 
         user: userData.value.id,
         target: target,
@@ -78,26 +80,56 @@ const submitForm = async () => {
     fd.append('avatar', avatarFile.value)
   }
 
-  // Construct fields JSON
-  // We send back exactly what the backend expects: field_id, value, metadata
-  const fieldsData = fields.value.map(field => ({
-    field_id: field.id,
-    value: field.value,
-    metadata: field.metadata || {},
-  }))
+  // Construct fields JSON and append files
+  const fieldsData = []
+  fields.value.forEach(field => {
+    if (field.field_type === 'file') {
+      if (field.fileValue) {
+        fd.append(field.id, field.fileValue)
+      }
+    } else {
+      fieldsData.push({
+        field_id: field.id,
+        value: field.value,
+        metadata: field.metadata || {},
+      })
+    }
+  })
 
   fd.append('fields', JSON.stringify(fieldsData))
+  fd.append('auth_user_id', userData.value.id)
   
   try {
-    const res = await api.post(`/api/provider/profile/?user=${userData.value.id}`, fd)
+    const res = await providerApi.post(`/api/provider/profile/`, fd)
 
-    // Update cookie with new avatar
-    if (res.data.avatar) {
-      userData.value.avatar = res.data.avatar
-      accountDataLocal.value.avatarImg = res.data.avatar
+    // 🔥 SYNC TO GLOBAL STATE (Real-time updates without refresh)
+    const profile = res.data.user_profile
+    if (profile) {
+      // 1. Update Cookie
+      const currentData = userData.value || {}
+      const updatedData = {
+        ...currentData,
+        fullName: profile.fullName,
+        email: profile.email,
+        phoneNumber: profile.phoneNumber,
+        avatar: profile.avatar || currentData.avatar
+      }
+      userData.value = updatedData
+      localStorage.setItem('userData', JSON.stringify(updatedData))
+
+      // 2. Update local state for avatar preview
+      if (profile.avatar) {
+        accountDataLocal.value.avatarImg = profile.avatar
+      }
+
+      // 3. Sync with PermissionStore (updates Header, Sidebar, etc.)
+      const permissionStore = usePermissionStore()
+      permissionStore.userData = updatedData
+      
+      console.log("✅ Profile saved and synced to global state instantly.")
     }
 
-    // Refresh profile to show saved data
+    // Refresh local fields
     fetchProfile()
   } catch (err) {
     console.error('Failed to save profile', err)
@@ -235,6 +267,29 @@ onMounted(() => {
                   :label="field.label"
                   :rules="field.is_required ? [v => !!v || `${field.label} is required`] : []"
                 />
+
+                <!-- File -->
+                <VFileInput
+                  v-else-if="field.field_type === 'file'"
+                  v-model="field.fileValue"
+                  :label="field.label"
+                  :rules="field.is_required && !field.metadata?.file_url ? [v => !!v || `${field.label} is required`] : []"
+                  :hint="field.metadata?.file_url ? `Currently: ${field.metadata.name || 'File uploaded'}` : field.help_text"
+                  persistent-hint
+                  prepend-icon="tabler-file"
+                >
+                  <template v-if="field.metadata?.file_url" #append>
+                    <VBtn
+                      icon
+                      size="small"
+                      variant="text"
+                      :href="field.metadata.file_url"
+                      target="_blank"
+                    >
+                      <VIcon icon="tabler-eye" />
+                    </VBtn>
+                  </template>
+                </VFileInput>
 
                 <!-- Fallback for unknown types -->
                 <AppTextField

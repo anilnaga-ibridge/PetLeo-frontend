@@ -20,6 +20,7 @@ declare module 'vue-router/auto-routes' {
   export interface RouteNamedMap {
     '$error': RouteRecordInfo<'$error', '/:error(.*)', { error: ParamValue<true> }, { error: ParamValue<false> }>,
     'access-control': RouteRecordInfo<'access-control', '/access-control', Record<never, never>, Record<never, never>>,
+    'admin-verifications': RouteRecordInfo<'admin-verifications', '/admin/verifications', Record<never, never>, Record<never, never>>,
     'apps-academy-course-details': RouteRecordInfo<'apps-academy-course-details', '/apps/academy/course-details', Record<never, never>, Record<never, never>>,
     'apps-academy-dashboard': RouteRecordInfo<'apps-academy-dashboard', '/apps/academy/dashboard', Record<never, never>, Record<never, never>>,
     'apps-academy-my-course': RouteRecordInfo<'apps-academy-my-course', '/apps/academy/my-course', Record<never, never>, Record<never, never>>,
@@ -168,7 +169,6 @@ declare module 'vue-router/auto-routes' {
     'superadmin-builder-plans': RouteRecordInfo<'superadmin-builder-plans', '/superadmin/builder/plans', Record<never, never>, Record<never, never>>,
     'superadmin-builder-services': RouteRecordInfo<'superadmin-builder-services', '/superadmin/builder/services', Record<never, never>, Record<never, never>>,
     'superadmin-dashboard': RouteRecordInfo<'superadmin-dashboard', '/superadmin/dashboard', Record<never, never>, Record<never, never>>,
-    'superadmin-documents-verification-provider-docverification': RouteRecordInfo<'superadmin-documents-verification-provider-docverification', '/superadmin/documents-verification/provider-docverification', Record<never, never>, Record<never, never>>,
     'superadmin-dynamic-providerfields-docdynamic': RouteRecordInfo<'superadmin-dynamic-providerfields-docdynamic', '/superadmin/dynamic-providerfields/docdynamic', Record<never, never>, Record<never, never>>,
     'superadmin-dynamic-providerfields-dynamicprofileform': RouteRecordInfo<'superadmin-dynamic-providerfields-dynamicprofileform', '/superadmin/dynamic-providerfields/dynamicprofileform', Record<never, never>, Record<never, never>>,
     'superadmin-dynamic-providerfields-profile-documets': RouteRecordInfo<'superadmin-dynamic-providerfields-profile-documets', '/superadmin/dynamic-providerfields/profile-documets', Record<never, never>, Record<never, never>>,

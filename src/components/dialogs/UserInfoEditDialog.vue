@@ -33,15 +33,26 @@ const emit = defineEmits([
 ])
 
 const userData = ref(structuredClone(toRaw(props.userData)))
+const firstName = ref('')
+const lastName = ref('')
+
 const isUseAsBillingAddress = ref(false)
 
-watch(() => props, () => {
+const syncNames = () => {
+  const parts = (userData.value.fullName || '').split(' ')
+  firstName.value = parts[0] || ''
+  lastName.value = parts.slice(1).join(' ') || ''
+}
+
+watch(() => props.userData, () => {
   userData.value = structuredClone(toRaw(props.userData))
-})
+  syncNames()
+}, { immediate: true })
 
 const onFormSubmit = () => {
-  emit('update:isDialogVisible', false)
+  userData.value.fullName = `${firstName.value} ${lastName.value}`.trim()
   emit('submit', userData.value)
+  emit('update:isDialogVisible', false)
 }
 
 const onFormReset = () => {
@@ -79,13 +90,12 @@ const dialogModelValueUpdate = val => {
           @submit.prevent="onFormSubmit"
         >
           <VRow>
-            <!-- 👉 First Name -->
             <VCol
               cols="12"
               md="6"
             >
               <AppTextField
-                v-model="userData.fullName.split(' ')[0]"
+                v-model="firstName"
                 label="First Name"
                 placeholder="John"
               />
@@ -97,7 +107,7 @@ const dialogModelValueUpdate = val => {
               md="6"
             >
               <AppTextField
-                v-model="userData.fullName.split(' ')[1]"
+                v-model="lastName"
                 label="Last Name"
                 placeholder="Doe"
               />

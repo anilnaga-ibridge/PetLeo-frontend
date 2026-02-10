@@ -122,9 +122,9 @@ export default [
         icon: { icon: "tabler-file-check" },
         children: [
           {
-            title: "Documents Verification",
-            iicon: { icon: "tabler-user-shield" },
-            to: "superadmin-documents-verification-provider-docverification",
+            title: "Pending Verifications",
+            icon: { icon: "tabler-clipboard-check" },
+            to: "admin-verifications",
           },
         ],
       },

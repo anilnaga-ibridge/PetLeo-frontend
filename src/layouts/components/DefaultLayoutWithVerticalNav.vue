@@ -7,21 +7,18 @@ import { computed } from 'vue'
 
 const permissionStore = usePermissionStore()
 
-// Get User Role Helper
-const getUserRole = () => {
-  try {
-    const userData = JSON.parse(localStorage.getItem('userData') || '{}')
-    
-    return (userData.role?.name || userData.role || '').toUpperCase()
-  } catch (e) {
-    return ''
-  }
-}
+// Get User Role Helper (Reactive)
+const userRole = computed(() => {
+  const data = permissionStore.userData
+  if (!data) return ''
+  
+  return (data.role?.name || data.role || '').toUpperCase()
+})
 
 import { onMounted } from 'vue'
 
 onMounted(() => {
-    const role = getUserRole()
+    const role = userRole.value
     console.log(`⏱️ [${new Date().toISOString()}] Sidebar: Layout Mounted. Role: ${role}, Ready: ${permissionStore.isDynamicAccessLoaded}`)
     
     // Guard: If for some reason the router guard was skipped and we aren't loaded, fetch now.
@@ -35,7 +32,7 @@ onMounted(() => {
 
 const filteredNavItems = computed(() => {
   console.log('🔄 Sidebar: Re-calculating filteredNavItems')
-  const role = getUserRole()
+  const role = userRole.value
   const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE'].includes(role)
   
   // Use Provider Navigation if Provider Role, otherwise Default (SuperAdmin)
@@ -74,7 +71,7 @@ const filteredNavItems = computed(() => {
 
 // Computed Property for App Readiness
 const isAppReady = computed(() => {
-  const role = getUserRole()
+  const role = userRole.value
   const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE'].includes(role)
   
   if (isProvider) {

@@ -82,8 +82,9 @@ const roleToTarget = name => {
   if (!name) return null
   const n = name.toLowerCase()
   if (n.includes("individual")) return "individual"
-  if (n.includes("organization employee")) return "employee"
+  if (n.includes("organization employee") || n.includes("employee")) return "employee"
   if (n.includes("organization")) return "organization"
+  if (n.includes("superadmin") || n.includes("super admin")) return "superadmin"
   
   return null
 }
@@ -106,6 +107,8 @@ const fetchRoles = async () => {
     roles.value = [
       { id: "fallback-ind", name: "Individual", target: "individual" },
       { id: "fallback-org", name: "Organization", target: "organization" },
+      { id: "fallback-emp", name: "Employee", target: "employee" },
+      { id: "fallback-sa", name: "Super Admin", target: "superadmin" },
     ]
     if (!selectedTarget.value) selectedTarget.value = roles.value[0].target
   }
