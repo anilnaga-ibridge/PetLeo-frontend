@@ -1,0 +1,155 @@
+/* Sidebar Ultra Fidelity - Luxury Edition */
+
+.layout-vertical-nav {
+    // 👉 Sophisticated Glassmorphism
+    background: rgba(var(--v-theme-surface), 0.85) !important;
+    backdrop-filter: blur(20px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    border-inline-end: 1px solid rgba(var(--v-border-color), 0.08) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04) !important;
+
+    // 👉 Breathable Executive Spacing
+    .nav-items {
+        padding-inline: 14px !important;
+        padding-block: 28px !important;
+    }
+
+    // 👉 Minimalist Section Dividers
+    .nav-section-title {
+        margin-block-start: 24px !important;
+        margin-block-end: 10px !important;
+        padding-inline-start: 18px !important;
+        position: relative;
+
+        .title-text {
+            font-size: 0.68rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 1.8px !important;
+            text-transform: uppercase !important;
+            color: rgba(var(--v-theme-on-surface), 0.4) !important;
+            opacity: 0.8;
+        }
+
+        &::before {
+            display: none !important;
+        }
+    }
+
+    // 👉 High-Performance Navigation Links
+    .nav-link {
+        margin-block-end: 8px !important;
+
+        a {
+            border-radius: 14px !important; // Sleek rounded corners
+            padding-block: 12px !important;
+            padding-inline: 16px !important;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            color: rgba(var(--v-theme-on-surface), 0.75) !important;
+            position: relative;
+            background: transparent;
+
+            .nav-item-icon {
+                font-size: 1.4rem !important;
+                margin-inline-end: 16px !important;
+                color: rgba(var(--v-theme-on-surface), 0.5) !important;
+                transition: all 0.4s ease !important;
+            }
+
+            .nav-item-title {
+                font-size: 0.98rem !important;
+                font-weight: 500 !important;
+                letter-spacing: 0.2px !important;
+            }
+
+            // 🔄 Cinematic Hover
+            &:hover {
+                background: rgba(var(--v-theme-primary), 0.06) !important;
+                color: rgb(var(--v-theme-primary)) !important;
+                transform: translateX(4px);
+
+                .nav-item-icon {
+                    color: rgb(var(--v-theme-primary)) !important;
+                    transform: scale(1.15) rotate(-3deg);
+                }
+            }
+
+            // 🌟 Luminous Active State
+            &.router-link-active {
+                background: rgb(var(--v-theme-primary)) !important;
+                color: #fff !important;
+                box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.25) !important;
+
+                &::after {
+                    display: none !important; // Hide the indicator as the full background is now primary
+                }
+
+                .nav-item-icon {
+                    color: #fff !important;
+                    transform: scale(1.1);
+                }
+
+                .nav-item-title {
+                    font-weight: 700 !important;
+                }
+            }
+        }
+    }
+
+    // 👉 Sophisticated Groups
+    .nav-group {
+        margin-block-end: 8px !important;
+
+        .nav-group-label {
+            border-radius: 14px !important;
+            padding-block: 12px !important;
+            padding-inline: 16px !important;
+            transition: all 0.4s ease !important;
+
+            .nav-item-icon {
+                font-size: 1.4rem !important;
+                margin-inline-end: 16px !important;
+                color: rgba(var(--v-theme-on-surface), 0.5) !important;
+            }
+
+            &:hover {
+                background: rgba(var(--v-theme-on-surface), 0.04) !important;
+                transform: translateX(4px);
+            }
+        }
+
+        &.open>.nav-group-label {
+            background: rgba(var(--v-theme-primary), 0.03) !important;
+            color: rgb(var(--v-theme-primary)) !important;
+
+            .nav-item-icon {
+                color: rgb(var(--v-theme-primary)) !important;
+            }
+        }
+    }
+}
+
+// 👉 Collapsed state adjustments (Minimal Luxe)
+.layout-vertical-nav-collapsed {
+    .layout-vertical-nav:not(.hovered) {
+        .nav-items {
+            padding-inline: 8px !important;
+        }
+
+        .nav-link a,
+        .nav-group .nav-group-label {
+            padding-inline: 0 !important;
+            justify-content: center !important;
+            border-radius: 12px !important;
+
+            .nav-item-icon {
+                margin-inline-end: 0 !important;
+            }
+
+            &.router-link-active {
+                &::after {
+                    left: -2px;
+                }
+            }
+        }
+    }
+}

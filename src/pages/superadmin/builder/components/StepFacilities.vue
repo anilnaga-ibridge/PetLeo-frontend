@@ -89,9 +89,9 @@ const categorizedMenu = computed(() => {
         id: rule.facility.id,
         ruleId: rule.id,
         name: rule.facility.name,
-        description: rule.facility.description,
+        description: (rule.facility.description && rule.facility.description !== 'null') ? rule.facility.description : '',
         price: rule.base_price,
-        duration: rule.duration_minutes,
+        duration: (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         billing_unit: rule.billing_unit,
         is_active: rule.is_active
       }))
@@ -109,9 +109,9 @@ const categorizedMenu = computed(() => {
         id: rule.facility.id,
         ruleId: rule.id,
         name: rule.facility.name,
-        description: rule.facility.description,
+        description: (rule.facility.description && rule.facility.description !== 'null') ? rule.facility.description : '',
         price: rule.base_price,
-        duration: rule.duration_minutes,
+        duration: (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         billing_unit: rule.billing_unit,
         is_active: rule.is_active
       }))
@@ -153,12 +153,16 @@ const openEditDrawer = (item, category) => {
 const submit = async () => {
   try {
     if (isEdit.value) {
-      // 1. Update Facility Name/Desc/Category
+      // 1. Update Facility
       await superAdminApi.put(`/api/superadmin/facilities/${editId.value}/`, {
         name: form.value.name,
         description: form.value.description,
         service: form.value.service,
-        category: form.value.category
+        category: form.value.category,
+        protocol_type: form.value.protocol_type,
+        pricing_strategy: form.value.pricing_model, // pricing_model maps to strategy
+        duration_minutes: form.value.duration_minutes,
+        base_price: form.value.base_price
       })
       
       // 2. Update Pricing Rule
@@ -171,6 +175,11 @@ const submit = async () => {
           base_price: form.value.base_price,
           duration_minutes: form.value.duration_minutes,
           billing_unit: form.value.billing_unit,
+          service_duration_type: form.value.service_duration_type,
+          pricing_model: form.value.pricing_model,
+          duration_value: form.value.duration_value,
+          daily_capacity: form.value.daily_capacity,
+          monthly_limit: form.value.monthly_limit,
           is_active: form.value.is_active
         })
       }
@@ -180,7 +189,11 @@ const submit = async () => {
         name: form.value.name,
         description: form.value.description,
         service: form.value.service,
-        category: form.value.category
+        category: form.value.category,
+        protocol_type: form.value.protocol_type,
+        pricing_strategy: form.value.pricing_model,
+        duration_minutes: form.value.duration_minutes,
+        base_price: form.value.base_price
       })
       
       // 2. Create Pricing Rule (The actual link)
@@ -191,6 +204,11 @@ const submit = async () => {
         base_price: form.value.base_price,
         duration_minutes: form.value.duration_minutes,
         billing_unit: form.value.billing_unit,
+        service_duration_type: form.value.service_duration_type,
+        pricing_model: form.value.pricing_model,
+        duration_value: form.value.duration_value,
+        daily_capacity: form.value.daily_capacity,
+        monthly_limit: form.value.monthly_limit,
         is_active: form.value.is_active
       })
     }
@@ -269,7 +287,7 @@ watch(() => props.state.selectedServiceId, async () => {
 </script>
 
 <template>
-  <div class="h-100 position-relative">
+  <div class="position-relative">
     <!-- Consolidated Toolbar -->
     <div class="d-flex flex-wrap align-center gap-4 mb-6">
       <div style="min-width: 250px; flex: 1;">
@@ -414,9 +432,9 @@ watch(() => props.state.selectedServiceId, async () => {
                       </div>
                     </td>
                     <td class="py-3">
-                      <p class="text-body-2 text-medium-emphasis mb-0 line-clamp-1" style="max-width: 300px;">
-                        {{ item.description || '-' }}
-                      </p>
+                        <p class="text-body-2 text-medium-emphasis mb-0 line-clamp-1" style="max-width: 300px;">
+                          {{ (item.description && item.description !== 'null') ? item.description : '-' }}
+                        </p>
                     </td>
                     <td class="text-right pr-0 py-3">
                       <div class="d-flex flex-column align-end">
@@ -469,7 +487,7 @@ watch(() => props.state.selectedServiceId, async () => {
                           ₹{{ item.price }} <span class="text-caption font-weight-medium">/ {{ item.billing_unit.toLowerCase().replace('_', ' ') }}</span>
                         </div>
 
-                        <div v-if="item.duration" class="pa-2 px-3 rounded-lg bg-warning-lighten-5 text-warning font-weight-bold d-flex align-center gap-1">
+                        <div v-if="item.duration && item.duration !== 'null'" class="pa-2 px-3 rounded-lg bg-warning-lighten-5 text-warning font-weight-bold d-flex align-center gap-1">
                           <VIcon icon="tabler-clock" size="14" />
                           <span class="text-caption">{{ item.duration }}m</span>
                         </div>
@@ -499,7 +517,7 @@ watch(() => props.state.selectedServiceId, async () => {
                           {{ item.name }}
                         </h3>
                         <p 
-                          v-if="item.description" 
+                          v-if="item.description && item.description !== 'null'" 
                           class="text-body-2 text-medium-emphasis line-clamp-2 mb-0"
                         >
                           {{ item.description }}

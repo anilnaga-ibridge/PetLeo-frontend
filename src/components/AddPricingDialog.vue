@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import axios from 'axios'
+import { providerApi } from '@/plugins/axios'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -85,28 +85,12 @@ const save = async () => {
   error.value = ''
   
   try {
-    const url = props.pricing
-      ? `http://127.0.0.1:8002/api/provider/pricing/${props.pricing.id}/`
-      : `http://127.0.0.1:8002/api/provider/pricing/`
-      
-    const method = props.pricing ? 'patch' : 'post'
-    const token = localStorage.getItem('accessToken')
-    
-    const payload = {
-      ...form.value,
-      service_id: props.serviceId,
-      facility: form.value.facility_id, // Map to backend field name
-    }
-
-    delete payload.facility_id // Remove old key if not needed, though DRF ignores extra fields usually
-
-    await axios({
-      method,
-      url,
+    const res = await providerApi({
+      method: props.pricing ? 'patch' : 'post',
+      url: props.pricing
+        ? `/api/provider/pricing/${props.pricing.id}/`
+        : `/api/provider/pricing/`,
       data: payload,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     })
     
     emit('saved')

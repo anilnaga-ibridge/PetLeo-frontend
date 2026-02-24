@@ -51,7 +51,7 @@
 
 <route lang="yaml">
 meta:
-  layout: default
+  layout: blank
   action: read
   subject: Auth
   pageTitle: ''

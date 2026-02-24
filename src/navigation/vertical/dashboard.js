@@ -15,14 +15,6 @@ export default [
         title: 'Ecommerce',
         to: 'dashboards-ecommerce',
       },
-      {
-        title: 'Academy',
-        to: 'dashboards-academy',
-      },
-      {
-        title: 'Logistics',
-        to: 'dashboards-logistics',
-      },
     ],
     badgeContent: '5',
     badgeClass: 'bg-error',

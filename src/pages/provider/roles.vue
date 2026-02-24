@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { api } from '@/plugins/axios'
+import { providerApi } from '@/plugins/axios'
 import ProviderLayout from '@/components/ProviderLayout.vue'
 import RoleManagementWizard from '@/components/provider/RoleManagementWizard.vue' // IMPORT WIZARD
 import { VDataTable } from 'vuetify/components'
@@ -43,9 +43,9 @@ const fetchData = async () => {
   loading.value = true
   try {
     const [rolesRes, capsRes, myPermsRes] = await Promise.all([
-      api.get('http://127.0.0.1:8002/api/provider/roles/'),
-      api.get('http://127.0.0.1:8002/api/provider/capabilities/'),
-      api.get('http://127.0.0.1:8002/api/provider/permissions/'), // Returns tree
+      providerApi.get('/api/provider/roles/'),
+      providerApi.get('/api/provider/capabilities/'),
+      providerApi.get('/api/provider/permissions/'), // Returns tree
     ])
     
     roles.value = rolesRes.data
@@ -90,10 +90,10 @@ const handleWizardSave = async payload => {
 
   try {
     if (currentRole.value && currentRole.value.id) {
-      await api.patch(`http://127.0.0.1:8002/api/provider/roles/${currentRole.value.id}/`, payload)
+      await providerApi.patch(`/api/provider/roles/${currentRole.value.id}/`, payload)
       successMessage.value = 'Role updated successfully!'
     } else {
-      await api.post('http://127.0.0.1:8002/api/provider/roles/', payload)
+      await providerApi.post('/api/provider/roles/', payload)
       successMessage.value = 'Role created successfully!'
     }
     
@@ -114,7 +114,7 @@ const handleWizardSave = async payload => {
 const deleteRole = async id => {
   if (!confirm('Are you sure you want to delete this role?')) return
   try {
-    await api.delete(`http://127.0.0.1:8002/api/provider/roles/${id}/`)
+    await providerApi.delete(`/api/provider/roles/${id}/`)
     fetchData()
   } catch (err) {
     console.error('Delete Error:', err)

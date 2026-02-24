@@ -19,16 +19,6 @@ export const db = {
           icon: 'tabler-shopping-cart',
           title: 'ECommerce Dashboard',
         },
-        {
-          url: { name: 'dashboards-academy' },
-          icon: 'tabler-book',
-          title: 'Academy Dashboard',
-        },
-        {
-          url: { name: 'dashboards-logistics' },
-          icon: 'tabler-truck',
-          title: 'Logistics Dashboard',
-        },
       ],
     },
     {
@@ -87,11 +77,6 @@ export const db = {
           url: { name: 'apps-kanban' },
         },
         {
-          url: { name: 'apps-ecommerce-dashboard' },
-          icon: 'tabler-shopping-cart',
-          title: 'ECommerce Dashboard',
-        },
-        {
           url: { name: 'apps-ecommerce-product-list' },
           icon: 'tabler-list',
           title: 'Ecommerce - Product List',
@@ -142,11 +127,6 @@ export const db = {
           title: 'Ecommerce - Settings',
         },
         {
-          url: { name: 'apps-academy-dashboard' },
-          icon: 'tabler-book',
-          title: 'Academy - Dashboard',
-        },
-        {
           url: { name: 'apps-academy-my-course' },
           icon: 'tabler-list',
           title: 'Academy - My Courses',
@@ -155,16 +135,6 @@ export const db = {
           url: { name: 'apps-academy-course-details' },
           icon: 'tabler-list',
           title: 'Academy - Course Details',
-        },
-        {
-          url: { name: 'apps-logistics-dashboard' },
-          icon: 'tabler-book',
-          title: 'Logistics - Dashboard',
-        },
-        {
-          url: { name: 'apps-logistics-fleet' },
-          icon: 'tabler-car',
-          title: 'Logistics - fleet',
         },
         {
           url: { name: 'apps-invoice-list' },

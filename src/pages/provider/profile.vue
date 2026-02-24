@@ -5,10 +5,19 @@ import UserTabAccount from '@/views/apps/user/view/UserTabAccount.vue'
 import UserTabSecurity from '@/views/apps/user/view/UserTabSecurity.vue'
 import UserTabNotifications from '@/views/apps/user/view/UserTabNotifications.vue'
 import UserTabBillingsPlans from '@/views/apps/user/view/UserTabBillingsPlans.vue'
+import MarketplaceManagement from './components/MarketplaceManagement.vue'
 import { useCookie } from '@/@core/composable/useCookie'
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 const userData = useCookie('userData')
 const userTab = ref(null)
+const route = useRoute()
+
+watch(() => route.query.tab, newTab => {
+  if (newTab === 'marketplace')
+    userTab.value = 4
+}, { immediate: true })
 
 const tabs = [
   {
@@ -26,6 +35,10 @@ const tabs = [
   {
     icon: 'tabler-bell',
     title: 'Notifications',
+  },
+  {
+    icon: 'tabler-building-store',
+    title: 'Marketplace',
   },
 ]
 </script>
@@ -82,6 +95,10 @@ const tabs = [
 
           <VWindowItem>
             <UserTabNotifications />
+          </VWindowItem>
+
+          <VWindowItem>
+            <MarketplaceManagement />
           </VWindowItem>
         </VWindow>
       </VCol>

@@ -17,7 +17,7 @@ const submitting = ref(false)
 
 // API Endpoints
 const PROVIDER_BASE_URL = 'http://127.0.0.1:8002'
-const PROFILE_API = '/api/provider/profile/'
+const PROFILE_API = '/api/provider/profile/dynamic/'
 const SUBMIT_API = '/api/provider/submit/'
 
 // User Data

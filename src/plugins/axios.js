@@ -88,12 +88,14 @@ import axios from "axios"
 
 // Service URLs from environment or defaults
 const AUTH_URL = import.meta.env.VITE_AUTH_API_URL || "http://127.0.0.1:8000"
+const CUSTOMER_URL = import.meta.env.VITE_CUSTOMER_API_URL || "http://127.0.0.1:8005"
 const PROVIDER_URL = import.meta.env.VITE_PROVIDER_API_URL || "http://127.0.0.1:8002"
 const SUPERADMIN_URL = import.meta.env.VITE_SUPERADMIN_API_URL || "http://127.0.0.1:8003"
 const VETERINARY_URL = import.meta.env.VITE_VETERINARY_API_URL || "http://127.0.0.1:8004"
 
 // Create instances for each service
 const authApi = axios.create({ baseURL: AUTH_URL })
+const customerApi = axios.create({ baseURL: CUSTOMER_URL })
 const providerApi = axios.create({ baseURL: PROVIDER_URL })
 const superAdminApi = axios.create({ baseURL: SUPERADMIN_URL })
 const veterinaryApi = axios.create({ baseURL: VETERINARY_URL })
@@ -103,7 +105,7 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || SUPERADMIN_URL,
 })
 
-const instances = [authApi, providerApi, superAdminApi, veterinaryApi, api]
+const instances = [authApi, customerApi, providerApi, superAdminApi, veterinaryApi, api]
 
 // =======================================================
 // 🔥 ALWAYS attach latest token before every request
@@ -147,7 +149,7 @@ veterinaryApi.interceptors.request.use(config => {
   if (clinicId) {
     config.headers["X-Clinic-ID"] = clinicId
   }
-  
+
   return config
 })
 
@@ -183,7 +185,7 @@ instances.forEach(instance => {
           })
             .then(token => {
               originalRequest.headers["Authorization"] = "Bearer " + token
-              
+
               return instance(originalRequest)
             })
             .catch(e => Promise.reject(e))
@@ -208,7 +210,7 @@ instances.forEach(instance => {
           isRefreshing = false
 
           originalRequest.headers["Authorization"] = "Bearer " + newAccess
-          
+
           return instance(originalRequest)
 
         } catch (refreshErr) {
@@ -216,7 +218,7 @@ instances.forEach(instance => {
           isRefreshing = false
           localStorage.clear()
           window.location.href = "/login"
-          
+
           return Promise.reject(refreshErr)
         }
       }
@@ -249,11 +251,12 @@ instances.forEach(instance => {
   )
 })
 
-export { api, authApi, providerApi, superAdminApi, veterinaryApi }
+export { api, authApi, customerApi, providerApi, superAdminApi, veterinaryApi }
 export default function (app) {
   app.config.globalProperties.$axios = api
   app.provide('axios', api)
   app.provide('authApi', authApi)
+  app.provide('customerApi', customerApi)
   app.provide('providerApi', providerApi)
   app.provide('superAdminApi', superAdminApi)
   app.provide('veterinaryApi', veterinaryApi)

@@ -51,9 +51,14 @@ const form = ref({
   service: props.state.selectedServiceId,
   category: props.state.selectedCategoryId,
   facility: null,
+  service_duration_type: 'MINUTES',
+  pricing_model: 'PER_UNIT',
   billing_unit: 'PER_SESSION',
   base_price: 0,
   duration_minutes: null,
+  duration_value: null,
+  daily_capacity: null,
+  monthly_limit: null,
   is_active: true,
 })
 
@@ -62,7 +67,27 @@ const billingUnitOptions = [
   { label: 'Per Hour', value: 'HOURLY' },
   { label: 'Per Day', value: 'DAILY' },
   { label: 'Per Week', value: 'WEEKLY' },
+  { label: 'Per Month', value: 'MONTHLY' },
+  { label: 'Per Year', value: 'YEARLY' },
   { label: 'One Time', value: 'ONE_TIME' },
+]
+
+const durationTypeOptions = [
+  { title: 'Minute Based (Slots)', value: 'MINUTES' },
+  { title: 'Hour Based (Duration)', value: 'HOURS' },
+  { title: 'Day Based (Boarding/Hostel)', value: 'DAYS' },
+  { title: 'Session Based (Packages)', value: 'SESSIONS' },
+  { title: 'Doctor Based (Veterinary)', value: 'DOCTOR_VISIT' },
+  { title: 'Product Based (Food/Supply)', value: 'PRODUCT' },
+  { title: 'Subscription Based', value: 'SUBSCRIPTION' },
+]
+
+const pricingModelOptions = [
+  { title: 'Fixed Total Price', value: 'FIXED' },
+  { title: 'Per Unit (Min/Hr/Day)', value: 'PER_UNIT' },
+  { title: 'Weekly Rate', value: 'WEEKLY' },
+  { title: 'Monthly Rate', value: 'MONTHLY' },
+  { title: 'Yearly Rate', value: 'YEARLY' },
 ]
 
 const getBillingLabel = value => {
@@ -111,9 +136,14 @@ const openAddDrawer = () => {
     service: props.state.selectedServiceId,
     category: props.state.selectedCategoryId,
     facility: null,
+    service_duration_type: 'MINUTES',
+    pricing_model: 'PER_UNIT',
     billing_unit: 'PER_SESSION',
     base_price: 0,
     duration_minutes: null,
+    duration_value: null,
+    daily_capacity: null,
+    monthly_limit: null,
     is_active: true,
   }
   drawerOpen.value = true
@@ -128,6 +158,11 @@ const openEditDrawer = pricing => {
     service: pricing.service?.id || pricing.service,
     category: pricing.category?.id || pricing.category,
     facility: pricing.facility?.id || pricing.facility,
+    service_duration_type: pricing.service_duration_type || 'MINUTES',
+    pricing_model: pricing.pricing_model || 'PER_UNIT',
+    duration_value: pricing.duration_value,
+    daily_capacity: pricing.daily_capacity,
+    monthly_limit: pricing.monthly_limit,
   }
   drawerOpen.value = true
 }
@@ -158,7 +193,38 @@ const toggleStatus = async pricing => {
   }
 }
 
-const showDuration = computed(() => ['PER_SESSION', 'HOURLY'].includes(form.value.billing_unit))
+// AUTO-MAP LOGIC: Set pricing strategy based on duration basis
+watch(() => form.value.service_duration_type, (newType) => {
+  switch (newType) {
+    case 'MINUTES':
+      form.value.pricing_model = 'PER_UNIT'
+      form.value.billing_unit = 'PER_SESSION'
+      break
+    case 'HOURS':
+      form.value.pricing_model = 'PER_UNIT'
+      form.value.billing_unit = 'HOURLY'
+      break
+    case 'DAYS':
+      form.value.pricing_model = 'PER_UNIT'
+      form.value.billing_unit = 'DAILY'
+      break
+    case 'SESSIONS':
+      form.value.pricing_model = 'FIXED'
+      form.value.billing_unit = 'PER_SESSION'
+      break
+    case 'PRODUCT':
+      form.value.pricing_model = 'FIXED'
+      form.value.billing_unit = 'ONE_TIME'
+      break
+    case 'SUBSCRIPTION':
+      form.value.pricing_model = 'MONTHLY'
+      form.value.billing_unit = 'MONTHLY'
+      break
+  }
+})
+
+const showStandardDuration = computed(() => form.value.service_duration_type === 'MINUTES')
+const showDurationValue = computed(() => ['HOURS', 'SESSIONS'].includes(form.value.service_duration_type))
 
 const deleteDialog = ref(false)
 const deleteItem = ref(null)
@@ -664,46 +730,97 @@ watch(() => props.state.selectedServiceId, () => {
                 class="pa-4 mb-6 border-0"
               >
                 <h4 class="text-subtitle-1 font-weight-bold mb-4">
-                  Pricing Details
+                  Pricing & Protocol
                 </h4>
-                
-                <VSelect
-                  v-model="form.billing_unit"
-                  :items="billingUnitOptions"
-                  label="Charge Frequency *"
-                  item-title="label"
-                  item-value="value"
-                  class="mb-4"
-                  required
-                  density="comfortable"
-                  variant="outlined"
-                  bg-color="surface"
-                  :menu-props="{ zIndex: 10000 }"
-                />
 
-                <AppTextField
-                  v-model.number="form.base_price"
-                  label="Price (₹) *"
-                  type="number"
-                  placeholder="0.00"
-                  class="mb-4"
-                  required
-                  density="comfortable"
-                  variant="outlined"
-                  bg-color="surface"
-                />
+                <VRow>
+                  <VCol cols="12">
+                    <VSelect
+                      v-model="form.service_duration_type"
+                      :items="durationTypeOptions"
+                      label="Duration Basis (Behavior) *"
+                      item-title="title"
+                      item-value="value"
+                      class="mb-4"
+                      density="comfortable"
+                      variant="outlined"
+                      bg-color="surface"
+                      :menu-props="{ zIndex: 10000 }"
+                    />
+                  </VCol>
+                  <!-- HIDDEN ADVANCED FIELDS (Auto-mapped) -->
+                  <div v-if="false">
+                    <VSelect v-model="form.pricing_model" :items="pricingModelOptions" />
+                    <VSelect v-model="form.billing_unit" :items="billingUnitOptions" />
+                  </div>
+                </VRow>
 
-                <AppTextField
-                  v-if="showDuration"
-                  v-model.number="form.duration_minutes"
-                  label="Duration (Minutes)"
-                  type="number"
-                  placeholder="e.g. 60"
-                  class="mb-0"
-                  density="comfortable"
-                  variant="outlined"
-                  bg-color="surface"
-                />
+                <VRow>
+                  <VCol cols="6">
+                    <AppTextField
+                      v-model.number="form.base_price"
+                      label="Price (₹) *"
+                      type="number"
+                      placeholder="0.00"
+                      class="mb-4"
+                      required
+                      density="comfortable"
+                      variant="outlined"
+                      bg-color="surface"
+                    />
+                  </VCol>
+                  <VCol cols="6">
+                    <AppTextField
+                      v-if="showStandardDuration"
+                      v-model.number="form.duration_minutes"
+                      label="Minutes"
+                      type="number"
+                      placeholder="e.g. 60"
+                      class="mb-4"
+                      density="comfortable"
+                      variant="outlined"
+                      bg-color="surface"
+                    />
+                    <AppTextField
+                      v-if="showDurationValue"
+                      v-model.number="form.duration_value"
+                      label="Value"
+                      type="number"
+                      placeholder="Qty"
+                      class="mb-4"
+                      density="comfortable"
+                      variant="outlined"
+                      bg-color="surface"
+                    />
+                  </VCol>
+                </VRow>
+
+                <VRow>
+                  <VCol cols="6">
+                    <AppTextField
+                      v-model.number="form.daily_capacity"
+                      label="Daily Cap"
+                      type="number"
+                      placeholder="Max pets"
+                      class="mb-0"
+                      density="comfortable"
+                      variant="outlined"
+                      bg-color="surface"
+                    />
+                  </VCol>
+                  <VCol cols="6">
+                    <AppTextField
+                      v-model.number="form.monthly_limit"
+                      label="Monthly Lmt"
+                      type="number"
+                      placeholder="Max usage"
+                      class="mb-0"
+                      density="comfortable"
+                      variant="outlined"
+                      bg-color="surface"
+                    />
+                  </VCol>
+                </VRow>
               </VCard>
 
               <VCard

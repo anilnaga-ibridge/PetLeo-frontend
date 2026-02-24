@@ -15,7 +15,7 @@ import { api } from '@/plugins/axios'
 definePage({
   name: 'provider-home',
   meta: {
-    layout: 'public',
+    layout: 'blank',
     public: true,
   },
 })
@@ -53,11 +53,11 @@ const fetchPlans = async () => {
   try {
     const userData = useCookie('userData').value || JSON.parse(localStorage.getItem('userData') || '{}')
     
-    // Robust role detection matching routeHelpers.js
-    let role = (userData?.role?.name || userData?.role || 'individual').toLowerCase()
+    // Robust role detection matching verification logic
+    // We prioritize 'provider_type' (individual vs organization) over high-level 'role' (provider)
+    let role = (userData.provider_type || userData?.role?.name || userData?.role || 'individual').toLowerCase()
     
-    // Map 'provider' to 'individual' if needed, or keep as is. 
-    // Backend likely expects 'individual' or 'organization'.
+    // Map 'provider' to 'individual' only as a last resort fallback if type is missing
     if (role === 'provider') role = 'individual'
 
     console.log('Fetching plans for role:', role)
@@ -116,7 +116,7 @@ const checkVerificationStatus = async () => {
     const dynamicTarget = userData.provider_type || 'individual'
     const PROVIDER_BASE_URL = 'http://127.0.0.1:8002'
 
-    const res = await api.get('/api/provider/profile/', {
+    const res = await api.get('/api/provider/profile/dynamic/', {
       baseURL: PROVIDER_BASE_URL,
       params: { user: userId, target: dynamicTarget },
     })
@@ -180,7 +180,7 @@ onMounted(() => {
   fetchPlans()
   if (isLoggedIn.value) {
     checkVerificationStatus()
-    fetchCart()
+    fetchActiveSubscription()
   }
 })
 
@@ -195,24 +195,42 @@ const onOnboardingComplete = () => {
 
 const loadingCart = ref(null)
 const snackbar = ref({ show: false, text: '', color: 'success' })
-const cartItems = ref([])
+const activeSubscription = ref(null)
 
-const fetchCart = async () => {
+const fetchActiveSubscription = async () => {
   if (!isLoggedIn.value) return
   try {
-    const res = await api.get('http://127.0.0.1:8002/api/provider/cart/')
-
-    cartItems.value = res.data.items || []
+    const res = await api.get('http://127.0.0.1:8002/api/provider/cart/subscription/active/')
+    activeSubscription.value = res.data.plan
   } catch (err) {
-    console.error('Failed to fetch cart:', err)
+    console.error('Failed to fetch active subscription:', err)
   }
 }
 
-const isPlanInCart = planId => {
-  return cartItems.value.some(item => item.plan_id === planId)
-}
+const purchasePlan = async plan => {
+  // 0. Restriction Checks
+  if (activeSubscription.value) {
+    if (activeSubscription.value.plan_id === plan.id) {
+      // ✅ Allow purchase if it's expiring soon (Renewal Flow)
+      if (!activeSubscription.value.is_expiring_soon) {
+        snackbar.value = { 
+          show: true, 
+          text: 'You already purchased this plan ☺️', 
+          color: 'info' 
+        }
+        return
+      }
+      // If expiring soon, we proceed to purchase
+    } else {
+      snackbar.value = { 
+        show: true, 
+        text: 'You cannot purchase another plan while you have an active plan.', 
+        color: 'warning' 
+      }
+      return
+    }
+  }
 
-const addToCart = async plan => {
   if (!plan.billing_cycle) {
     snackbar.value = { show: true, text: 'Plan has no billing cycle selected.', color: 'error' }
     
@@ -224,21 +242,26 @@ const addToCart = async plan => {
     const payload = {
       plan_id: plan.id,
       plan_title: plan.title,
-      plan_role: plan.target_type || 'individual', // Use target_type
+      plan_role: plan.target_type || 'individual',
       billing_cycle_id: plan.billing_cycle?.id,
       billing_cycle_name: plan.billing_cycle?.name,
-      price_amount: plan.price || 0,
-      price_currency: plan.currency || 'INR',
+      price_amount: plan.price?.amount || plan.price || 0,
+      price_currency: plan.price?.currency || plan.currency || 'INR',
     }
 
-    await api.post('http://127.0.0.1:8002/api/provider/cart/add/', payload)
+    await api.post('http://127.0.0.1:8002/api/provider/cart/purchase/', payload)
     
-    snackbar.value = { show: true, text: 'Plan added to cart!', color: 'success' }
-    fetchCart() // Refresh cart to update UI
-  } catch (err) {
-    console.error('Add to cart failed:', err)
+    snackbar.value = { show: true, text: 'Plan purchased and activated successfully!', color: 'success' }
+    
+    // Redirect to subscription page to show the new plan
+    setTimeout(() => {
+      router.push({ name: 'provider-subscription' })
+    }, 1500)
 
-    const errorMsg = err.response?.data?.error || err.response?.data?.detail || 'Failed to add to cart.'
+  } catch (err) {
+    console.error('Purchase failed:', err)
+
+    const errorMsg = err.response?.data?.error || err.response?.data?.detail || 'Failed to purchase plan.'
 
     snackbar.value = { show: true, text: errorMsg, color: 'error' }
   } finally {
@@ -281,12 +304,6 @@ const addToCart = async plan => {
           @click="scrollTo('plans')"
         >
           Plans
-        </VBtn>
-        <VBtn
-          variant="text"
-          @click="scrollTo('benefits')"
-        >
-          Benefits
         </VBtn>
         <VBtn
           variant="text"
@@ -524,7 +541,6 @@ const addToCart = async plan => {
               class="h-100 d-flex flex-column plan-card rounded-xl overflow-visible" 
               elevation="0"
               border
-              :class="{ 'border-primary ring-primary': isPlanInCart(plan.id) }"
               style="transition: all 0.3s ease;"
             >
               <!-- Header -->
@@ -541,8 +557,8 @@ const addToCart = async plan => {
                   v-if="plan.price"
                   class="d-flex align-center justify-center gap-1 mb-2"
                 >
-                  <span class="text-h5 font-weight-bold text-medium-emphasis mt-2">{{ plan.price.currency }}</span>
-                  <span class="text-h2 font-weight-bolder text-primary">{{ plan.price.amount }}</span>
+                  <span class="text-h5 font-weight-bold text-medium-emphasis mt-2">{{ plan.currency }}</span>
+                  <span class="text-h2 font-weight-bolder text-primary">{{ plan.price }}</span>
                   <span
                     v-if="plan.billing_cycle"
                     class="text-body-1 text-medium-emphasis align-self-end mb-2"
@@ -706,31 +722,43 @@ const addToCart = async plan => {
               
               <!-- Footer / Action -->
               <div class="pa-8 pt-0 bg-surface rounded-b-xl">
-                <VTooltip
-                  v-if="isLoggedIn"
-                  :model-value="!isVerificationApproved"
-                  location="top"
-                  text="Your documents must be approved before purchasing a plan."
-                >
-                  <template #activator="{ props }">
-                    <div v-bind="props" class="w-100">
-                      <VBtn 
-                        block 
-                        size="x-large"
-                        :color="isPlanInCart(plan.id) ? 'success' : (isVerificationApproved ? 'primary' : 'grey')"
-                        variant="flat" 
-                        class="rounded-lg font-weight-bold"
-                        :loading="loadingCart === plan.id"
-                        :disabled="isPlanInCart(plan.id) || !isVerificationApproved"
-                        elevation="0"
-                        @click="addToCart(plan)"
-                      >
-                        {{ isPlanInCart(plan.id) ? 'Added to Cart' : (isVerificationApproved ? 'Select Plan' : 'Verification Pending') }}
-                      </VBtn>
-                    </div>
-                  </template>
-                </VTooltip>
+                <!-- LOGGED IN USER: Purchase Button -->
+                <div v-if="isLoggedIn" class="w-100">
+                  <VTooltip
+                    location="top"
+                    text="Your documents must be approved before purchasing a plan."
+                    :disabled="isVerificationApproved"
+                  >
+                    <template #activator="{ props }">
+                      <div v-bind="!isVerificationApproved ? props : {}" class="w-100">
+                        <VBtn 
+                          block 
+                          size="x-large"
+                          :color="activeSubscription?.plan_id === plan.id ? 'success' : (isVerificationApproved ? 'primary' : 'grey')"
+                          variant="flat" 
+                          class="rounded-lg font-weight-bold"
+                          :loading="loadingCart === plan.id"
+                          :disabled="!isVerificationApproved || (activeSubscription && activeSubscription.plan_id !== plan.id)"
+                          elevation="0"
+                          @click="purchasePlan(plan)"
+                        >
+                          <template v-if="activeSubscription?.plan_id === plan.id">
+                            <VIcon icon="tabler-check" class="me-2" />
+                            Already Purchased
+                          </template>
+                          <template v-else-if="activeSubscription">
+                            Locked (Active Plan Exists)
+                          </template>
+                          <template v-else>
+                            {{ isVerificationApproved ? (plan.price ? `Purchase ${plan.currency} ${plan.price}` : 'Purchase Free') : 'Verification Pending' }}
+                          </template>
+                        </VBtn>
+                      </div>
+                    </template>
+                  </VTooltip>
+                </div>
                 
+                <!-- GUEST USER: Register Button -->
                 <VBtn 
                   v-else
                   block 
@@ -1101,3 +1129,10 @@ const addToCart = async plan => {
   color: white;
 }
 </style>
+
+<route lang="yaml">
+meta:
+  layout: blank
+  public: true
+</route>
+

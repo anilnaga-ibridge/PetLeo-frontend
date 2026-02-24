@@ -79,7 +79,7 @@
         </template>
 
         <template #item.duration_minutes="{ item }">
-          <div v-if="item.duration_minutes">
+          <div v-if="item.duration_minutes && item.duration_minutes !== 'null'">
             {{ item.duration_minutes }} min
           </div>
           <div
@@ -230,18 +230,28 @@
             />
           </VCol>
 
-          <!-- Duration Minutes -->
+          <!-- Duration (Minutes/Hours) -->
           <VCol
             v-if="showDurationInput"
             cols="12"
-            sm="6"
+            sm="8"
           >
-            <AppTextField
-              v-model.number="form.duration_minutes"
-              label="Duration (Minutes)"
-              type="number"
-              placeholder="e.g. 60"
-            />
+            <div class="d-flex align-center gap-2">
+              <AppTextField
+                v-model.number="form.session_duration_value"
+                :label="form.billing_unit === 'PER_SESSION' ? 'Session Duration *' : 'Duration Value *'"
+                type="number"
+                placeholder="e.g. 1"
+                style="flex: 2;"
+              />
+              <AppSelect
+                v-model="form.session_duration_unit"
+                :items="['minutes', 'hours']"
+                label="Unit"
+                style="flex: 1;"
+                class="mt-1"
+              />
+            </div>
           </VCol>
 
           <!-- Status -->
@@ -384,8 +394,17 @@ export default {
       facility: null,
       billing_unit: 'PER_SESSION',
       base_price: 0,
-      duration_minutes: null,
+      duration_minutes: 60,
+      session_duration_value: 1,
+      session_duration_unit: 'hours',
       is_active: true,
+    })
+
+    // Sync session duration back to duration_minutes
+    watch([() => form.value.session_duration_value, () => form.value.session_duration_unit], ([val, unit]) => {
+      if (val) {
+        form.value.duration_minutes = unit === 'hours' ? val * 60 : val
+      }
     })
 
     // filtered lists
@@ -477,7 +496,9 @@ export default {
         facility: null,
         billing_unit: 'PER_SESSION',
         base_price: 0,
-        duration_minutes: null,
+        duration_minutes: 60,
+        session_duration_value: 1,
+        session_duration_unit: 'hours',
         is_active: true,
       }
       drawerOpen.value = true
@@ -486,13 +507,19 @@ export default {
     const openEditDrawer = item => {
       isEdit.value = true
       editId.value = item.id
+      
+      const dur = item.duration_minutes || 60
+      const isHours = dur >= 60 && dur % 60 === 0
+      
       form.value = {
         service: typeof item.service === 'number' ? item.service : (item.service?.id || item.service),
         category: typeof item.category === 'number' ? item.category : (item.category?.id || item.category),
         facility: typeof item.facility === 'number' ? item.facility : (item.facility?.id || item.facility),
         billing_unit: item.billing_unit,
         base_price: item.base_price,
-        duration_minutes: item.duration_minutes,
+        duration_minutes: dur,
+        session_duration_value: isHours ? dur / 60 : dur,
+        session_duration_unit: isHours ? 'hours' : 'minutes',
         is_active: item.is_active,
       }
       drawerOpen.value = true

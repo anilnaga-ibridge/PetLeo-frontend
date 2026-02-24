@@ -3,18 +3,21 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePermissionStore } from '@/stores/permissionStore'
 import { storeToRefs } from 'pinia'
-import { providerApi } from '@/plugins/axios'
+import { providerApi, authApi } from '@/plugins/axios'
 import About from './About.vue'
 import ActivityTimeline from './ActivityTimeline.vue'
 import Connection from './Connection.vue'
 import ProjectList from './ProjectList.vue'
 import Teams from './Teams.vue'
+import UserInfoEditDialog from '@/components/dialogs/UserInfoEditDialog.vue'
 
 const router = useRoute('pages-user-profile-tab')
 const permissionStore = usePermissionStore()
 const { userData } = storeToRefs(permissionStore)
 
 const fields = ref([])
+const isUserInfoEditDialogVisible = ref(false)
+
 const fetchProfile = async () => {
   try {
     const roleName = (userData.value?.role_name || userData.value?.role || '').toString().toLowerCase()
@@ -37,6 +40,51 @@ const fetchProfile = async () => {
   }
 }
 
+const updateUser = async (updatedData) => {
+  try {
+    const payload = {
+      full_name: updatedData.fullName,
+      email: updatedData.email,
+      // Add other auth fields if needed
+    }
+    
+    // 1. Update Auth Service
+    await authApi.patch(`/users/${userData.value.id}/`, payload)
+    
+    // 2. Update Provider Service (Dynamic Fields)
+    if (updatedData.dynamicFields && updatedData.dynamicFields.length) {
+      const fd = new FormData()
+      
+      // Backend expects a list of objects with field_id
+      const fieldsPayload = updatedData.dynamicFields.map(f => ({
+          field_id: f.id,
+          value: f.value
+      }))
+      
+      fd.append('fields', JSON.stringify(fieldsPayload))
+      
+      if (userData.value.id) {
+         fd.append('auth_user_id', userData.value.id)
+      }
+
+      await providerApi.post('/api/provider/profile/', fd)
+    }
+
+    // Update local state (Optimistic & Fetch)
+    // Refetch profile to get updated dynamic fields
+    await fetchProfile()
+    
+    // Update permission store for auth fields
+    const finalData = { ...userData.value, ...updatedData }
+    permissionStore.userData = finalData
+    localStorage.setItem('userData', JSON.stringify(finalData))
+    
+    console.log("✅ Profile updated successfully")
+  } catch (err) {
+    console.error("❌ Failed to update profile", err)
+  }
+}
+
 onMounted(() => {
   fetchProfile()
 })
@@ -45,7 +93,6 @@ const profileTabData = computed(() => {
   if (!userData.value) return null
 
   // Map dynamic fields to About section
-  // Filter out fields that we handle explicitly
   const dynamicAbout = fields.value
     .filter(f => !['file', 'multiselect'].includes(f.field_type) && 
                  !['first_name', 'last_name', 'email', 'phone_number', 'country'].includes(f.name))
@@ -55,7 +102,6 @@ const profileTabData = computed(() => {
       icon: 'tabler-info-circle'
     }))
 
-  // Find values from API response (Source of Truth)
   const getFieldValue = (name) => {
     const field = fields.value.find(f => f.name === name)
     return field ? field.value : null
@@ -69,7 +115,7 @@ const profileTabData = computed(() => {
     about: [
       { property: 'Full Name', value: userData.value.fullName || userData.value.full_name || userData.value.username, icon: 'tabler-user' },
       { property: 'Status', value: userData.value.is_active === false ? 'Inactive' : 'Active', icon: 'tabler-check' },
-      { property: 'Role', value: userData.value.role_name || userData.value.role?.name || userData.value.role || 'User', icon: 'tabler-crown' },
+      { property: 'Role', value: (userData.value.role === 'provider' ? (userData.value.provider_type || 'Provider') : (userData.value.role_name || userData.value.role?.name || userData.value.role || 'User')), icon: 'tabler-crown' },
       { property: 'Country', value: apiCountry || 'Not set', icon: 'tabler-flag' },
       ...dynamicAbout.map(f => ({
          property: f.property,
@@ -95,7 +141,10 @@ const profileTabData = computed(() => {
       md="4"
       cols="12"
     >
-      <About :data="profileTabData" />
+      <About 
+        :data="profileTabData" 
+        @edit="isUserInfoEditDialogVisible = true"
+      />
     </VCol>
 
     <VCol
@@ -127,4 +176,11 @@ const profileTabData = computed(() => {
       </VRow>
     </VCol>
   </VRow>
+
+  <UserInfoEditDialog
+    v-model:is-dialog-visible="isUserInfoEditDialogVisible"
+    :user-data="userData"
+    :provider-profile="fields"
+    @submit="updateUser"
+  />
 </template>

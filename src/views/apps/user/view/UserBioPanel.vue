@@ -1,6 +1,6 @@
 <script setup>
 import { kFormatter, avatarText } from '@/@core/utils/formatters'
-import { authApi } from '@/plugins/axios'
+import { authApi, providerApi } from '@/plugins/axios'
 import { usePermissionStore } from '@/stores/permissionStore'
 import { useCookie } from '@/@core/composable/useCookie'
 
@@ -18,6 +18,9 @@ const props = defineProps({
 const permissionStore = usePermissionStore()
 
 // Filter out fields already shown in standard UI
+console.log('UserBioPanel userData:', props.userData)
+console.log('UserBioPanel provider_type:', props.userData.provider_type)
+
 const extendedFields = computed(() => {
   const ignoredFields = [
     'first_name', 'last_name', 'email', 'phone_number', 'country', 'language', 'profile_image'
@@ -34,12 +37,27 @@ const extendedFields = computed(() => {
 })
 
 // Transform API response into UI-friendly data
-const user = computed(() => ({
+const user = computed(() => {
+  const rawRole = props.userData.role || 'user'
+  const roleName = (typeof rawRole === 'string' ? rawRole : (rawRole.name || 'user')).toLowerCase()
+  const providerType = props.userData.provider_type || props.userData.providerType
+  
+  // Determine display role
+  let displayRole = rawRole
+  if (roleName === 'provider') {
+     if (providerType) {
+        displayRole = providerType // e.g. 'organization' or 'individual'
+     } else {
+        displayRole = 'Provider'
+     }
+  }
+
+  return {
   id: props.userData.id || props.userData.auth_user_id,
   fullName: props.userData.fullName || props.userData.full_name || '',
   email: props.userData.email || '',
   avatar: props.userData.avatar || null,
-  role: props.userData.role || 'user',
+  role: displayRole,
   status: props.userData.status || 'active',
   taxId: props.userData.taxId || props.userData.tax_id || 'N/A',
   contact: props.userData.contact || props.userData.phone || props.userData.phoneNumber || '',
@@ -47,7 +65,7 @@ const user = computed(() => ({
   country: props.userData.country || '',
   taskDone: props.userData.taskDone || props.userData.task_done || 0,
   projectDone: props.userData.projectDone || props.userData.project_done || 0,
-}))
+}})
 
 const isUserInfoEditDialogVisible = ref(false)
 const isUpgradePlanDialogVisible = ref(false)
@@ -60,17 +78,49 @@ const updateUser = async (updatedData) => {
       // Add other fields as supported by UserUpdateSerializer
     }
     
+    // 1. Update Auth Service
     await authApi.patch(`/users/${user.value.id}/`, payload)
     
+    // 2. Update Provider Service (Dynamic Fields)
+    if (updatedData.dynamicFields && updatedData.dynamicFields.length) {
+      const fd = new FormData()
+      
+      const fieldsPayload = updatedData.dynamicFields.map(f => ({
+          field_id: f.id,
+          value: f.value
+      }))
+      
+      fd.append('fields', JSON.stringify(fieldsPayload))
+      
+      // Ensure we treat this as the specific user's update
+      if (user.value.id) {
+         fd.append('auth_user_id', user.value.id)
+      }
+
+      await providerApi.post('/api/provider/profile/', fd)
+    }
+
     // Update local state
     const userDataCookie = useCookie('userData')
+    // We need to merge updated dynamic fields back into providerProfile prop?
+    // Props are read-only. The parent component should ideally re-fetch.
+    // But we can update local storage/store if needed.
+    // For now, simple update.
+    
     const finalData = { ...props.userData, ...updatedData }
     
     permissionStore.userData = finalData
     userDataCookie.value = finalData
     localStorage.setItem('userData', JSON.stringify(finalData))
     
+    // Force reload or emit event to parent to refresh prop?
+    // For now, simple log.
     console.log("✅ UserBioPanel: Profile updated successfully")
+    
+    // Ideally we should emit an event to tell parent to refresh providerProfile
+    // But UserBioPanel usage context usually re-fetches or we can rely on page reload for now
+    // as dynamic fields might be tricky to update reactively without deeper changes.
+    
   } catch (err) {
     console.error("❌ UserBioPanel: Failed to update profile", err)
   }
@@ -281,6 +331,7 @@ const resolveUserRoleVariant = role => {
   <UserInfoEditDialog
     v-model:is-dialog-visible="isUserInfoEditDialogVisible"
     :user-data="user"
+    :provider-profile="props.providerProfile"
     @submit="updateUser"
   />
 

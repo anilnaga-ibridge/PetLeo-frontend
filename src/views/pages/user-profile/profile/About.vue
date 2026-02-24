@@ -10,9 +10,20 @@ const props = defineProps({
 <template>
   <VCard class="mb-6">
     <VCardText>
-      <p class="text-sm text-disabled">
-        ABOUT
-      </p>
+      <div class="d-flex justify-space-between align-center">
+        <p class="text-sm text-disabled mb-0">
+          ABOUT
+        </p>
+        <VBtn
+          icon
+          variant="text"
+          size="small"
+          color="primary"
+          @click="$emit('edit')"
+        >
+          <VIcon icon="tabler-edit" />
+        </VBtn>
+      </div>
 
       <VList class="card-list text-medium-emphasis">
         <VListItem

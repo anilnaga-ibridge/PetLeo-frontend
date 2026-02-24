@@ -126,6 +126,18 @@ const submitForm = async () => {
       const permissionStore = usePermissionStore()
       permissionStore.userData = updatedData
       
+      // 🚀 SYNC TO AUTH SERVICE (Port 8000)
+      try {
+        await api.patch(`/users/${userData.value.id}/`, {
+          avatar_url: profile.avatar || currentData.avatar,
+          full_name: profile.fullName,
+          email: profile.email
+        })
+        console.log("✅ Profile synced to Auth Service successfully.")
+      } catch (authErr) {
+        console.error("⚠️ Failed to sync profile to Auth Service", authErr)
+      }
+      
       console.log("✅ Profile saved and synced to global state instantly.")
     }
 

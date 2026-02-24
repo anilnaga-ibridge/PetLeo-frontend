@@ -18,12 +18,23 @@ export const getPostLoginRoute = userData => {
   console.log('🚀 [Redirection] computed role:', role)
 
   // 1. Super Admin (Strict Check)
-  // Only redirect to SuperAdmin if role is explicitly SUPERADMIN and no provider info is present
-  if (role === 'SUPERADMIN' && !userData.provider_type) {
+  // ALWAYS redirect to SuperAdmin dashboard if role is SUPERADMIN
+  if (role === 'SUPERADMIN') {
     return '/superadmin/dashboard'
   }
 
-  // 2. Tenant Owner (Provider/Organization) -> Provider Home
+  // 2. Pet Owner / Customer -> Pet Owner Dashboard (Redirect to Marketplace)
+  if (['PETOWNER', 'CUSTOMER', 'USER', 'PET_OWNER', 'PET OWNER'].includes(role)) {
+    return '/pet-owner/book'
+  }
+
+  // 3. Employees / Veterinary Staff -> Employee Dashboard
+  const employeeRoles = ['EMPLOYEE', 'DOCTOR', 'RECEPTIONIST', 'LAB TECH', 'PHARMACY', 'VITALS STAFF']
+  if (employeeRoles.includes(role)) {
+    return '/employee/dashboard'
+  }
+
+  // 4. Tenant Owner (Provider/Organization) -> Provider Home
   const isProviderAdmin = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER'].includes(role)
     || userData.provider_type // Fallback if role is missing but provider_type exists
 
@@ -31,6 +42,6 @@ export const getPostLoginRoute = userData => {
     return '/provider/providerhome'
   }
 
-  // 3. Employees / Veterinary Staff -> Employee Dashboard
+  // Default fallback for anyone else who might be an employee
   return '/employee/dashboard'
 }

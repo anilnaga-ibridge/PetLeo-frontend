@@ -119,21 +119,42 @@ export const setupGuards = router => {
       }
 
       // 3. Protect Provider Routes (Tenant Admin Area)
-      if (to.path.startsWith('/provider/dashboard') || to.path.startsWith('/provider/providerhome')) {
+      if (to.path.startsWith('/provider/')) {
         const roleUpper = (user.role?.name || user.role || '').toUpperCase()
         const isProviderAdmin = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER'].includes(roleUpper)
           || !!user.provider_type
 
+        // Specific redirect for Profile
+        if (to.path === '/provider/profile' && !isProviderAdmin) {
+          console.warn('⛔ Employee attempted to access Provider Profile -> Redirecting to Employee Profile')
+          return '/employee/profile'
+        }
+
         // STRICT: Only Admins can see the Main Dashboard/Home
         // Employees are redirected to their restricted dashboard
-        if (!isProviderAdmin) {
+        if ((to.path.startsWith('/provider/dashboard') || to.path.startsWith('/provider/providerhome')) && !isProviderAdmin) {
           console.warn('⛔ Employee attempted to access Admin Dashboard -> Redirecting to Employee Dashboard')
           return '/employee/dashboard'
         }
       }
 
-      // 4. (REMOVED) Block Generic Employee Dashboard for Veterinary Staff
-      // We want everyone to be able to hit /employee/ if they have the perms.
+      // 4. Protect Pet Owner Routes
+      if (to.path.startsWith('/pet-owner')) {
+        const roleUpper = (user.role?.name || user.role || '').toUpperCase()
+        // Allow if role is explicitly PET_OWNER or similar
+        // We assume the role for pet owners is 'PET_OWNER', 'PET OWNER', 'PETOWNER', or 'CUSTOMER'
+        const isPetOwner = ['PET_OWNER', 'PET OWNER', 'PETOWNER', 'CUSTOMER'].includes(roleUpper)
+
+        if (!isPetOwner) {
+          console.warn('⛔ Non-Pet Owner attempted to access Pet Dashboard -> Redirecting to Home')
+          // If they are a provider, send them to provider home
+          if (['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER'].includes(roleUpper)) {
+            return '/provider/providerhome'
+          }
+          // Otherwise generic home or login
+          return '/'
+        }
+      }
     }
 
     // 🛡️ CASL Ability Check (Replaced canNavigate with direct check)

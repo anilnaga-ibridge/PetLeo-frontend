@@ -1839,6 +1839,7 @@ onMounted(() => {
 
 <route lang="yaml">
 meta:
+  layout: blank
   pageTitle: null
   pageHeader: false
 </route>

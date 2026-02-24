@@ -25,6 +25,10 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
+  providerProfile: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits([
@@ -33,6 +37,7 @@ const emit = defineEmits([
 ])
 
 const userData = ref(structuredClone(toRaw(props.userData)))
+const dynamicFields = ref([])
 const firstName = ref('')
 const lastName = ref('')
 
@@ -44,19 +49,40 @@ const syncNames = () => {
   lastName.value = parts.slice(1).join(' ') || ''
 }
 
+const syncDynamicFields = () => {
+  // Filter out standard fields that are already handled by specific inputs
+  const ignoredFields = [
+    'first_name', 'last_name', 'email', 'phone_number', 'country', 'language', 'profile_image',
+    'username', 'status', 'tax_id', 'contact'
+  ]
+  
+  if (props.providerProfile) {
+    dynamicFields.value = props.providerProfile
+      .filter(f => !ignoredFields.includes(f.name) && !['file', 'section'].includes(f.field_type))
+      .map(f => ({ ...f })) // Clone to avoid mutating prop
+  } else {
+    dynamicFields.value = []
+  }
+}
+
 watch(() => props.userData, () => {
   userData.value = structuredClone(toRaw(props.userData))
   syncNames()
 }, { immediate: true })
 
+watch(() => props.providerProfile, () => {
+  syncDynamicFields()
+}, { immediate: true })
+
 const onFormSubmit = () => {
   userData.value.fullName = `${firstName.value} ${lastName.value}`.trim()
-  emit('submit', userData.value)
+  emit('submit', { ...userData.value, dynamicFields: dynamicFields.value })
   emit('update:isDialogVisible', false)
 }
 
 const onFormReset = () => {
   userData.value = structuredClone(toRaw(props.userData))
+  syncDynamicFields()
   emit('update:isDialogVisible', false)
 }
 
@@ -199,6 +225,40 @@ const dialogModelValueUpdate = val => {
                 :items="['United States', 'United Kingdom', 'France']"
               />
             </VCol>
+
+            <!-- 👉 Dynamic Fields -->
+            <template
+              v-for="field in dynamicFields"
+              :key="field.name"
+            >
+              <VCol
+                cols="12"
+                md="6"
+              >
+                <!-- Textarea -->
+                <AppTextarea
+                  v-if="field.field_type === 'textarea'"
+                  v-model="field.value"
+                  :label="field.label"
+                  rows="2"
+                />
+
+                <!-- Select -->
+                <AppSelect
+                  v-else-if="['dropdown', 'select'].includes(field.field_type)"
+                  v-model="field.value"
+                  :label="field.label"
+                  :items="field.options || []"
+                />
+
+                <!-- Text / Default -->
+                <AppTextField
+                  v-else
+                  v-model="field.value"
+                  :label="field.label"
+                />
+              </VCol>
+            </template>
 
             <!-- 👉 Switch -->
             <VCol cols="12">

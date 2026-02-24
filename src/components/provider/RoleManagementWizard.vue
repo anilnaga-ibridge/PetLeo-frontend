@@ -584,10 +584,7 @@ const error = ref(null)
                     <div class="text-caption text-medium-emphasis">
                       Configure Access Rights
                     </div>
-                    <!-- DEBUG INFO: REMOVE AFTER FIXING -->
-                    <div class="text-caption text-error">
-                      DEBUG: {{ service.service_key }} | IsVet: {{ isVeterinary(service) }} | Features: {{ filteredVeterinaryFeatures.length }}
-                    </div>
+
                   </div>
                 </div>
 
@@ -688,16 +685,16 @@ const error = ref(null)
                         <div class="d-flex align-center justify-space-between mb-2">
                           <div>
                             <div class="text-subtitle-2 font-weight-bold">
-                              Access {{ category.name }}
+                              Perform Services in {{ category.name }}
                             </div>
                             <div class="text-caption text-medium-emphasis">
-                              Allow staff to view bookings and records.
+                              Required for staff to view and complete bookings.
                             </div>
                           </div>
                           <VCheckbox 
                             color="primary" 
                             hide-details 
-                            density="compact"
+                            density="compact" 
                             :model-value="form.permissions[`category:${category.id}`]?.can_view"
                             @update:model-value="(val) => updatePermission(`category:${category.id}`, 'can_view', val, category)"
                           />
@@ -708,40 +705,45 @@ const error = ref(null)
                           class="my-3"
                         />
 
-                        <!-- Detailed Actions (Hidden if no access) -->
+                    <!-- Management Permissions Section -->
                         <div
                           v-if="form.permissions[`category:${category.id}`]?.can_view"
-                          class="d-flex flex-column gap-3 pl-4 border-l-2 ml-2"
+                          class="mt-4 bg-grey-lighten-5 rounded px-3 py-2"
                         >
-                          <div class="d-flex align-center justify-space-between">
-                            <span class="text-body-2">{{ getLabel('can_create') }}</span>
-                            <VCheckbox 
-                              color="success" 
-                              hide-details 
-                              density="compact" 
-                              :model-value="form.permissions[`category:${category.id}`]?.can_create"
-                              @update:model-value="(val) => updatePermission(`category:${category.id}`, 'can_create', val)"
-                            />
+                          <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
+                             Management Capabilities (Admin Only)
                           </div>
-                          <div class="d-flex align-center justify-space-between">
-                            <span class="text-body-2">{{ getLabel('can_edit') }}</span>
-                            <VCheckbox 
-                              color="info" 
-                              hide-details 
-                              density="compact" 
-                              :model-value="form.permissions[`category:${category.id}`]?.can_edit"
-                              @update:model-value="(val) => updatePermission(`category:${category.id}`, 'can_edit', val)"
-                            />
-                          </div>
-                          <div class="d-flex align-center justify-space-between">
-                            <span class="text-body-2">{{ getLabel('can_delete') }}</span>
-                            <VCheckbox 
-                              color="error" 
-                              hide-details 
-                              density="compact" 
-                              :model-value="form.permissions[`category:${category.id}`]?.can_delete"
-                              @update:model-value="(val) => updatePermission(`category:${category.id}`, 'can_delete', val)"
-                            />
+                          <div class="d-flex flex-column gap-2">
+                            <div class="d-flex align-center justify-space-between">
+                              <span class="text-body-2">Create New Items</span>
+                              <VCheckbox 
+                                color="success" 
+                                hide-details 
+                                density="compact" 
+                                :model-value="form.permissions[`category:${category.id}`]?.can_create"
+                                @update:model-value="(val) => updatePermission(`category:${category.id}`, 'can_create', val)"
+                              />
+                            </div>
+                            <div class="d-flex align-center justify-space-between">
+                              <span class="text-body-2">Edit Details & Prices</span>
+                              <VCheckbox 
+                                color="info" 
+                                hide-details 
+                                density="compact" 
+                                :model-value="form.permissions[`category:${category.id}`]?.can_edit"
+                                @update:model-value="(val) => updatePermission(`category:${category.id}`, 'can_edit', val)"
+                              />
+                            </div>
+                            <div class="d-flex align-center justify-space-between">
+                              <span class="text-body-2">Delete Items</span>
+                              <VCheckbox 
+                                color="error" 
+                                hide-details 
+                                density="compact" 
+                                :model-value="form.permissions[`category:${category.id}`]?.can_delete"
+                                @update:model-value="(val) => updatePermission(`category:${category.id}`, 'can_delete', val)"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -752,7 +754,7 @@ const error = ref(null)
                         class="mt-4"
                       >
                         <div class="text-caption font-weight-bold text-medium-emphasis mb-2">
-                          FACILITY ACCESS
+                          ASSIGNED FACILITIES
                         </div>
                         <div class="d-flex flex-wrap gap-2">
                           <VChip

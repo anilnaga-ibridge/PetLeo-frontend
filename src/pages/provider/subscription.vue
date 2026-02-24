@@ -40,7 +40,8 @@ const formatDate = dateStr => {
 // otherwise just use days left for a visual gauge.
 const daysLeftProgress = computed(() => {
   if (!subscription.value?.plan?.days_left) return 0
-  const total = subscription.value.plan.billing_cycle_name?.toUpperCase().includes('YEAR') ? 365 : 30
+  const billingName = subscription.value.plan?.billing_cycle_name || ''
+  const total = billingName.toUpperCase().includes('YEAR') ? 365 : 30
   
   return Math.min(100, Math.max(0, (subscription.value.plan.days_left / total) * 100))
 })
@@ -177,24 +178,24 @@ onMounted(() => {
                 </div>
                 
                 <h1 class="display-plan text-h1 text-white font-weight-black mb-2">
-                  {{ subscription.plan.plan_title }}
+                  {{ subscription.plan?.plan_title || 'Unknown Plan' }}
                 </h1>
                 <p class="text-h5 text-white text-opacity-80 mb-8">
-                  Premium Tier • Dynamic Scale • Billed {{ subscription.plan.billing_cycle_name }}
+                  Premium Tier • Dynamic Scale • Billed {{ subscription.plan?.billing_cycle_name || 'Monthly' }}
                 </p>
 
                 <div class="stats-row d-flex flex-wrap gap-6">
                   <div class="stat-box glass-card border-white-10">
                     <span class="label">START DATE</span>
-                    <span class="value">{{ formatDate(subscription.plan.start_date) }}</span>
+                    <span class="value">{{ formatDate(subscription.plan?.start_date) }}</span>
                   </div>
                   <div class="stat-box glass-card border-white-10">
                     <span class="label">EXPIRY DATE</span>
-                    <span class="value">{{ formatDate(subscription.plan.end_date) }}</span>
+                    <span class="value">{{ formatDate(subscription.plan?.end_date) }}</span>
                   </div>
                   <div class="stat-box glass-card border-white-10 highlight">
                     <span class="label">INVESTMENT</span>
-                    <span class="value">{{ subscription.plan.price_currency }} {{ subscription.plan.price_amount }}</span>
+                    <span class="value">{{ subscription.plan?.price_currency }} {{ subscription.plan?.price_amount }}</span>
                   </div>
                 </div>
               </VCol>
@@ -209,12 +210,12 @@ onMounted(() => {
                     :model-value="daysLeftProgress"
                     :size="180"
                     :width="15"
-                    :color="getStatusColor(subscription.plan.days_left)"
+                    :color="getStatusColor(subscription.plan?.days_left || 0)"
                     class="gauge-main"
                   >
                     <div class="text-center">
                       <div class="text-h2 font-weight-black">
-                        {{ subscription.plan.days_left }}
+                        {{ subscription.plan?.days_left || 0 }}
                       </div>
                       <div class="text-overline font-weight-bold mt-n2">
                         DAYS LEFT
@@ -224,13 +225,24 @@ onMounted(() => {
                 </div>
                  
                 <VAlert
-                  v-if="subscription.plan.is_expiring_soon"
+                  v-if="subscription.plan?.is_expiring_soon"
                   type="warning"
                   variant="tonal"
                   density="compact"
                   class="mb-0 text-center w-100 rounded-xl border-warning-20 animate-pulse"
                 >
-                  Renewal Action Required
+                  <div class="d-flex flex-column align-center">
+                    <span class="mb-2">Renewal Action Required</span>
+                    <VBtn
+                      color="warning"
+                      size="small"
+                      variant="flat"
+                      class="rounded-pill px-6"
+                      :to="{ name: 'provider-home', hash: '#plans' }"
+                    >
+                      Renew License Now
+                    </VBtn>
+                  </div>
                 </VAlert>
               </VCol>
             </VRow>

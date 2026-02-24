@@ -91,7 +91,7 @@ const closeDrawer = () => {
     </div>
 
     <!-- MAIN BUILDER CANVAS -->
-    <VCard class="builder-canvas glass-morphism overflow-hidden">
+    <div class="builder-canvas d-flex flex-column">
       <BuilderLayout>
         <!-- LEFT: SERVICES LIST -->
         <template #left>
@@ -107,7 +107,7 @@ const closeDrawer = () => {
         <template #main>
           <div
             v-if="!selectedServiceId"
-            class="d-flex flex-column align-center justify-center h-100 text-center pa-12 empty-state-container"
+            class="d-flex flex-column align-center justify-center text-center pa-12 empty-state-container"
           >
             <div class="empty-icon-wrapper mb-8 floating-animation">
               <div class="icon-blob blob-1" />
@@ -144,7 +144,7 @@ const closeDrawer = () => {
             class="d-flex flex-column h-100"
           >
             <!-- TABS CONSOLE -->
-            <div class="builder-tabs-header border-b">
+            <div class="builder-tabs-header border-b flex-shrink-0">
               <VTabs
                 v-model="activeTab"
                 color="primary"
@@ -168,58 +168,65 @@ const closeDrawer = () => {
             </div>
 
             <!-- WORKSPACE -->
-            <div class="flex-grow-1 pa-6 workplace-bg">
+            <div class="flex-grow-1 position-relative workplace-bg overflow-hidden">
+               <!-- Added overflow-hidden to contain VWindow -->
               <VWindow
                 v-model="activeTab"
                 class="h-100"
               >
                 <VWindowItem
                   value="types"
-                  class="h-100"
+                  class="h-100 overflow-y-auto"
                 >
-                  <VFadeTransition hide-on-leave>
-                    <StepServiceTypes 
-                      v-if="activeTab === 'types'"
-                      :state="builderState" 
-                      @update:state="handleStateUpdate"
-                      @next="activeTab = 'facilities'"
-                    />
-                  </VFadeTransition>
+                  <div class="pa-6">
+                    <VFadeTransition hide-on-leave>
+                      <StepServiceTypes 
+                        v-if="activeTab === 'types'"
+                        :state="builderState" 
+                        @update:state="handleStateUpdate"
+                        @next="activeTab = 'facilities'"
+                      />
+                    </VFadeTransition>
+                  </div>
                 </VWindowItem>
 
                 <VWindowItem
                   value="facilities"
-                  class="h-100"
+                  class="h-100 overflow-y-auto"
                 >
-                  <VFadeTransition hide-on-leave>
-                    <StepFacilities 
-                      v-if="activeTab === 'facilities'"
-                      :state="builderState" 
-                      @update:state="handleStateUpdate"
-                      @next="activeTab = 'summary'"
-                      @prev="activeTab = 'types'"
-                    />
-                  </VFadeTransition>
+                  <div class="pa-6">
+                    <VFadeTransition hide-on-leave>
+                      <StepFacilities 
+                        v-if="activeTab === 'facilities'"
+                        :state="builderState" 
+                        @update:state="handleStateUpdate"
+                        @next="activeTab = 'summary'"
+                        @prev="activeTab = 'types'"
+                      />
+                    </VFadeTransition>
+                  </div>
                 </VWindowItem>
 
                 <VWindowItem
                   value="summary"
-                  class="h-100"
+                  class="h-100 overflow-y-auto"
                 >
-                  <VFadeTransition hide-on-leave>
-                    <StepSummary 
-                      v-if="activeTab === 'summary'"
-                      :state="builderState" 
-                      @prev="activeTab = 'facilities'"
-                    />
-                  </VFadeTransition>
+                   <div class="pa-6">
+                    <VFadeTransition hide-on-leave>
+                      <StepSummary 
+                        v-if="activeTab === 'summary'"
+                        :state="builderState" 
+                        @prev="activeTab = 'facilities'"
+                      />
+                    </VFadeTransition>
+                  </div>
                 </VWindowItem>
               </VWindow>
             </div>
           </div>
         </template>
       </BuilderLayout>
-    </VCard>
+    </div>
 
     <!-- SERVICE DRAWER -->
     <Teleport to="body">
@@ -273,7 +280,9 @@ const closeDrawer = () => {
 }
 
 .builder-canvas {
-  min-height: 700px;
+  height: calc(100vh - 240px);
+  overflow: hidden;
+  border-radius: 16px;
 }
 
 .workplace-bg {
@@ -366,6 +375,7 @@ const closeDrawer = () => {
 
 <route lang="yaml">
 meta:
+  layout: blank
   pageTitle: null
   pageHeader: false
 </route>

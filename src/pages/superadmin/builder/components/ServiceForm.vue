@@ -11,7 +11,7 @@ const emit = defineEmits(['close', 'success'])
 
 /* =======================
    FORM STATE
-======================= */
+ ======================= */
 const form = ref({
   name: '',
   display_name: '',
@@ -22,7 +22,7 @@ const form = ref({
 
 /* =======================
    ICON OPTIONS
-======================= */
+ ======================= */
 // Static Icon List
 const iconList = [
   { title: 'Pet Care', value: 'tabler-heart-handshake' },
@@ -53,7 +53,7 @@ const iconList = [
 
 /* =======================
    INIT FORM (EDIT / CREATE)
-======================= */
+ ======================= */
 watch(
   () => props.service,
   val => {
@@ -80,7 +80,7 @@ watch(
 
 /* =======================
    SUBMIT
-======================= */
+ ======================= */
 const submit = async () => {
   try {
     if (props.isEdit && props.service?.id) {
@@ -179,6 +179,13 @@ const submit = async () => {
           label="Description"
           placeholder="Briefly describe the service..."
           rows="3"
+        />
+
+        <VSwitch
+          v-model="form.is_active"
+          label="Active Service"
+          color="primary"
+          inset
         />
       </div>
     </VForm>

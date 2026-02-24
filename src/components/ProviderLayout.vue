@@ -60,8 +60,7 @@ console.log('ProviderLayout: themeConfig', themeConfig)
 </script>
 
 <template>
-  <template v-if="permissionStore.isDynamicAccessLoaded">
-    <VerticalNavLayout :nav-items="filteredNavItems">
+  <VerticalNavLayout :nav-items="filteredNavItems">
     <!-- 👉 navbar -->
     <template #navbar="{ toggleVerticalOverlayNavActive }">
       <div class="d-flex h-100 align-center">
@@ -111,11 +110,4 @@ console.log('ProviderLayout: themeConfig', themeConfig)
       <!-- Footer content if needed -->
     </template>
   </VerticalNavLayout>
-  </template>
-  <div v-else class="h-100 d-flex align-center justify-center bg-white" style="position: fixed; inset: 0; z-index: 9999;">
-    <div class="text-center">
-      <VProgressCircular indeterminate color="primary" size="64" width="6" class="mb-4" />
-      <div class="text-h6 text-medium-emphasis">Loading your workspace...</div>
-    </div>
-  </div>
 </template>

@@ -1,296 +1,210 @@
 <script setup>
-import ProviderLayout from '@/components/ProviderLayout.vue'
-import { usePermissionStore } from '@/stores/permissionStore'
-import { veterinaryApi } from '@/api/veterinary'
 import { onMounted, computed, ref } from 'vue'
+import { usePermissionStore } from '@/stores/permissionStore'
+import { customerApi } from '@/plugins/axios'
+import ProviderLayout from '@/components/ProviderLayout.vue'
 
 const permissionStore = usePermissionStore()
-const metrics = ref({
-  total_visits: 0,
-  pending: 0,
-  in_progress: 0,
-  completed: 0
-})
-const loadingMetrics = ref(false)
+const userData = computed(() => permissionStore.userData || {})
+const bookings = ref([])
+const loading = ref(false)
+
+const fetchMyBookings = async () => {
+  loading.value = true
+  try {
+    // Fetch only bookings assigned to this provider/employee
+    const res = await customerApi.get('/api/pet-owner/bookings/bookings/')
+    bookings.value = res.data.results || res.data || []
+  } catch (err) {
+    console.error('Failed to fetch bookings:', err)
+  } finally {
+    loading.value = false
+  }
+}
 
 onMounted(async () => {
   await permissionStore.fetchPermissions()
-  fetchMetrics()
+  fetchMyBookings()
 })
 
-const fetchMetrics = async () => {
-    loadingMetrics.value = true
-    try {
-        const res = await veterinaryApi.getSummary()
-        const todayData = res.data?.today || {}
-        metrics.value = {
-            total_visits: todayData.visits || 0,
-            pending: todayData.waiting || 0,
-            in_progress: todayData.in_progress || 0,
-            completed: todayData.completed || 0
-        }
-    } catch (e) {
-        console.error("Failed to fetch analytics", e)
-    } finally {
-        loadingMetrics.value = false
-    }
-}
-
-const getCrudVariant = (can) => can ? 'tonal' : 'outlined'
-const getCrudColor = (can) => can ? 'success' : 'medium-emphasis'
-const getCrudOpacity = (can) => can ? 1 : 0.5
-
-const allEnabled = computed(() => permissionStore.enabledServices || [])
-
-// 1. Business Services (Non-Veterinary)
-const businessServices = computed(() => {
-  return allEnabled.value.filter(service => {
-    const sName = (service.service_name || '').toLowerCase()
-    const sKey = (service.service_key || '').toUpperCase()
-    
-    // Strict Filter: Exclude ANY key starting with VETERINARY_ or name containing veterinary
-    return !sName.includes('veterinary') && !sKey.startsWith('VETERINARY_')
-  })
+const stats = computed(() => {
+  const active = bookings.value.filter(b => ['PENDING', 'CONFIRMED'].includes(b.status)).length
+  const completed = bookings.value.filter(b => b.status === 'COMPLETED').length
+  return { active, completed }
 })
 
-// 2. Clinical Services (Veterinary)
-const veterinaryServices = computed(() => {
-  return allEnabled.value.filter(service => {
-    const sName = (service.service_name || '').toLowerCase()
-    const sKey = (service.service_key || '').toUpperCase()
-    return sName.includes('veterinary') || sKey.startsWith('VETERINARY_')
-  })
+const todayBookings = computed(() => {
+  return bookings.value.filter(b => b.status === 'PENDING')
 })
-
-// Service Routing Map
-const getServiceRoute = (service) => {
-  const key = (service.service_key || '').toUpperCase()
-  
-  if (key === 'VETERINARY_VISITS') return { name: 'veterinary-visits' }
-  if (key === 'VETERINARY_VITALS') return { name: 'veterinary-vitals' } 
-  if (key === 'VETERINARY_PRESCRIPTIONS') return { name: 'veterinary-prescriptions' }
-  // Add other granular routes as needed, fall back to dashboard
-  
-  return { name: 'veterinary-dashboard' }
-}
-
-const hasAnyAccess = computed(() => businessServices.value.length > 0 || veterinaryServices.value.length > 0)
 </script>
 
 <template>
   <ProviderLayout>
-    <div class="pa-4">
+    <div class="pa-6 employee-dashboard">
+      <!-- WELCOME SECTION -->
+      <div class="mb-8">
+        <h1 class="text-h2 font-weight-bold mb-1">
+          Hello, <span class="text-primary">{{ userData.fullName?.split(' ')[0] || 'Employee' }}</span>! 🐾
+        </h1>
+        <p class="text-subtitle-1 text-medium-emphasis">
+          You have <span class="text-primary font-weight-bold">{{ todayBookings.length }}</span> new requests waiting for your action.
+        </p>
+      </div>
+
       <VRow>
-        <VCol cols="12">
-          
-           <!-- SECTION: Analytics & Insights -->
-           <div v-if="veterinaryServices.length > 0" class="mb-6">
-              <h3 class="text-h5 mb-4 d-flex align-center">
-                 <VIcon icon="tabler-chart-bar" class="me-2" />
-                 Today's Overview
-              </h3>
-              <VRow>
-                  <!-- Total Visits -->
-                  <VCol cols="12" sm="6" md="3">
-                      <VCard elevation="0" border class="h-100">
-                          <VCardItem>
-                              <template #prepend>
-                                  <VAvatar color="primary" variant="tonal" rounded>
-                                      <VIcon icon="tabler-users" />
-                                  </VAvatar>
-                              </template>
-                              <VCardTitle class="text-h4 font-weight-bold">
-                                  {{ metrics.total_visits || 0 }}
-                              </VCardTitle>
-                              <VCardSubtitle>Total Appointments</VCardSubtitle>
-                          </VCardItem>
-                      </VCard>
-                  </VCol>
+        <!-- STATS ROW -->
+        <VCol cols="12" md="4">
+          <VCard color="primary" class="stats-card">
+            <VCardText class="d-flex align-center pa-6">
+              <VAvatar color="white" variant="flat" size="48" class="me-4">
+                <VIcon icon="tabler-calendar-time" color="primary" />
+              </VAvatar>
+              <div>
+                <div class="text-h4 font-weight-bold text-white">{{ stats.active }}</div>
+                <div class="text-body-2 text-white opacity-80">Active Bookings</div>
+              </div>
+            </VCardText>
+          </VCard>
+        </VCol>
+        
+        <VCol cols="12" md="4">
+          <VCard color="success" class="stats-card">
+            <VCardText class="d-flex align-center pa-6">
+              <VAvatar color="white" variant="flat" size="48" class="me-4">
+                <VIcon icon="tabler-check" color="success" />
+              </VAvatar>
+              <div>
+                <div class="text-h4 font-weight-bold text-white">{{ stats.completed }}</div>
+                <div class="text-body-2 text-white opacity-80">Completed Today</div>
+              </div>
+            </VCardText>
+          </VCard>
+        </VCol>
 
-                  <!-- Waiting/Queue -->
-                  <VCol cols="12" sm="6" md="3">
-                      <VCard elevation="0" border class="h-100">
-                          <VCardItem>
-                              <template #prepend>
-                                  <VAvatar color="warning" variant="tonal" rounded>
-                                      <VIcon icon="tabler-clock" />
-                                  </VAvatar>
-                              </template>
-                              <VCardTitle class="text-h4 font-weight-bold">
-                                  {{ metrics.pending || 0 }}
-                              </VCardTitle>
-                              <VCardSubtitle>Waiting in Queue</VCardSubtitle>
-                          </VCardItem>
-                      </VCard>
-                  </VCol>
+        <VCol cols="12" md="4">
+          <VCard color="amber-darken-3" class="stats-card">
+            <VCardText class="d-flex align-center pa-6">
+              <VAvatar color="white" variant="flat" size="48" class="me-4">
+                <VIcon icon="tabler-star-filled" color="amber-darken-3" />
+              </VAvatar>
+              <div>
+                <div class="text-h4 font-weight-bold text-white">{{ (userData.average_rating || 0).toFixed(1) }}</div>
+                <div class="text-body-2 text-white opacity-80">{{ userData.total_ratings || 0 }} Reviews</div>
+              </div>
+            </VCardText>
+          </VCard>
+        </VCol>
 
-                  <!-- In Progress -->
-                  <VCol cols="12" sm="6" md="3">
-                      <VCard elevation="0" border class="h-100">
-                          <VCardItem>
-                              <template #prepend>
-                                  <VAvatar color="info" variant="tonal" rounded>
-                                      <VIcon icon="tabler-activity" />
-                                  </VAvatar>
-                              </template>
-                              <VCardTitle class="text-h4 font-weight-bold">
-                                  {{ metrics.in_progress || 0 }}
-                              </VCardTitle>
-                              <VCardSubtitle>In Consultation</VCardSubtitle>
-                          </VCardItem>
-                      </VCard>
-                  </VCol>
+        <!-- MAIN TASKS SECTION -->
+        <VCol cols="12" md="8">
+          <VCard class="h-100">
+            <VCardItem>
+              <template #prepend>
+                <VIcon icon="tabler-alert-circle" color="warning" size="24" class="me-2" />
+              </template>
+              <VCardTitle>New Requests</VCardTitle>
+              <template #append>
+                <VBtn variant="text" color="primary" :to="{ name: 'employee-bookings' }">
+                  View All Schedule
+                </VBtn>
+              </template>
+            </VCardItem>
 
-                   <!-- Completed -->
-                  <VCol cols="12" sm="6" md="3">
-                      <VCard elevation="0" border class="h-100">
-                          <VCardItem>
-                              <template #prepend>
-                                  <VAvatar color="success" variant="tonal" rounded>
-                                      <VIcon icon="tabler-checks" />
-                                  </VAvatar>
-                              </template>
-                              <VCardTitle class="text-h4 font-weight-bold">
-                                  {{ metrics.completed || 0 }}
-                              </VCardTitle>
-                              <VCardSubtitle>Completed Visits</VCardSubtitle>
-                          </VCardItem>
-                      </VCard>
-                  </VCol>
-              </VRow>
-           </div>
-          
-          <!-- SECTION: Clinical Module (Dynamic) -->
-          <template v-if="veterinaryServices.length > 0">
-             <h3 class="text-h5 mb-4 mt-2 d-flex align-center">
-               <VIcon icon="tabler-building-hospital" class="me-2" />
-               Clinic Module
-             </h3>
-             <VRow class="mb-6">
-               <VCol 
-                 v-for="vetService in veterinaryServices"
-                 :key="vetService.service_id"
-                 cols="12" md="6" lg="4"
-               >
-                 <!-- Use Dynamic Route Mapping Here -->
-                 <VCard :to="getServiceRoute(vetService)" border color="primary" variant="tonal">
-                   <VCardItem>
-                     <template #prepend>
-                       <VAvatar color="primary" variant="elevated" class="rounded">
-                         <VIcon icon="tabler-stethoscope" color="white" />
-                       </VAvatar>
-                     </template>
-                     <VCardTitle>{{ vetService.service_name }}</VCardTitle>
-                     <!-- Dynamic Subtitle based on active categories -->
-                     <VCardSubtitle v-if="vetService.categories?.length">
-                       {{ vetService.categories.filter(c => c.can_view).length }} Active Modules
-                     </VCardSubtitle>
-                   </VCardItem>
-                   
-                   <VCardText>
-                     <!-- Granular Category Permissions -->
-                     <div v-if="vetService.categories?.length" class="d-flex flex-column gap-3 mt-3">
-                        <div 
-                          v-for="cat in vetService.categories.filter(c => c.can_view)" 
-                          :key="cat.name"
-                          class="d-flex flex-column"
-                        >
-                          <div class="text-caption font-weight-bold text-uppercase mb-1">
-                            {{ cat.name }}
-                          </div>
-                          <div class="d-flex flex-wrap gap-2">
-                            <VChip v-if="cat.can_view" size="x-small" color="success" variant="tonal">VIEW</VChip>
-                            <VChip v-if="cat.can_create" size="x-small" color="primary" variant="tonal">CREATE</VChip>
-                            <VChip v-if="cat.can_edit" size="x-small" color="info" variant="tonal">EDIT</VChip>
-                            <VChip v-if="cat.can_delete" size="x-small" color="error" variant="tonal">DELETE</VChip>
-                          </div>
-                        </div>
-                     </div>
-
-                     <!-- Fallback: Service Level Permissions if no categories -->
-                     <div v-else class="d-flex flex-wrap gap-2 mt-2">
-                        <VChip v-if="vetService.can_view" size="x-small" color="success">VIEW</VChip>
-                        <VChip v-if="vetService.can_create" size="x-small" color="primary">CREATE</VChip>
-                        <VChip v-if="vetService.can_edit" size="x-small" color="info">EDIT</VChip>
-                        <VChip v-if="vetService.can_delete" size="x-small" color="error">DELETE</VChip>
-                     </div>
-                   </VCardText>
-                 </VCard>
-               </VCol>
-             </VRow>
-          </template>
-
-          <!-- SECTION: Business Services -->
-          <template v-if="businessServices.length > 0">
-            <h3 class="text-h5 mb-4 mt-2 d-flex align-center">
-              <VIcon icon="tabler-package" class="me-2" />
-              My Services
-            </h3>
-            <VRow>
-              <VCol 
-                v-for="service in businessServices" 
-                :key="service.service_id"
-                cols="12" 
-                md="6" 
-                lg="4"
-              >
-                <VCard :to="{ name: 'provider-service-details', params: { serviceId: service.service_id } }">
-                  <VCardItem>
+            <VCardText>
+              <div v-if="loading" class="text-center py-6">
+                <VProgressCircular indeterminate color="primary" />
+              </div>
+              
+              <div v-else-if="todayBookings.length > 0">
+                <VList lines="two">
+                  <VListItem
+                    v-for="booking in todayBookings"
+                    :key="booking.id"
+                    class="booking-item mb-2 rounded-lg border"
+                    :to="{ name: 'employee-bookings', query: { search: booking.id } }"
+                  >
                     <template #prepend>
-                      <VAvatar color="secondary" variant="tonal" class="rounded">
-                        <VIcon :icon="service.icon || 'tabler-box'" />
+                      <VAvatar size="48" color="primary" variant="tonal" rounded="lg">
+                        <VIcon icon="tabler-paw" size="24" />
                       </VAvatar>
                     </template>
-                    <VCardTitle>{{ service.service_name }}</VCardTitle>
-                  </VCardItem>
-                  
-                  <VCardText>
-                    <!-- Check for Categories first (Granular) -->
-                     <div v-if="service.categories?.length" class="d-flex flex-column gap-3 mt-3">
-                        <div 
-                          v-for="cat in service.categories.filter(c => c.can_view)" 
-                          :key="cat.name"
-                          class="d-flex flex-column"
-                        >
-                          <div class="text-caption font-weight-bold text-uppercase mb-1">
-                            {{ cat.name }}
-                          </div>
-                           <div class="d-flex flex-wrap gap-2">
-                              <VChip v-if="cat.can_view" size="x-small" color="success" variant="tonal">VIEW</VChip>
-                              <VChip v-if="cat.can_create" size="x-small" color="primary" variant="tonal">CREATE</VChip>
-                              <VChip v-if="cat.can_edit" size="x-small" color="info" variant="tonal">EDIT</VChip>
-                              <VChip v-if="cat.can_delete" size="x-small" color="error" variant="tonal">DELETE</VChip>
-                           </div>
-                        </div>
-                     </div>
+                    
+                    <VListItemTitle class="font-weight-bold">
+                      {{ booking.pet_details?.name || 'Pet' }} ({{ booking.owner_details?.full_name || 'Owner' }})
+                    </VListItemTitle>
+                    <VListItemSubtitle>
+                      {{ booking.service_name }} • {{ new Date(booking.selected_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+                    </VListItemSubtitle>
 
-                    <!-- Fallback: Service Level Flags -->
-                    <div v-else class="d-flex flex-wrap gap-2 mt-2">
-                       <VChip v-if="service.can_view" size="x-small" color="success" variant="tonal">VIEW</VChip>
-                       <VChip v-if="service.can_create" size="x-small" color="primary" variant="tonal">CREATE</VChip>
-                       <VChip v-if="service.can_edit" size="x-small" color="info" variant="tonal">EDIT</VChip>
-                       <VChip v-if="service.can_delete" size="x-small" color="error" variant="tonal">DELETE</VChip>
-                    </div>
-                  </VCardText>
-                </VCard>
-              </VCol>
-            </VRow>
-          </template>
-            
-          <!-- Empty State -->
-          <VRow v-if="!hasAnyAccess">
-            <VCol cols="12">
-              <VAlert type="info" variant="tonal">
-                You have no active services or clinical access assigned. Please contact your administrator.
-              </VAlert>
-            </VCol>
-          </VRow>
+                    <template #append>
+                      <VChip color="warning" size="small">
+                        NEW
+                      </VChip>
+                    </template>
+                  </VListItem>
+                </VList>
+              </div>
 
+              <div v-else class="text-center py-12">
+                <VIcon icon="tabler-circle-check" size="48" class="text-success mb-3" />
+                <h3 class="text-h6 font-weight-bold">All caught up!</h3>
+                <p class="text-body-2 text-medium-emphasis">No new pending requests.</p>
+              </div>
+            </VCardText>
+          </VCard>
+        </VCol>
+
+        <!-- QUICK LINKS / HELP -->
+        <VCol cols="12" md="4">
+          <VCard class="mb-4">
+            <VCardItem>
+              <VCardTitle>Quick Actions</VCardTitle>
+            </VCardItem>
+            <VCardText class="d-flex flex-column gap-3">
+              <VBtn block variant="tonal" prepend-icon="tabler-user-edit" to="/employee/profile">
+                My Profile
+              </VBtn>
+              <VBtn block variant="tonal" prepend-icon="tabler-clock" :to="{ name: 'provider-availability' }">
+                Set Work Hours
+              </VBtn>
+              <VBtn block variant="tonal" prepend-icon="tabler-help" :to="{ name: 'provider-faq' }">
+                Employee Handbook
+              </VBtn>
+            </VCardText>
+          </VCard>
+
+          <VCard variant="tonal" color="info">
+            <VCardText class="pa-4">
+              <div class="d-flex align-center gap-3 mb-2">
+                <VIcon icon="tabler-info-circle" />
+                <span class="font-weight-bold">Booking Flow</span>
+              </div>
+              <p class="text-caption mb-0">
+                When a new spa booking arrives in your free time, it will appear here. You can accept or complete it directly from the schedule.
+              </p>
+            </VCardText>
+          </VCard>
         </VCol>
       </VRow>
     </div>
   </ProviderLayout>
 </template>
+
+<style scoped>
+.stats-card {
+  transition: transform 0.2s ease;
+}
+.stats-card:hover {
+  transform: translateY(-4px);
+}
+.booking-item {
+  transition: all 0.2s ease;
+}
+.booking-item:hover {
+  background-color: rgba(var(--v-theme-primary), 0.05);
+  border-color: rgb(var(--v-theme-primary)) !important;
+}
+</style>
 
 <route lang="yaml">
 meta:

@@ -24,6 +24,15 @@ import { useIdleTimer } from '@/composables/useIdleTimer'
 
 // Initialize idle timer
 const { isLocked } = useIdleTimer()
+
+import { useCartStore } from '@/stores/cartStore'
+import CartDrawer from '@/pages/pet-owner/components/CartDrawer.vue'
+import { ref, onBeforeMount } from 'vue'
+
+const cartStore = ref(null)
+onBeforeMount(() => {
+  cartStore.value = useCartStore()
+})
 </script>
 
 <template>
@@ -35,6 +44,7 @@ const { isLocked } = useIdleTimer()
     </div>
     <AppLockScreen />
       <ScrollToTop />
+      <CartDrawer v-if="cartStore" v-model="cartStore.isOpen" />
     </VApp>
   </VLocaleProvider>
 </template>

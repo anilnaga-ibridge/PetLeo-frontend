@@ -41,7 +41,6 @@ watch([
     <AppLoadingIndicator ref="refLoadingIndicator" />
 
     <RouterView v-slot="{ Component }">
-      {{ console.log('📦 default.vue: RouterView Component:', Component ? 'Defined' : 'NULL') || '' }}
       <Suspense
         :timeout="0"
         @fallback="isFallbackStateActive = true"

@@ -1,19 +1,49 @@
 <script setup>
 import VeterinaryLayout from '@/components/VeterinaryLayout.vue'
 import { useCookie } from '@/@core/composable/useCookie'
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
+import { useVeterinaryStore } from '@/stores/veterinaryStore'
+import MedicalAppointmentDialog from '@/components/veterinary/MedicalAppointmentDialog.vue'
 
 const userData = useCookie('userData')
 const userRole = computed(() => (userData.value?.role?.name || userData.value?.role || '').toLowerCase())
 const currentLayout = VeterinaryLayout
+const vetStore = useVeterinaryStore()
 
 const selectedDate = ref(new Date())
+const appointments = ref([])
+const loading = ref(false)
+const showAppointmentDialog = ref(false)
 
-const appointments = ref([
-  { id: 1, time: '09:00 AM', patient: 'Max (Dog)', owner: 'John Doe', type: 'Vaccination', status: 'Confirmed' },
-  { id: 2, time: '10:30 AM', patient: 'Bella (Cat)', owner: 'Jane Smith', type: 'Checkup', status: 'Pending' },
-  { id: 3, time: '02:00 PM', patient: 'Charlie (Parrot)', owner: 'Bob Brown', type: 'Consultation', status: 'Confirmed' },
-])
+const fetchAppointments = async () => {
+  if (!vetStore.activeClinicId) return
+  loading.value = true
+  try {
+    const dateStr = selectedDate.value.toISOString().split('T')[0]
+    const res = await vetStore.fetchMedicalAppointments({
+      clinic: vetStore.activeClinicId,
+      appointment_date: dateStr
+    })
+    appointments.value = res.map(apt => ({
+      id: apt.id,
+      time: apt.start_time.substring(0, 5),
+      patient: apt.pet_name,
+      doctor: apt.doctor_name,
+      type: apt.service_id,
+      status: apt.status
+    }))
+  } catch (err) {
+    console.error('Failed to fetch appointments:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+    vetStore.fetchClinics().then(fetchAppointments)
+})
+
+watch(selectedDate, fetchAppointments)
 </script>
 
 <template>
@@ -31,7 +61,7 @@ const appointments = ref([
         <VBtn
           color="primary"
           prepend-icon="tabler-plus"
-          to="/veterinary/visits/new"
+          @click="showAppointmentDialog = true"
         >
           New Appointment
         </VBtn>
@@ -59,8 +89,11 @@ const appointments = ref([
             class="h-100"
           >
             <VCardText>
+              <div v-if="loading" class="d-flex justify-center py-8">
+                <VProgressCircular indeterminate color="primary" />
+              </div>
               <div
-                v-if="appointments.length === 0"
+                v-else-if="appointments.length === 0"
                 class="text-center py-8 text-medium-emphasis"
               >
                 No appointments for this date.
@@ -85,7 +118,7 @@ const appointments = ref([
                         {{ apt.time }} - {{ apt.patient }}
                       </div>
                       <div class="text-body-2">
-                        {{ apt.type }} with {{ apt.owner }}
+                        {{ apt.type }} with Dr. {{ apt.doctor }}
                       </div>
                     </div>
                     <VChip
@@ -102,6 +135,13 @@ const appointments = ref([
         </VCol>
       </VRow>
     </div>
+
+    <MedicalAppointmentDialog
+      v-if="vetStore.activeClinicId"
+      v-model="showAppointmentDialog"
+      :clinic-id="vetStore.activeClinicId"
+      @success="fetchAppointments"
+    />
   </component>
 </template>
 
@@ -111,3 +151,5 @@ meta:
   action: read
   subject: Auth
 </route>
+
+

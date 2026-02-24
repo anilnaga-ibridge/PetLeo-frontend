@@ -1,7 +1,8 @@
-import { defineStore } from 'pinia'
 import { providerApi } from '@/plugins/axios'
-
 import { useCookie } from '@/@core/composable/useCookie'
+import { defineStore } from 'pinia'
+
+const normalize = (val) => (val || '').toLowerCase().replace(/[- ]/g, '_')
 
 export const usePermissionStore = defineStore('permission', {
   state: () => {
@@ -15,10 +16,11 @@ export const usePermissionStore = defineStore('permission', {
           const unique = []
           const seen = new Set()
           parsed.forEach(p => {
-            if (!p || !p.service_id) return
-            if (seen.has(p.service_id)) return
-            seen.add(p.service_id)
-            if (p.can_view) unique.push(p)
+            if (!p || (!p.service_id && !p.service_name)) return
+            const uniqueKey = p.service_id || p.service_name
+            if (seen.has(uniqueKey)) return
+            seen.add(uniqueKey)
+            unique.push(p)
           })
           return unique
         }
@@ -38,8 +40,15 @@ export const usePermissionStore = defineStore('permission', {
       dynamicCapabilities: safeParse('dynamic_capabilities', []),
       dynamicModules: safeParse('dynamic_modules', []),
       isLoading: false,
-      isPermissionsLoaded: false,
       isDynamicAccessLoaded: false,
+      dashboardSummary: {
+        total_employees: 0,
+        total_roles: 0,
+        total_clinics: 0,
+        total_bookings: 0,
+        total_ratings: 0,
+        average_rating: 0,
+      },
     }
   },
 
@@ -60,8 +69,9 @@ export const usePermissionStore = defineStore('permission', {
       if (!serviceName) return false
 
       const service = state.permissions.find(
-        p => (p.service_key?.toLowerCase() === serviceName.toLowerCase()) ||
-          (p.service_name?.toLowerCase() === serviceName.toLowerCase()),
+        p => (normalize(p.service_key) === normalize(serviceName)) ||
+          (normalize(p.service_name) === normalize(serviceName)) ||
+          p.service_id === serviceName
       )
 
 
@@ -87,6 +97,20 @@ export const usePermissionStore = defineStore('permission', {
 
   actions: {
     async fetchPermissions() {
+      // [FIX] Pet Owners do not have provider permissions
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+      const role = (userData.role?.name || userData.role || '').toLowerCase()
+      if (['petowner', 'pet_owner', 'pet owner', 'customer'].includes(role)) {
+        console.log('🚫 PermissionStore: Skipping provider permissions for Pet Owner')
+        return
+      }
+
+      // [FIX] Super Admins do not need provider permissions either
+      if (role === 'superadmin') {
+        console.log('🚫 PermissionStore: Skipping provider permissions for Super Admin')
+        return
+      }
+
       this.isLoading = true
       try {
         // Fetch permissions from the Service Provider Service (Port 8002)
@@ -124,17 +148,7 @@ export const usePermissionStore = defineStore('permission', {
 
           seenServices.add(uniqueKey)
 
-          // Ensure booleans
-          p.can_view = !!p.can_view
-          p.can_create = !!p.can_create
-          p.can_edit = !!p.can_edit
-          p.can_delete = !!p.can_delete
-
-          // Use 'modules' as the source of truth if available (backend should send this)
-          // But strict compliance: only show if can_view is true
-          if (p.can_view) {
-            uniquePermissions.push(p)
-          }
+          uniquePermissions.push(p)
         })
         console.log('✅ PermissionStore: Normalization Complete. Valid Items:', uniquePermissions.map(p => `${p.service_name} (${p.can_view})`))
 
@@ -172,10 +186,13 @@ export const usePermissionStore = defineStore('permission', {
           // Only overwrite if the new value is truthy (prevent null/empty overwrite)
           const updatedData = {
             ...currentData,
-            fullName: res.data.user_profile.fullName || currentData.fullName || currentData.username,
+            fullName: res.data.user_profile.fullName || currentData.fullName || currentData.username || res.data.user_profile.username,
             avatar: res.data.user_profile.avatar || currentData.avatar,
             role: res.data.user_profile.role || currentData.role,
+            provider_type: res.data.user_profile.provider_type || currentData.provider_type,
+            provider_id: res.data.user_profile.provider_id || currentData.provider_id,
             email: res.data.user_profile.email || currentData.email,
+            phoneNumber: res.data.user_profile.phoneNumber || currentData.phoneNumber,
           }
 
           userDataCookie.value = updatedData
@@ -204,6 +221,16 @@ export const usePermissionStore = defineStore('permission', {
         // Actually, better to keep stale than empty if network fails.
       } finally {
         this.isLoading = false
+      }
+    },
+
+    async fetchDashboardSummary() {
+      try {
+        const res = await providerApi.get('/api/provider/dashboard-summary/')
+        this.dashboardSummary = res.data
+        console.log('📊 PermissionStore: Dashboard summary updated', this.dashboardSummary)
+      } catch (err) {
+        console.error('Failed to fetch dashboard summary:', err)
       }
     },
 
@@ -349,6 +376,7 @@ export const usePermissionStore = defineStore('permission', {
       // 3. Normal checks
       if (!permissionName) return true
       if (permissionName === 'manage_employees') return true // Default for now
+      if (permissionName === 'manage_clinics') return true // Fix for clinic management redirect
 
       return this.canViewService(permissionName)
     },
@@ -428,9 +456,9 @@ export const usePermissionStore = defineStore('permission', {
       // We removed the unconditional veterinary bypass - admins see only what's in their plan
 
       const service = this.permissions.find(
-        p => (p.service_key?.toLowerCase() === serviceName.toLowerCase()) ||
-          (p.service_name?.toLowerCase() === serviceName.toLowerCase()) ||
-          (p.service_id?.toLowerCase() === serviceName.toLowerCase()),
+        p => (normalize(p.service_key) === normalize(serviceName)) ||
+          (normalize(p.service_name) === normalize(serviceName)) ||
+          (normalize(p.service_id) === normalize(serviceName)),
       )
 
       if (!service) {
@@ -440,8 +468,8 @@ export const usePermissionStore = defineStore('permission', {
           if (s.categories) {
             // console.log(`🔍 Deep Search in ${s.service_key}:`, s.categories.map(c => c.name))
             const nestedCategory = s.categories.find(c =>
-              c.name?.toLowerCase() === serviceName.toLowerCase() ||
-              c.category_key?.toLowerCase() === serviceName.toLowerCase()
+              normalize(c.name) === normalize(serviceName) ||
+              normalize(c.category_key) === normalize(serviceName)
             )
 
             if (nestedCategory) {
@@ -508,6 +536,14 @@ export const usePermissionStore = defineStore('permission', {
     },
 
     async fetchDynamicAccess() {
+      // [FIX] Pet Owners do not have dynamic provider access
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+      const role = (userData.role?.name || userData.role || '').toLowerCase()
+      if (['petowner', 'pet_owner', 'pet owner', 'customer'].includes(role)) {
+        console.log('🚫 PermissionStore: Skipping dynamic access for Pet Owner')
+        return
+      }
+
       this.isLoading = true
       try {
         console.log('🧭 PermissionStore: Fetching Dynamic Access...')

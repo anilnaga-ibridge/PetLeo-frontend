@@ -526,7 +526,7 @@ import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue'
 import { api } from '@/plugins/axios'
 import { useCookie } from '@/@core/composable/useCookie'
 
-const GET_PROFILE_API = "http://127.0.0.1:8002/api/provider/profile/"
+const GET_PROFILE_API = "http://127.0.0.1:8002/api/provider/profile/dynamic/"
 
 // --- state ---
 const fields = ref([])

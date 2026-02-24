@@ -4,6 +4,14 @@
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useCookie } from '@/@core/composable/useCookie'
+
+definePage({
+  meta: {
+    layout: 'blank',
+    requiresAuth: true,
+    role: 'super_admin',
+  },
+})
 import {
   VDialog, VCard, VCardTitle, VCardText, VCardActions, VTextField, VBtn, VIcon, VChip,
   VAvatar, VSelect, VRow, VCol, VCardItem, VCardSubtitle, VDivider, VNavigationDrawer,
@@ -11,14 +19,14 @@ import {
 } from 'vuetify/components'
 
 // =============================
-// 🔹 API Endpoints
+// API Endpoints
 // =============================
 const API_BASE = 'http://127.0.0.1:8000/auth/users/'
 const REGISTER_API = 'http://127.0.0.1:8000/auth/api/auth/register/'
 const ROLES_API = 'http://127.0.0.1:8000/auth/roles/'
 
 // =============================
-// 🔹 Reactive State
+// Reactive State
 // =============================
 const users = ref([])
 const roles = ref([])
@@ -45,7 +53,7 @@ const isSavingUpdate = ref(false)
 const isDeleting = ref(false)
 
 // =============================
-// 🔹 Helpers
+// Helpers
 // =============================
 const tokenHeader = () => {
   const token = useCookie('accessToken').value
@@ -66,7 +74,7 @@ const openError = msg => {
 }
 
 // =============================
-// 🔹 Computed Filter
+// Computed Filter
 // =============================
 const filteredUsers = computed(() => {
   if (!searchQuery.value) return users.value

@@ -46,9 +46,9 @@ const hierarchy = computed(() => {
       items: rules.map(rule => ({
         id: rule.facility.id,
         name: rule.facility.name,
-        description: rule.facility.description,
+        description: (rule.facility.description && rule.facility.description !== 'null') ? rule.facility.description : '',
         price: rule.base_price,
-        duration: rule.duration_minutes,
+        duration: (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         billing_unit: rule.billing_unit,
         is_active: rule.is_active
       }))
@@ -65,9 +65,9 @@ const hierarchy = computed(() => {
       items: uncategorizedRules.map(rule => ({
         id: rule.facility.id,
         name: rule.facility.name,
-        description: rule.facility.description,
+        description: (rule.facility.description && rule.facility.description !== 'null') ? rule.facility.description : '',
         price: rule.base_price,
-        duration: rule.duration_minutes,
+        duration: (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         billing_unit: rule.billing_unit,
         is_active: rule.is_active
       }))
@@ -320,7 +320,7 @@ const toggleStatus = async (item, category) => {
                       </td>
                       <td class="py-3">
                         <p class="text-body-2 text-medium-emphasis mb-0 line-clamp-1" style="max-width: 300px;">
-                          {{ item.description || '-' }}
+                          {{ (item.description && item.description !== 'null') ? item.description : '-' }}
                         </p>
                       </td>
                       <td class="text-right pr-0 py-3">
@@ -328,7 +328,7 @@ const toggleStatus = async (item, category) => {
                           <span class="text-body-2 font-weight-bold text-primary">₹{{ item.price }}</span>
                           <div class="d-flex align-center gap-1">
                             <span class="text-caption text-medium-emphasis">{{ item.billing_unit.replace('_', ' ') }}</span>
-                            <span v-if="item.duration" class="text-caption text-warning font-weight-medium"> • {{ item.duration }}m</span>
+                            <span v-if="item.duration && item.duration !== 'null'" class="text-caption text-warning font-weight-medium"> • {{ item.duration }}m</span>
                           </div>
                           
                           <div class="d-flex gap-2 mt-2">
@@ -368,15 +368,15 @@ const toggleStatus = async (item, category) => {
                         <div class="d-flex justify-space-between align-start mb-4">
                           <div class="d-flex flex-column">
                              <div class="price-badge pa-2 px-3 rounded-lg bg-primary-lighten-5 text-primary font-weight-bold mb-1">
-                              ₹{{ item.price }} <span class="text-caption font-weight-medium">/ {{ item.billing_unit.toLowerCase().replace('_', ' ') }}</span>
+                              ₹{{ item.price }} <span class="text-caption font-weight-medium">/ {{ item.billing_unit?.toLowerCase().replace('_', ' ') || '' }}</span>
                             </div>
-                            <div v-if="item.duration" class="d-flex align-center gap-1 text-warning font-weight-bold px-1">
+                            <div v-if="item.duration && item.duration !== 'null'" class="d-flex align-center gap-1 text-warning font-weight-bold px-1">
                               <VIcon icon="tabler-clock" size="14" />
-                              <span class="text-caption">{{ item.duration }}m</span>
-                            </div>
-                          </div>
-                        
-                          <div class="d-flex gap-1 action-buttons-card">
+                               <span class="text-caption">{{ item.duration }}m</span>
+                             </div>
+                           </div>
+                         
+                           <div class="d-flex gap-1 action-buttons-card">
                             <VBtn 
                               icon="tabler-pencil" 
                               size="x-small" 
@@ -401,7 +401,7 @@ const toggleStatus = async (item, category) => {
                             {{ item.name }}
                           </h3>
                           <p 
-                            v-if="item.description" 
+                            v-if="item.description && item.description !== 'null'" 
                             class="text-caption text-medium-emphasis line-clamp-2 mb-0"
                           >
                             {{ item.description }}

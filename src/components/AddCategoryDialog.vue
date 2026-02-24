@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import axios from 'axios'
+import { providerApi } from '@/plugins/axios'
 import { usePermissionStore } from '@/stores/permissionStore'
 
 const props = defineProps({
@@ -51,26 +51,12 @@ const save = async () => {
   error.value = ''
   
   try {
-    const url = props.category 
-      ? `http://127.0.0.1:8002/api/provider/categories/${props.category.id}/`
-      : `http://127.0.0.1:8002/api/provider/categories/`
-      
-    const method = props.category ? 'patch' : 'post'
-    
-    const token = localStorage.getItem('accessToken')
-    
-    const payload = {
-      ...form.value,
-      service_id: props.serviceId,
-    }
-
-    await axios({
-      method,
-      url,
+    const res = await providerApi({
+      method: props.category ? 'patch' : 'post',
+      url: props.category 
+        ? `/api/provider/categories/${props.category.id}/`
+        : `/api/provider/categories/`,
       data: payload,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     })
     
     emit('saved')

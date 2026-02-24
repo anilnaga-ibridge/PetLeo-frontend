@@ -42,10 +42,11 @@ const isAdmin = computed(() => {
 })
 
 const normalizedPerms = computed(() => ({
-  can_create: isAdmin.value || !!(props.permissions.can_create || props.permissions.canCreate),
-  can_edit: isAdmin.value || !!(props.permissions.can_edit || props.permissions.canEdit),
-  can_delete: isAdmin.value || !!(props.permissions.can_delete || props.permissions.canDelete),
-  can_view: !!(props.permissions.can_view || props.permissions.canView || true),
+  // Strict: Only true Admins can manage categories and facilities
+  can_create: isAdmin.value,
+  can_edit: isAdmin.value,
+  can_delete: isAdmin.value,
+  can_view: true,
 }))
 
 const showPermissionDialog = ref(false)
@@ -80,10 +81,21 @@ const facilityForm = ref({
   description: '',
   service: props.serviceId,
   category: null,
+  protocol_type: 'MINUTES_BASED',
+  pricing_strategy: 'FIXED',
   base_price: 0,
-  duration_minutes: null,
+  duration_minutes: 60,
+  session_duration_value: 1, // Intermediate value for UI
+  session_duration_unit: 'hours', // 'minutes' or 'hours'
+  duration_value: null, // For SESSIONS (e.g. 10 sessions)
+  daily_capacity: null,
+  monthly_limit: null,
   billing_unit: 'PER_SESSION',
-  is_active: true
+  is_active: true,
+  image_file: null, // Primary image
+  imageUrl: null,
+  gallery_files: [], // Multi-image gallery
+  galleryUrls: []
 })
 
 const billingUnitOptions = [
@@ -93,6 +105,38 @@ const billingUnitOptions = [
   { label: 'Per Week', value: 'WEEKLY' },
   { label: 'One Time', value: 'ONE_TIME' },
 ]
+
+const protocolOptions = [
+  { label: 'Minutes Based (Slots)', value: 'MINUTES_BASED' },
+  { label: 'Session Based (Packages)', value: 'SESSION_BASED' },
+  { label: 'Day Based (Date Range)', value: 'DAY_BASED' },
+]
+
+const strategyOptions = [
+  { label: 'Fixed Total Price', value: 'FIXED' },
+  { label: 'Per Unit (Min/Hr/Day)', value: 'PER_UNIT' },
+]
+
+// Image Preview Helpers
+const handleImageUpload = (file) => {
+  if (!file) return
+  try {
+    facilityForm.value.imageUrl = window.URL.createObjectURL(file)
+  } catch (err) {
+    console.error('Error creating preview:', err)
+  }
+}
+
+const handleGalleryUpload = (files) => {
+  if (!files || files.length === 0) return
+  try {
+    files.forEach(f => {
+      facilityForm.value.galleryUrls.push(window.URL.createObjectURL(f))
+    })
+  } catch (err) {
+    console.error('Error creating gallery previews:', err)
+  }
+}
 
 // Fetch Data
 const fetchData = async () => {
@@ -140,11 +184,14 @@ const hierarchy = computed(() => {
         id: (typeof rule.facility === 'object' && rule.facility) ? rule.facility.id : rule.facility,
         ruleId: rule.id,
         name: rule.facility_name || (typeof rule.facility === 'object' ? rule.facility.name : 'Unknown Facility'),
-        description: rule.facility_description || (typeof rule.facility === 'object' ? rule.facility.description : ''),
+        description: (rule.description && rule.description !== 'null') ? rule.description : (rule.facility_description && rule.facility_description !== 'null') ? rule.facility_description : (typeof rule.facility === 'object' ? rule.facility.description : ''),
         price: rule.price,
-        duration: rule.duration,
+        duration: (rule.duration !== null && rule.duration !== undefined && rule.duration !== 'null') ? rule.duration : (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         billing_unit: rule.billing_unit,
+        protocol_type: rule.service_duration_type === 'SESSIONS' ? 'SESSION_BASED' : rule.service_duration_type === 'DAYS' ? 'DAY_BASED' : 'MINUTES_BASED',
+        pricing_strategy: rule.pricing_model,
         is_active: rule.is_active,
+        image_url: rule.facility?.image_url || rule.facility?.image || null, // Capture image URL
         can_edit: rule.can_edit,
         can_delete: rule.can_delete
       }))
@@ -164,10 +211,10 @@ const hierarchy = computed(() => {
         id: (typeof rule.facility === 'object' && rule.facility) ? rule.facility.id : rule.facility,
         ruleId: rule.id,
         name: rule.facility_name,
-        description: rule.facility_description,
+        description: (rule.description && rule.description !== 'null') ? rule.description : (rule.facility_description && rule.facility_description !== 'null') ? rule.facility_description : '',
         price: rule.price,
         billing_unit: rule.billing_unit,
-        duration: rule.duration,
+        duration: (rule.duration !== null && rule.duration !== undefined && rule.duration !== 'null') ? rule.duration : (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         is_active: rule.is_active,
         can_edit: rule.can_edit,
         can_delete: rule.can_delete
@@ -244,16 +291,36 @@ const openFacilityDrawer = (category, item = null) => {
   if (item) {
     isEdit.value = true
     editId.value = item.id
+    
+    // Split duration_minutes for UI
+    let durationValue = item.duration || 60
+    let durationUnit = 'minutes'
+    if (durationValue % 60 === 0 && durationValue >= 60) {
+      durationValue = durationValue / 60
+      durationUnit = 'hours'
+    }
+
     facilityForm.value = {
       name: item.name,
       description: item.description,
       service: props.serviceId,
       category: category.id === 'uncategorized' ? null : category.id,
+      protocol_type: item.protocol_type || 'MINUTES_BASED',
+      pricing_strategy: item.pricing_strategy || 'FIXED',
       base_price: item.price,
       duration_minutes: item.duration,
+      session_duration_value: durationValue,
+      session_duration_unit: durationUnit,
       billing_unit: item.billing_unit,
+      duration_value: item.duration_value,
+      daily_capacity: item.daily_capacity,
+      monthly_limit: item.monthly_limit,
       is_active: item.is_active,
-      ruleId: item.ruleId
+      ruleId: item.ruleId,
+      image_file: null,
+      imageUrl: item.image_url, // Primary image
+      galleryUrls: item.gallery?.map(g => g.image_url) || [],
+      gallery_files: []
     }
   } else {
     isEdit.value = false
@@ -262,10 +329,21 @@ const openFacilityDrawer = (category, item = null) => {
       description: '',
       service: props.serviceId,
       category: category.id === 'uncategorized' ? null : category.id,
+      protocol_type: 'MINUTES_BASED',
+      pricing_strategy: 'FIXED',
       base_price: 0,
-      duration_minutes: null,
+      duration_minutes: 60,
+      session_duration_value: 1,
+      session_duration_unit: 'hours',
+      duration_value: null,
+      daily_capacity: null,
+      monthly_limit: null,
       billing_unit: 'PER_SESSION',
-      is_active: true
+      is_active: true,
+      image_file: null,
+      imageUrl: null,
+      gallery_files: [],
+      galleryUrls: []
     }
   }
   facilityDrawerOpen.value = true
@@ -275,36 +353,70 @@ const submitFacility = async () => {
   if (submitting.value) return
   submitting.value = true
   try {
-    const payload = { ...facilityForm.value }
-    
-    // We update Price Rule mostly
-    if (isEdit.value && payload.ruleId) {
-       await providerApi.put(`/api/provider/facilities/${editId.value}/`, {
-         name: payload.name, description: payload.description,
-         service: payload.service, category: payload.category
-       })
-       await providerApi.put(`/api/provider/pricing/${payload.ruleId}/`, {
-         service_id: payload.service, category_id: payload.category,
-         facility: editId.value, price: payload.base_price,
-         billing_unit: payload.billing_unit,
-         duration: payload.duration_minutes,
-         is_active: payload.is_active,
-         description: payload.description
-       })
-    } else {
-       const facRes = await providerApi.post('/api/provider/facilities/', {
-         name: payload.name, description: payload.description,
-         service: payload.service, category: payload.category
-       })
-       await providerApi.post('/api/provider/pricing/', {
-         service_id: payload.service, category_id: payload.category,
-         facility: facRes.data.id, price: payload.base_price,
-         billing_unit: payload.billing_unit,
-         duration: payload.duration_minutes,
-         is_active: payload.is_active,
-         description: payload.description
-       })
+    const finalDuration = facilityForm.value.session_duration_unit === 'hours' 
+      ? (facilityForm.value.session_duration_value || 0) * 60 
+      : (facilityForm.value.session_duration_value || 0)
+
+    // 1. Prepare Facility Data (Multipart)
+    const facilityFormData = new FormData()
+    facilityFormData.append('name', facilityForm.value.name)
+    facilityFormData.append('description', facilityForm.value.description || '')
+    facilityFormData.append('service', props.serviceId)
+    if (facilityForm.value.category) {
+      facilityFormData.append('category', facilityForm.value.category)
     }
+    facilityFormData.append('protocol_type', facilityForm.value.protocol_type)
+    facilityFormData.append('pricing_strategy', facilityForm.value.pricing_strategy)
+    facilityFormData.append('base_price', facilityForm.value.base_price || 0)
+    facilityFormData.append('duration_minutes', finalDuration)
+    facilityFormData.append('is_active', facilityForm.value.is_active)
+    
+    if (facilityForm.value.image_file) {
+      facilityFormData.append('image', facilityForm.value.image_file)
+    }
+
+    // Gallery images
+    if (facilityForm.value.gallery_files && facilityForm.value.gallery_files.length > 0) {
+      facilityForm.value.gallery_files.forEach(file => {
+        facilityFormData.append('gallery', file)
+      })
+    }
+
+    let facilityId = editId.value
+    if (isEdit.value && facilityId) {
+      await providerApi.put(`/api/provider/facilities/${facilityId}/`, facilityFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+    } else {
+      const res = await providerApi.post('/api/provider/facilities/', facilityFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      facilityId = res.data.id
+    }
+
+    // 2. Prepare/Update Pricing Rule (JSON is fine here, or match if backend changed)
+    const pricingData = {
+      service_id: props.serviceId,
+      category_id: facilityForm.value.category,
+      facility: facilityId,
+      price: facilityForm.value.base_price || 0,
+      billing_unit: facilityForm.value.billing_unit,
+      duration: finalDuration,
+      service_duration_type: facilityForm.value.protocol_type === 'SESSION_BASED' ? 'SESSIONS' : facilityForm.value.protocol_type === 'DAY_BASED' ? 'DAYS' : 'MINUTES',
+      pricing_model: facilityForm.value.pricing_strategy,
+      duration_value: facilityForm.value.duration_value,
+      daily_capacity: facilityForm.value.daily_capacity,
+      monthly_limit: facilityForm.value.monthly_limit,
+      is_active: facilityForm.value.is_active,
+      description: facilityForm.value.description
+    }
+
+    if (isEdit.value && facilityForm.value.ruleId) {
+       await providerApi.put(`/api/provider/pricing/${facilityForm.value.ruleId}/`, pricingData)
+    } else {
+       await providerApi.post('/api/provider/pricing/', pricingData)
+    }
+
     facilityDrawerOpen.value = false
     fetchData()
   } catch (err) {
@@ -330,7 +442,7 @@ watch(() => props.serviceId, fetchData)
 </script>
 
 <template>
-  <div class="d-flex flex-column h-100">
+  <div class="d-flex flex-column">
     <!-- 1. Permissions Card (Collapsible) -->
     <VCard 
       class="mb-6 border overflow-hidden" 
@@ -439,7 +551,7 @@ watch(() => props.serviceId, fetchData)
        <VProgressCircular indeterminate color="primary" size="48" />
     </div>
 
-    <template v-else-if="hierarchy.length > 0">
+    <div v-else-if="hierarchy.length > 0" class="px-1">
        
        <!-- MODE: Categories (Grid) -->
        <div v-if="mode === 'categories'">
@@ -462,7 +574,7 @@ watch(() => props.serviceId, fetchData)
                          </VChip>
                       </template>
                       <VCardTitle class="mt-1">{{ category.name }}</VCardTitle>
-                      <VCardSubtitle class="line-clamp-2 mt-1">{{ category.description || 'No description' }}</VCardSubtitle>
+                      <VCardSubtitle class="line-clamp-2 mt-1">{{ category.description || 'No description provided' }}</VCardSubtitle>
                    </VCardItem>
                    
                    <VCardText class="d-flex align-end mt-auto pt-2">
@@ -518,39 +630,64 @@ watch(() => props.serviceId, fetchData)
              <div v-if="category.items && category.items.length > 0">
                 <VRow>
                    <VCol v-for="item in category.items" :key="item.id" cols="12" sm="6" md="4" lg="3">
-                      <VCard class="border h-100 d-flex flex-column hover-card-v2" elevation="0">
+                       <VCard class="border h-100 d-flex flex-row hover-card-v2 overflow-hidden" elevation="0">
+                          <!-- Image Section -->
+                          <div class="facility-image-wrapper" style="width: 100px; height: 100%; border-right: 1px solid rgba(var(--v-border-color), 0.1);">
+                             <VImg 
+                               v-if="item.image_url" 
+                               :src="item.image_url" 
+                               cover 
+                               height="100%" 
+                               class="bg-grey-lighten-4"
+                             />
+                             <div v-else class="w-100 h-100 d-flex align-center justify-center bg-grey-lighten-4 text-disabled">
+                                <VIcon icon="tabler-photo-off" size="24" />
+                             </div>
+                          </div>
+
                           <div class="pa-4 flex-grow-1">
                              <div class="d-flex justify-space-between align-start mb-2">
-                                <h5 class="text-subtitle-1 font-weight-bold">{{ item.name }}</h5>
+                                <div class="d-flex flex-column gap-1">
+                                   <h5 class="text-subtitle-1 font-weight-bold">{{ item.name }}</h5>
+                                   <VChip size="x-small" :color="item.protocol_type === 'SESSION_BASED' ? 'info' : 'secondary'" variant="tonal" class="text-uppercase" style="width: fit-content;">
+                                      {{ item.protocol_type?.replace('_', ' ') }}
+                                   </VChip>
+                                </div>
                                 <div class="d-flex gap-1 align-center hover-actions">
-                                  <VIcon 
-                                    v-if="mode === 'facilities' && normalizedPerms.can_edit"
-                                    icon="tabler-pencil" 
-                                    size="16" 
-                                    class="text-medium-emphasis cursor-pointer edit-icon"
-                                    @click="openFacilityDrawer(category, item)" 
-                                  />
-                                  <VIcon 
-                                    v-if="mode === 'facilities' && normalizedPerms.can_delete"
-                                    icon="tabler-trash" 
-                                    size="16" 
-                                    class="text-error cursor-pointer delete-icon"
-                                    @click="deleteFacility(item)" 
-                                  />
+                                   <VIcon 
+                                     v-if="mode === 'facilities' && normalizedPerms.can_edit"
+                                     icon="tabler-pencil" 
+                                     size="16" 
+                                     class="text-medium-emphasis cursor-pointer edit-icon"
+                                     @click="openFacilityDrawer(category, item)" 
+                                   />
+                                   <VIcon 
+                                     v-if="mode === 'facilities' && normalizedPerms.can_delete"
+                                     icon="tabler-trash" 
+                                     size="16" 
+                                     class="text-error cursor-pointer delete-icon"
+                                     @click="deleteFacility(item)" 
+                                   />
                                 </div>
                              </div>
                              
-                             <p class="text-body-2 text-medium-emphasis line-clamp-2 mb-3" style="min-height: 40px;">
-                                {{ item.description || 'No description provided.' }}
+                             <p class="text-caption text-medium-emphasis line-clamp-2 mb-4" style="height: 32px;">
+                                {{ item.description || 'No description provided' }}
                              </p>
                              
-                             <div class="d-flex align-center gap-2 mt-auto">
-                                <VChip color="primary" variant="flat" size="small" class="font-weight-bold">
-                                   ${{ item.price }}
-                                </VChip>
-                                <span class="text-caption text-medium-emphasis">
-                                   per {{ String(item.billing_unit || '').replace('_', ' ').toLowerCase() }}
-                                </span>
+                             <div class="d-flex flex-column gap-1 mt-auto">
+                                <div class="d-flex align-center gap-2">
+                                   <span class="text-h6 font-weight-bold text-primary">₹{{ item.price }}</span>
+                                   <span class="text-caption text-medium-emphasis">
+                                      {{ item.pricing_strategy === 'FIXED' ? '(Fixed Total)' : `/ ${String(item.billing_unit || '').replace('PER_', '').toLowerCase()}` }}
+                                   </span>
+                                </div>
+                                <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
+                                   <VIcon icon="tabler-clock" size="14" />
+                                    <span>
+                                       {{ (item.duration && item.duration !== 'null' && item.duration >= 60 && item.duration % 60 === 0) ? `${item.duration / 60} hour(s)` : `${(item.duration && item.duration !== 'null') ? item.duration : 60} minutes` }}
+                                    </span>
+                                </div>
                              </div>
                           </div>
                       </VCard>
@@ -573,7 +710,7 @@ watch(() => props.serviceId, fetchData)
           </div>
        </div>
 
-    </template>
+    </div>
     
     <div v-else class="text-center py-12 flex-grow-1 d-flex flex-column align-center justify-center">
         <VAvatar color="secondary" variant="tonal" size="64" class="mb-4">
@@ -645,39 +782,181 @@ watch(() => props.serviceId, fetchData)
                   class="mb-4"
                   :rules="[v => !!v || 'Required']"
                 />
-                <AppTextarea
-                  v-model="facilityForm.description"
-                  label="Description"
-                  rows="2"
-                  class="mb-6"
-                />
+                 <AppTextarea
+                   v-model="facilityForm.description"
+                   label="Description"
+                   rows="2"
+                   class="mb-4"
+                 />
+
+                 <!-- Image Upload -->
+                 <div class="text-subtitle-2 font-weight-bold mb-2 text-medium-emphasis text-uppercase">Service Image</div>
+                 <div class="mb-6">
+                    <div v-if="facilityForm.imageUrl" class="mb-3 rounded-lg overflow-hidden border" style="height: 120px; position: relative;">
+                       <VImg :src="facilityForm.imageUrl" cover height="120" />
+                       <VBtn 
+                         icon="tabler-x" 
+                         size="x-small" 
+                         color="error" 
+                         class="position-absolute" 
+                         style="top: 8px; right: 8px;"
+                         @click="facilityForm.imageUrl = null; facilityForm.image_file = null;"
+                       />
+                    </div>
+                    <VFileInput
+                      v-model="facilityForm.image_file"
+                      accept="image/*"
+                      label="Upload Service Image"
+                      prepend-icon="tabler-camera"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details
+                      @update:model-value="handleImageUpload"
+                    >
+                      <template #selection="{ fileNames }">
+                        <template v-for="fileName in fileNames" :key="fileName">
+                          <VChip size="small" label color="primary" class="me-2">
+                            {{ fileName }}
+                          </VChip>
+                        </template>
+                      </template>
+                    </VFileInput>
+                 </div>
+
+                 <!-- Gallery Images -->
+                 <div class="text-subtitle-2 font-weight-bold mb-2 text-medium-emphasis text-uppercase">Service Gallery (Additional Images)</div>
+                 <div class="mb-6">
+                    <VRow v-if="facilityForm.galleryUrls?.length" class="mb-3">
+                       <VCol v-for="(url, idx) in facilityForm.galleryUrls" :key="idx" cols="4">
+                          <div class="rounded-lg overflow-hidden border" style="height: 80px; position: relative;">
+                             <VImg :src="url" cover height="80" />
+                             <VBtn 
+                               icon="tabler-x" 
+                               size="x-small" 
+                               color="error" 
+                               class="position-absolute" 
+                               style="top: 4px; right: 4px; width: 20px; height: 20px;"
+                               @click="facilityForm.galleryUrls.splice(idx, 1); facilityForm.gallery_files.splice(idx, 1);"
+                             />
+                          </div>
+                       </VCol>
+                    </VRow>
+                    <VFileInput
+                      v-model="facilityForm.gallery_files"
+                      multiple
+                      accept="image/*"
+                      label="Add More Gallery Images"
+                      prepend-icon="tabler-images"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details
+                      @update:model-value="handleGalleryUpload"
+                    >
+                      <template #selection="{ fileNames }">
+                        <span class="text-caption font-weight-bold text-primary">{{ fileNames.length }} images selected</span>
+                      </template>
+                    </VFileInput>
+                 </div>
 
                 <VDivider class="mb-6" />
 
+                <!-- Protocol Configuration -->
+                <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">Protocol & Logic</div>
+                <VRow class="mb-2">
+                   <VCol cols="12">
+                      <VSelect
+                        v-model="facilityForm.protocol_type"
+                        :items="protocolOptions"
+                        item-title="label"
+                        item-value="value"
+                        label="Booking Protocol *"
+                        class="mb-2"
+                      />
+                   </VCol>
+                   
+                   <!-- Conditional Duration for Sessions/Minutes -->
+                   <VCol cols="12" v-if="['SESSION_BASED', 'MINUTES_BASED'].includes(facilityForm.protocol_type)">
+                      <div class="d-flex gap-2 align-center">
+                         <AppTextField
+                           v-model.number="facilityForm.session_duration_value"
+                           :label="facilityForm.protocol_type === 'SESSION_BASED' ? 'Session Duration *' : 'Slot Duration *'"
+                           type="number"
+                           style="flex: 2;"
+                         />
+                         <VSelect
+                           v-model="facilityForm.session_duration_unit"
+                           :items="['minutes', 'hours']"
+                           label="Unit"
+                           style="flex: 1;"
+                           class="mt-1"
+                         />
+                      </div>
+                   </VCol>
+                </VRow>
+
+                <VDivider class="my-6" />
+
                 <!-- Pricing Info -->
-                <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">Pricing Configuration</div>
+                <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">Pricing Strategy</div>
                 <VRow>
                    <VCol cols="12">
+                      <VSelect
+                        v-model="facilityForm.pricing_strategy"
+                        :items="strategyOptions"
+                        item-title="label"
+                        item-value="value"
+                        label="Pricing Strategy *"
+                        class="mb-2"
+                      />
+                   </VCol>
+
+                   <VCol cols="12">
+                      <AppTextField
+                         v-model.number="facilityForm.base_price"
+                         :label="facilityForm.pricing_strategy === 'FIXED' ? 'Total Fixed Price ($) *' : 'Base Price ($) *'"
+                         type="number"
+                         :hint="facilityForm.pricing_strategy === 'FIXED' ? 'This is the total price for the session' : 'Price will be multiplied by duration'"
+                         persistent-hint
+                      />
+                   </VCol>
+
+                   <VCol cols="12" v-if="facilityForm.protocol_type === 'SESSION_BASED'">
+                      <AppTextField
+                        v-model.number="facilityForm.duration_value"
+                        label="Total Sessions in Package"
+                        type="number"
+                        placeholder="e.g. 10"
+                        hint="Number of sessions included in this fixed price"
+                        persistent-hint
+                      />
+                   </VCol>
+
+                   <VCol cols="12" v-if="facilityForm.pricing_strategy === 'PER_UNIT'">
                       <VSelect
                         v-model="facilityForm.billing_unit"
                         :items="billingUnitOptions"
                         item-title="label"
                         item-value="value"
-                        label="Billing Type *"
+                        label="Billing Unit *"
                       />
                    </VCol>
-                   <VCol cols="6">
+                </VRow>
+
+                <VRow class="mt-4">
+                   <VCol cols="12" md="6">
                       <AppTextField
-                        v-model.number="facilityForm.base_price"
-                        label="Price ($) *"
+                        v-model.number="facilityForm.daily_capacity"
+                        label="Daily Capacity"
                         type="number"
+                        placeholder="Max bookings/day"
                       />
                    </VCol>
-                   <VCol cols="6" v-if="['PER_SESSION', 'HOURLY'].includes(facilityForm.billing_unit)">
+                   <VCol cols="12" md="6">
                       <AppTextField
-                        v-model.number="facilityForm.duration_minutes"
-                        label="Duration (min)"
+                        v-model.number="facilityForm.monthly_limit"
+                        label="Monthly Limit"
                         type="number"
+                        placeholder="Max bookings/month"
                       />
                    </VCol>
                 </VRow>
@@ -717,7 +996,7 @@ watch(() => props.serviceId, fetchData)
                 </p>
                 <div class="d-flex justify-center gap-3">
                     <VBtn variant="text" color="secondary" @click="showPermissionDialog = false">Close</VBtn>
-                    <VBtn color="primary" :to="{ name: 'provider-providerhome', hash: '#plans' }">Upgrade Plan</VBtn>
+                    <VBtn color="primary" :to="{ name: 'provider-home', hash: '#plans' }">Upgrade Plan</VBtn>
                 </div>
             </VCardText>
         </VCard>

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { api } from '@/plugins/axios'
+import { providerApi, veterinaryApi } from '@/plugins/axios'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -17,6 +17,8 @@ const newAssignment = ref({
   clinic: null,
   role: 'Receptionist',
   permissions: [],
+  specialization: '',
+  consultation_fee: 0,
 })
 
 const roles = ref([])
@@ -24,7 +26,7 @@ const roles = ref([])
 const fetchRoles = async () => {
   try {
     // Fetch Custom Roles created by the Organization in Service Provider Service
-    const res = await api.get('http://127.00.1:8002/api/provider/roles/')
+    const res = await providerApi.get('/api/provider/roles/')
 
     roles.value = res.data
   } catch (e) {
@@ -52,7 +54,7 @@ watch(() => props.modelValue, async val => {
 
 const fetchClinics = async () => {
   try {
-    const res = await api.get('http://127.0.0.1:8004/veterinary/clinics/')
+    const res = await veterinaryApi.get('/api/veterinary/clinics/')
 
     clinics.value = res.data
   } catch (e) {
@@ -64,7 +66,7 @@ const fetchAssignments = async () => {
   if (!props.employee?.auth_user_id) return
   loading.value = true
   try {
-    const res = await api.get(`http://127.0.0.1:8004/veterinary/assignments/?staff_id=${props.employee.auth_user_id}`)
+    const res = await veterinaryApi.get(`/api/veterinary/assignments/?staff_id=${props.employee.auth_user_id}`)
 
     assignments.value = res.data
   } catch (e) {
@@ -84,9 +86,11 @@ const addAssignment = async () => {
       role: newAssignment.value.role,
       staff_auth_id: props.employee.auth_user_id,
       permissions: newAssignment.value.permissions, // Send Explicit Permissions
+      specialization: newAssignment.value.specialization,
+      consultation_fee: newAssignment.value.consultation_fee,
     }
         
-    await api.post('http://127.0.0.1:8004/veterinary/assignments/', payload)
+    await veterinaryApi.post('/api/veterinary/assignments/', payload)
         
     await fetchAssignments()
     newAssignment.value.clinic = null
@@ -101,7 +105,7 @@ const addAssignment = async () => {
 const removeAssignment = async id => {
   if (!confirm("Start removal?")) return
   try {
-    await api.delete(`http://127.0.0.1:8004/veterinary/assignments/${id}/`)
+    await veterinaryApi.delete(`/api/veterinary/assignments/${id}/`)
     fetchAssignments()
   } catch (e) {
     alert("Failed to remove")
@@ -208,6 +212,28 @@ const getClinicName = id => clinics.value.find(c => c.id === id)?.name || id
                   bg-color="white"
                   :loading="roles.length === 0"
                   @update:model-value="syncPermissions"
+                />
+              </div>
+            </div>
+
+            <div v-if="newAssignment.role === 'Doctor'" class="d-flex gap-4 align-end">
+              <div style="flex: 2">
+                <VLabel class="mb-1 text-caption">Specialization</VLabel>
+                <VTextField 
+                  v-model="newAssignment.specialization" 
+                  placeholder="e.g. Surgeon" 
+                  density="compact"
+                  bg-color="white"
+                />
+              </div>
+              <div style="flex: 2">
+                <VLabel class="mb-1 text-caption">Consultation Fee (₹)</VLabel>
+                <VTextField 
+                  v-model.number="newAssignment.consultation_fee" 
+                  type="number"
+                  placeholder="e.g. 500" 
+                  density="compact"
+                  bg-color="white"
                 />
               </div>
             </div>

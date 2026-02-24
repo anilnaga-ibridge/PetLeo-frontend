@@ -5,6 +5,7 @@ import { usePermissionStore } from '@/stores/permissionStore'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useCookie } from '@/@core/composable/useCookie'
+import { ref, computed } from 'vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -46,57 +47,96 @@ const logout = async () => {
   router.push({ name: 'login' })
 }
 
-const userProfileList = [
-  { type: 'divider' },
-  {
-    type: 'navItem',
-    icon: 'tabler-user',
-    title: 'Profile',
-    to: { name: 'provider-profile' },
-  },
-  {
-    type: 'navItem',
-    icon: 'tabler-camera',
-    title: 'Change Avatar',
-    onClick: () => refInputEl.value?.click(),
-  },
-  {
-    type: 'navItem',
-    icon: 'tabler-settings',
-    title: 'Settings',
-    to: { name: 'provider-settings-tab', params: { tab: 'account' } },
-  },
-  {
-    type: 'navItem',
-    icon: 'tabler-file-dollar',
-    title: 'Billing Plan',
-    to: { name: 'provider-settings-tab', params: { tab: 'billing-plans' } },
-    badgeProps: {
-      color: 'error',
-      content: '4',
+const isEmployee = computed(() => {
+  const role = (userData.value?.role || '').toUpperCase()
+  const providerType = userData.value?.provider_type || userData.value?.providerType
+  
+  // They are an employee if:
+  // 1. They explicitly have an employee role
+  const employeeRoles = ['EMPLOYEE', 'DOCTOR', 'RECEPTIONIST', 'LAB TECH', 'PHARMACY', 'VITALS STAFF']
+  if (employeeRoles.includes(role)) return true
+  
+  // 2. Or they do NOT have a provider_type (Owners always have ORGANIZATION or INDIVIDUAL)
+  if (!providerType) return true
+  
+  // 3. Or their role is NOT one of the primary provider roles
+  const providerRoles = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER']
+  if (!providerRoles.includes(role)) return true
+
+  return false
+})
+
+const profileRoute = computed(() => {
+  console.log('🚀 [ProviderUserProfile] userData:', userData.value)
+  console.log('🚀 [ProviderUserProfile] isEmployee:', isEmployee.value)
+  return isEmployee.value ? '/employee/profile' : '/provider/profile'
+})
+
+const userProfileList = computed(() => {
+  const list = [
+    { type: 'divider' },
+    {
+      type: 'navItem',
+      icon: 'tabler-user',
+      title: 'Profile',
+      to: profileRoute.value,
     },
-  },
-  { type: 'divider' },
-  {
-    type: 'navItem',
-    icon: 'tabler-currency-dollar',
-    title: 'Pricing',
-    to: { name: 'provider-pricing' },
-  },
-  {
-    type: 'navItem',
-    icon: 'tabler-help',
-    title: 'FAQ',
-    to: { name: 'provider-faq' },
-  },
-  { type: 'divider' },
-  {
-    type: 'navItem',
-    icon: 'tabler-logout',
-    title: 'Logout',
-    onClick: logout,
-  },
-]
+    {
+      type: 'navItem',
+      icon: 'tabler-camera',
+      title: 'Change Avatar',
+      onClick: () => refInputEl.value?.click(),
+    },
+  ]
+
+  // Add provider-specific items only if NOT an employee
+  if (!isEmployee.value) {
+    list.push(
+      {
+        type: 'navItem',
+        icon: 'tabler-settings',
+        title: 'Settings',
+        to: { name: 'provider-settings-tab', params: { tab: 'account' } },
+      },
+      {
+        type: 'navItem',
+        icon: 'tabler-file-dollar',
+        title: 'Billing Plan',
+        to: { name: 'provider-settings-tab', params: { tab: 'billing-plans' } },
+        badgeProps: {
+          color: 'error',
+          content: '4',
+        },
+      },
+      { type: 'divider' },
+      {
+        type: 'navItem',
+        icon: 'tabler-currency-dollar',
+        title: 'Pricing',
+        to: { name: 'provider-pricing' },
+      },
+      {
+        type: 'navItem',
+        icon: 'tabler-help',
+        title: 'FAQ',
+        to: { name: 'provider-faq' },
+      },
+    )
+  }
+
+  // Always show Logout
+  list.push(
+    { type: 'divider' },
+    {
+      type: 'navItem',
+      icon: 'tabler-logout',
+      title: 'Logout',
+      onClick: logout,
+    },
+  )
+
+  return list
+})
 </script>
 
 <template>
@@ -175,7 +215,10 @@ const userProfileList = [
             </VListItemSubtitle>
           </VListItem>
 
-          <PerfectScrollbar :options="{ wheelPropagation: false }">
+          <PerfectScrollbar
+            v-if="userProfileList && userProfileList.length"
+            :options="{ wheelPropagation: false }"
+          >
             <template
               v-for="item in userProfileList"
               :key="item.title"

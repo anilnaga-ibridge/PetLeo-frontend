@@ -321,7 +321,7 @@ watch(searchQuery, fetchCategories)
                   />
                 </div>
                 <p 
-                  v-if="category.description && category.description !== category.name" 
+                  v-if="category.description" 
                   class="text-body-2 text-medium-emphasis line-clamp-2 mb-0"
                 >
                   {{ category.description }}

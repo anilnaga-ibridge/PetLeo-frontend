@@ -12,16 +12,54 @@ const route = useRoute()
 const permissionStore = usePermissionStore()
 const serviceId = computed(() => route.params.serviceId)
 
+console.log('🛣️ ROUTE DEBUG:')
+console.log('  Full route:', route)
+console.log('  route.params:', route.params)
+console.log('  route.params.serviceId:', route.params.serviceId)
+console.log('  serviceId.value:', serviceId.value)
+
 const serviceName = ref('')
-const canView = ref(false)
 const canCreate = ref(false)
 const canEdit = ref(false)
 const canDelete = ref(false)
 const activeTab = ref('overview')
 
+const normalize = (val) => (val || '').toLowerCase().replace(/[- ]/g, '_')
+
 const currentServicePermissions = computed(() => {
-  if (!serviceId.value) return {}
-  return permissionStore.permissions.find(p => p.service_id === serviceId.value) || {}
+  if (!serviceId.value) {
+    console.log('🔍 No serviceId from route')
+    return {}
+  }
+  
+  if (!permissionStore.permissions || permissionStore.permissions.length === 0) {
+    console.log('🔍 Permissions not loaded yet')
+    return {}
+  }
+  
+  const sid = normalize(serviceId.value)
+  
+  console.log('🔍 PERMISSION DEBUG:')
+  console.log('  Route serviceId:', serviceId.value)
+  console.log('  Normalized:', sid)
+  console.log('  All permissions:', permissionStore.permissions)
+  
+  const match = permissionStore.permissions.find(p => {
+    const match_id = normalize(p.service_id) === sid
+    const match_key = normalize(p.service_key) === sid
+    const match_name = normalize(p.service_name) === sid
+    
+    console.log(`  Checking ${p.service_name}: id=${match_id}, key=${match_key}, name=${match_name}`)
+    
+    if (match_id || match_key || match_name) {
+      console.log('  ✅ MATCHED:', p)
+    }
+    
+    return match_id || match_key || match_name
+  })
+  
+  console.log('  Final match:', match || 'NONE')
+  return match || {}
 })
 
 const userData = useCookie('userData')
@@ -32,7 +70,10 @@ const currentLayout = ProviderLayout
 const isVeterinary = computed(() => {
   if (!serviceName.value) return false
   
-  return serviceName.value.toUpperCase().includes('VETERINARY') || serviceId.value === '2dff446f-c95f-4310-ba4d-05e3395dd7eb'
+  const sn = normalize(serviceName.value)
+  const sid = normalize(serviceId.value)
+  
+  return sn.includes('veterinary') || sid === '2dff446f-c95f-4310-ba4d-05e3395dd7eb'
 })
 
 // Feature Mapping (Same as Super Admin)
@@ -63,102 +104,67 @@ const veterinaryFeatures = computed(() => {
   if (!isVeterinary.value) return []
   
   // Find the service permissions
-  const servicePerms = permissionStore.permissions.find(p => p.service_id === serviceId.value)
-  if (!servicePerms || !servicePerms.capabilities) return []
+  const servicePerms = currentServicePermissions.value
+  if (!servicePerms || !servicePerms.categories) return []
 
-  // Filter for VETERINARY_ capabilities
-  return servicePerms.capabilities.filter(cap => 
-    cap.code && cap.code.startsWith('VETERINARY_'),
-  ).map(cap => ({
-    id: cap.id,
-    name: formatFeatureName(cap.code),
-    code: cap.code,
-    enabled: true, // If it's in the list, it's enabled for this plan
+  // For veterinary_core, categories ARE the features
+  return (servicePerms.categories || []).map(cat => ({
+    id: cat.category_id,
+    name: cat.category_name || formatFeatureName(cat.category_key),
+    code: cat.category_key,
+    enabled: !!cat.can_view
   }))
 })
 
-const checkPermissions = () => {
-  if (!serviceId.value) return
+// Reactive Permission Calculation
+const servicePermissions = computed(() => currentServicePermissions.value)
 
-  // Find the service in the store permissions
-  const service = permissionStore.permissions.find(p => p.service_id === serviceId.value)
+// Unified canView check
+const canView = computed(() => {
+  console.log('🔒 CANVIEW CHECK:')
+  console.log('  servicePermissions.value:', servicePermissions.value)
+  console.log('  can_view:', servicePermissions.value?.can_view)
   
-  if (service) {
-    serviceName.value = service.service_name
-    canView.value = service.can_view
-    canCreate.value = service.can_create
-    canEdit.value = service.can_edit
-    canDelete.value = service.can_delete
-  } else {
-    // Service not found in permissions, likely not allowed
-    canView.value = false
+  if (servicePermissions.value?.can_view) {
+    console.log('  ✅ GRANTED via servicePermissions')
+    return true
   }
-}
-
-watch(serviceId, () => {
-  checkPermissions()
+  
+  // Fallback to capability check
+  const fallback = !!serviceId.value && permissionStore.hasCapability(serviceId.value)
+  console.log('  Fallback check:', fallback)
+  
+  return fallback
 })
+
+// Update other refs
+watch(servicePermissions, (newPerms) => {
+  if (newPerms) {
+    serviceName.value = newPerms.service_name
+    canCreate.value = newPerms.can_create
+    canEdit.value = newPerms.can_edit
+    canDelete.value = newPerms.can_delete
+  }
+}, { immediate: true })
 
 onMounted(async () => {
   // Always fetch fresh permissions to ensure we have the latest access rights
   await permissionStore.fetchPermissions()
-  checkPermissions()
+  
+  // TODO: Implement analytics fetching
+  // if (!isVeterinary.value && canView.value) {
+  //     fetchServiceAnalytics()
+  // }
 })
 
 import { veterinaryApi } from '@/api/veterinary'
-
-// ... existing code ...
-
-const analyticsStats = ref([
-  { title: 'Total Revenue', value: '$0', change: '0%', icon: 'tabler-currency-dollar', color: 'primary' },
-  { title: 'Bookings', value: '0', change: '0%', icon: 'tabler-calendar-check', color: 'success' },
-  { title: 'Profile Views', value: '0', change: '0%', icon: 'tabler-eye', color: 'info' },
-  { title: 'Avg. Rating', value: '0', change: '0', icon: 'tabler-star', color: 'warning' },
-])
-
-const recentActivity = ref([])
-const loadingAnalytics = ref(false)
-
-const fetchServiceAnalytics = async () => {
-  if (!serviceId.value) return 
-  
-  loadingAnalytics.value = true
-  try {
-     const today = new Date().toISOString().slice(0, 10)
-     const res = await veterinaryApi.getAnalytics({ date: today, service_id: serviceId.value })
-     const data = res.data
-     
-     if (data) {
-        analyticsStats.value = [
-            { title: 'Total Revenue', value: `$${data.revenue?.value || 0}`, change: `${data.revenue?.change || 0}%`, icon: 'tabler-currency-dollar', color: 'primary' },
-            { title: 'Bookings', value: data.bookings?.value || 0, change: `${data.bookings?.change || 0}%`, icon: 'tabler-calendar-check', color: 'success' },
-            { title: 'Profile Views', value: data.profile_views?.value || 0, change: `${data.profile_views?.change || 0}%`, icon: 'tabler-eye', color: 'info' },
-            { title: 'Avg. Rating', value: data.avg_rating?.value || 4.8, change: `${data.avg_rating?.change || 0}`, icon: 'tabler-star', color: 'warning' },
-        ]
-        recentActivity.value = data.recent_activity || []
-     }
-  } catch (e) {
-     console.error("Failed to fetch service analytics", e)
-  } finally {
-     loadingAnalytics.value = false
-  }
-}
-
-onMounted(async () => {
-  // Always fetch fresh permissions to ensure we have the latest access rights
-  await permissionStore.fetchPermissions()
-  checkPermissions()
-  // Fetch Analytics if not veterinary (Veterinary has its own dashboard)
-  if (!isVeterinary.value) {
-      fetchServiceAnalytics()
-  }
-})
 
 // ... rest of code ...
 
 
 const showUpgradeDialog = ref(false)
 const router = useRouter()
+const recentActivity = ref([])
 
 const handleOpenDashboard = () => {
   if (permissionStore.hasCapability('VETERINARY_CORE')) {
@@ -519,7 +525,7 @@ const handleOpenDashboard = () => {
                   </VBtn>
                   <VBtn
                     color="primary"
-                    :to="{ name: 'provider-providerhome', hash: '#plans' }"
+                    :to="{ name: 'provider-home', hash: '#plans' }"
                   >
                     View Plans
                   </VBtn>
@@ -580,6 +586,8 @@ const handleOpenDashboard = () => {
 </style>
 
 <route lang="yaml">
+name: provider-service-details
+path: /provider/service-details/:serviceId
 meta:
   layout: blank
   action: read

@@ -92,7 +92,7 @@ const ensureDoctorAssigned = async () => {
   if (['CREATED', 'CHECKED_IN', 'VITALS_RECORDED'].includes(currentStatus)) {
     try {
       console.log(`[Safety] Forcing DOCTOR_ASSIGNED state via direct API...`)
-      await veterinaryApi.post(`/veterinary/visits/${props.visit.id}/transition/`, { status: 'DOCTOR_ASSIGNED' })
+      await veterinaryApi.post(`/api/veterinary/visits/${props.visit.id}/transition/`, { status: 'DOCTOR_ASSIGNED' })
       await store.fetchVisitSummary(props.visit.id)
     } catch (e) {
       console.error("Auto-assign doctor failed:", e)

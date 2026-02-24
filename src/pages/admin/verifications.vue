@@ -5,7 +5,7 @@ import { superAdminApi } from '@/plugins/axios'
 definePage({
   name: 'admin-verifications',
   meta: {
-    layout: 'default',
+    layout: 'blank',
     requiresAuth: true,
     role: 'super_admin',
   },
@@ -44,6 +44,7 @@ const fetchDocuments = async () => {
   loading.value = true
   try {
     const res = await superAdminApi.get('/api/superadmin/verification/documents/')
+    console.log('📄 Verifications API Response:', res.data)
     documents.value = res.data.results || res.data
   } catch (err) {
     console.error('Failed to fetch documents:', err)

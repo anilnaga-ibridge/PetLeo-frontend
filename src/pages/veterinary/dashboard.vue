@@ -4,6 +4,8 @@ import { useCookie } from '@/@core/composable/useCookie'
 import { computed, ref, onMounted, watch } from 'vue' 
 import { useVeterinaryStore } from '@/stores/veterinaryStore'
 
+const currentLayout = VeterinaryLayout
+
 import WaitingRoomWidget from '@/components/veterinary/dashboard/WaitingRoomWidget.vue'
 import ScheduleWidget from '@/components/veterinary/dashboard/ScheduleWidget.vue'
 import VitalsQueueWidget from '@/components/veterinary/dashboard/VitalsQueueWidget.vue'
@@ -24,7 +26,7 @@ const activeClinicId = computed(() => userData.value?.clinic_id || store.activeC
 
 const can = cap => permissionStore.hasCapability(cap)
 
-const currentLayout = VeterinaryLayout
+
 
 // [NEW] Date Filtering
 const dateFilter = ref('Today')
@@ -40,7 +42,7 @@ function formatDate(date) {
 }
 
 const targetDate = computed(() => {
-    if (dateFilter.value === 'Today') return null // Backend defaults to today
+    if (dateFilter.value === 'Today') return null
     if (dateFilter.value === 'Yesterday') {
         const d = new Date()
         d.setDate(d.getDate() - 1)
@@ -206,3 +208,5 @@ meta:
   action: read
   subject: Auth
 </route>
+
+

@@ -52,6 +52,12 @@ const userProfileList = [
   { type: 'divider' },
   {
     type: 'navItem',
+    icon: 'tabler-layout-dashboard',
+    title: 'Dashboard',
+    to: { name: 'provider-dashboard' },
+  },
+  {
+    type: 'navItem',
     icon: 'tabler-user',
     title: 'Profile',
     to: { name: 'pages-user-profile-tab', params: { tab: 'profile' } },

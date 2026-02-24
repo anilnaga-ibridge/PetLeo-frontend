@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useCookie } from '@/@core/composable/useCookie'
 import MultiBoxPinInput from '@/components/MultiBoxPinInput.vue'
 import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
+import { usePermissionStore } from '@/stores/permissionStore'
 
 definePage({
   meta: { 
@@ -129,6 +130,11 @@ const submitPin = async () => {
     }
     
     localStorage.removeItem("reset_token")
+
+    // 🚀 [FIX] Fetch fresh permissions/profile info BEFORE redirecting
+    // This ensures avatar, role, and name are correctly loaded on the dashboard
+    const permissionStore = usePermissionStore()
+    await permissionStore.fetchPermissions()
 
     setTimeout(() => {
       if (authToken) router.replace('/')

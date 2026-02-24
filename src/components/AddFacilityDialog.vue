@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import axios from 'axios'
+import { providerApi } from '@/plugins/axios'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -62,30 +62,12 @@ const save = async () => {
   error.value = ''
   
   try {
-    const url = props.facility 
-      ? `http://127.0.0.1:8002/api/provider/facilities/${props.facility.id}/`
-      : `http://127.0.0.1:8002/api/provider/facilities/`
-      
-    const method = props.facility ? 'patch' : 'post'
-    const token = localStorage.getItem('accessToken')
-    
-    // ProviderFacility requires 'category' ID
-    const payload = {
-      ...form.value,
-      category: form.value.category_id,
-    }
-
-    // Remove service_id as it's not directly on ProviderFacility (it's on Category)
-    // But wait, my serializer might not require it if I set it in perform_create?
-    // Actually ProviderFacility links to Category.
-    
-    await axios({
-      method,
-      url,
+    const res = await providerApi({
+      method: props.facility ? 'patch' : 'post',
+      url: props.facility 
+        ? `/api/provider/facilities/${props.facility.id}/`
+        : `/api/provider/facilities/`,
       data: payload,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     })
     
     emit('saved')

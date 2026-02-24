@@ -20,16 +20,15 @@ import authV2LoginIllustrationBorderedLight from '@images/pages/auth-v2-login-il
 import authV2LoginIllustrationBorderedDark from '@images/pages/auth-v2-login-illustration-bordered-dark.png'
 import authV2MaskDark from '@images/pages/misc-mask-dark.png'
 import authV2MaskLight from '@images/pages/misc-mask-light.png'
-import authAnimal1 from '@images/pages/login-bg-animal-1.jpg'
-import authAnimal2 from '@images/pages/login-bg-animal-2.jpg'
-import authAnimal3 from '@images/pages/login-bg-animal-3.jpg'
-import authAnimal4 from '@images/pages/login-bg-animal-4.jpg'
+import authPet1 from '@images/pages/login-bg-pet-1.jpg'
+import authPet2 from '@images/pages/login-bg-pet-2.jpg'
+import authPet3 from '@images/pages/login-bg-pet-3.jpg'
 
 const authBackgrounds = [
-  authAnimal1,
-  authAnimal2,
-  authAnimal3,
-  authAnimal4,
+  authPet1,
+  authPet2,
+  authPet3,
+  '/petservices.mp4',
 ]
 
 const router = useRouter()
@@ -298,7 +297,7 @@ onMounted(() => {
     >
       <VCarousel
         cycle
-        interval="3000"
+        interval="8000"
         height="100%"
         hide-delimiters
         :show-arrows="false"
@@ -307,9 +306,28 @@ onMounted(() => {
         <VCarouselItem
           v-for="(item, i) in authBackgrounds"
           :key="i"
-          :src="item"
-          cover
-        />
+        >
+          <template v-if="item.endsWith('.mp4')">
+            <video
+              :src="item"
+              autoplay
+              muted
+              playsinline
+              loop
+              oncanplay="this.muted=true; this.volume=0"
+              onloadedmetadata="this.muted=true; this.volume=0"
+              class="h-100 w-100 object-cover"
+              style="object-fit: cover;"
+            />
+          </template>
+          <template v-else>
+            <VImg
+              :src="item"
+              cover
+              class="h-100 w-100"
+            />
+          </template>
+        </VCarouselItem>
       </VCarousel>
 
       <!-- Static Overlay -->

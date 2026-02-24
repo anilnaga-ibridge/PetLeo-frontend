@@ -1,4 +1,4 @@
-import { veterinaryApi as axios } from '@/plugins/axios'
+import { providerApi } from '@/plugins/axios'
 
 /**
  * Maps backend permission tree to frontend capability strings.
@@ -11,7 +11,7 @@ export const flattenPermissions = permissionTree => {
   if (!Array.isArray(permissionTree)) return []
 
   permissionTree.forEach(service => {
-    console.log('FLATTEN DEBUG: Processing Service:', service.service_name, service.service_key)
+    // console.log('FLATTEN DEBUG: Processing Service:', service.service_name, service.service_key)
     const serviceName = (service.service_name || '').toLowerCase()
 
     // Service Level Mapping
@@ -69,7 +69,7 @@ export const fetchAndMergePermissions = async userData => {
       return userData
     }
 
-    const response = await axios.get('/provider/permissions/')
+    const response = await providerApi.get('/api/provider/permissions/')
     const permissionTree = response.data.permissions || []
 
     const dynamicCapabilities = flattenPermissions(permissionTree)

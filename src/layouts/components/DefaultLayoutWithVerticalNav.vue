@@ -36,7 +36,20 @@ const filteredNavItems = computed(() => {
   const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE'].includes(role)
   
   // Use Provider Navigation if Provider Role, otherwise Default (SuperAdmin)
-  let items = isProvider ? getProviderNavigation() : navItems
+  console.log('🔍 Sidebar Debug: Role:', role, 'isProvider:', isProvider)
+  
+  // [FIX] Force Super Admin Navigation (navItems also contains provider, but index.js spreads superadmin first)
+  // Actually index.js exports EVERYTHING. DefaultLayout filters them.
+  // Wait, getProviderNavigation returns ONLY provider items.
+  // navItems returns EVERYTHING.
+  // So if we are SuperAdmin, we want navItems.
+  
+  let items = (role === 'SUPERADMIN' || role === 'ADMIN') 
+    ? navItems 
+    : (isProvider ? getProviderNavigation() : navItems)
+
+  console.log('🔍 Sidebar Debug: Is SuperAdmin Force:', (role === 'SUPERADMIN' || role === 'ADMIN'))
+  console.log('🔍 Sidebar Debug: Items Source:', (role === 'SUPERADMIN' || role === 'ADMIN') ? 'Forced Default/Index' : (isProvider ? 'Provider' : 'Default/Index'))
   
   console.log(`🧭 Sidebar: Initial Items: ${items.length}, DynamicLoaded: ${permissionStore.isDynamicAccessLoaded}`)
 
@@ -102,11 +115,18 @@ import NavBarI18n from '@core/components/I18n.vue'
 
 // @layouts plugin
 import { VerticalNavLayout } from '@layouts'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const isProviderArea = computed(() => {
+  return (route.path && (route.path.includes('/provider/') || route.path.includes('/employee/'))) || 
+         (route.name && (String(route.name).startsWith('provider-') || String(route.name).startsWith('employee-'))) ||
+         (route.name && (String(route.name).includes('providerhome') || String(route.name).includes('employeehome')))
+})
 </script>
 
 <template>
-  <template v-if="isAppReady">
-    <VerticalNavLayout :nav-items="filteredNavItems">
+  <VerticalNavLayout v-if="!isProviderArea" :nav-items="filteredNavItems">
     <!-- 👉 navbar -->
     <template #navbar="{ toggleVerticalOverlayNavActive }">
       <div class="d-flex h-100 align-center">
@@ -147,11 +167,7 @@ import { VerticalNavLayout } from '@layouts'
     <!-- 👉 Customizer -->
     <TheCustomizer />
   </VerticalNavLayout>
-  </template>
-  <div v-else class="h-100 d-flex align-center justify-center bg-white" style="position: fixed; inset: 0; z-index: 9999;">
-    <div class="text-center">
-      <VProgressCircular indeterminate color="primary" size="64" width="6" class="mb-4" />
-      <div class="text-h6 text-medium-emphasis">Loading your workspace...</div>
-    </div>
+  <div v-else class="layout-wrapper layout-blank">
+    <slot />
   </div>
 </template>

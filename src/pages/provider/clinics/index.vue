@@ -1,6 +1,14 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { veterinaryApi } from '@/plugins/axios'
+import ProviderLayout from '@/components/ProviderLayout.vue'
+
+definePage({
+  meta: {
+    layout: 'blank',
+    permission: 'manage_clinics',
+  },
+})
 
 // Components
 import AppTextField from '@core/components/app-form-elements/AppTextField.vue'
@@ -34,7 +42,7 @@ const headers = [
 const fetchClinics = async () => {
   loading.value = true
   try {
-    const res = await veterinaryApi.get('/veterinary/clinics/')
+    const res = await veterinaryApi.get('/api/veterinary/clinics/')
 
     clinics.value = res.data
   } catch (err) {
@@ -52,9 +60,9 @@ const handleSubmit = async () => {
 
   try {
     if (isEdit.value && editingId.value) {
-      await veterinaryApi.patch(`/veterinary/clinics/${editingId.value}/`, form.value)
+      await veterinaryApi.patch(`/api/veterinary/clinics/${editingId.value}/`, form.value)
     } else {
-      await veterinaryApi.post('/veterinary/clinics/', form.value)
+      await veterinaryApi.post('/api/veterinary/clinics/', form.value)
     }
     
     drawerOpen.value = false
@@ -76,7 +84,7 @@ const handleSubmit = async () => {
 const deleteClinic = async item => {
   if (!confirm(`Are you sure you want to delete ${item.name}?`)) return
   try {
-    await veterinaryApi.delete(`/veterinary/clinics/${item.id}/`)
+    await veterinaryApi.delete(`/api/veterinary/clinics/${item.id}/`)
     fetchClinics()
   } catch (err) {
     console.error('Delete failed:', err)
@@ -118,7 +126,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="pa-4">
+  <ProviderLayout>
+    <section class="pa-4">
     <!-- HEADER -->
     <VCard class="mb-6">
       <VCardItem class="pb-2">
@@ -303,5 +312,6 @@ onMounted(() => {
         </VRow>
       </VForm>
     </VNavigationDrawer>
-  </section>
+    </section>
+  </ProviderLayout>
 </template>

@@ -4,14 +4,11 @@ import { usePermissionStore } from '@/stores/permissionStore'
 const getProviderNavigation = () => {
   const permissionStore = usePermissionStore()
 
-  // Get User Role
-  let userData = {}
-  try {
-    userData = JSON.parse(localStorage.getItem('userData') || '{}')
-  } catch (e) {
-    console.error('❌ provider.js: Error parsing userData', e)
-  }
+  // CRITICAL FIX: Use reactive userData from store, not localStorage
+  const userData = permissionStore.userData || {}
   const roleUpper = (userData.role?.name || userData.role || '').toUpperCase()
+
+  console.log(`🔍 Provider Navigation: Role = "${roleUpper}" (from permissionStore)`)
 
   // STRICT: Internal Wait for Dynamic Access
   if (!permissionStore.isDynamicAccessLoaded || !permissionStore.isPermissionsLoaded) {
@@ -27,42 +24,46 @@ const getProviderNavigation = () => {
   // [FIX] Dynamic Dashboard Link
   const dashboardRoute = isProviderOrOrg ? { name: 'provider-dashboard' } : { name: 'employee-dashboard' }
 
-  const navigation = [
-    {
+  const navigation = []
+
+  // Only add Home if they are a Provider/Org Owner
+  if (isProviderOrOrg) {
+    navigation.push({
       title: 'Home',
-      to: { name: 'provider-providerhome' },
-      icon: { icon: 'tabler-home' },
-    },
-    {
-      title: 'Dashboard',
-      to: dashboardRoute,
+      to: { name: 'provider-home' },
       icon: { icon: 'tabler-smart-home' },
-    }
-  ]
+    })
+  }
+
+  // Dashboard is always shown, but route is dynamic (already handled below)
+  navigation.push({
+    title: 'Dashboard',
+    to: dashboardRoute,
+    icon: { icon: 'tabler-presentation-analytics' },
+  })
 
   if (isProviderOrOrg) {
     navigation.push(
       {
-        title: 'Plan Cart',
-        to: { name: 'provider-cart' },
-        icon: { icon: 'tabler-shopping-cart' },
+        title: 'Marketplace Profile',
+        to: { name: 'provider-profile', query: { tab: 'marketplace' } },
+        icon: { icon: 'tabler-building-store' },
       },
       {
         title: 'Plan Bookings',
         to: { name: 'provider-plan-bookings' },
-        icon: { icon: 'tabler-list-check' },
+        icon: { icon: 'tabler-calendar-heart' },
       },
       {
         title: 'My Subscription',
         to: { name: 'provider-subscription' },
-        icon: { icon: 'tabler-id' },
+        icon: { icon: 'tabler-crown' },
       }
     )
   }
 
   // Add dynamic service items based on permissions
   const enabledServices = permissionStore.enabledServices
-  console.log('🧭 ProviderNav: enabledServices received:', enabledServices.length, enabledServices.map(s => s.service_name))
   const serviceItems = []
   const clinicItems = []
 
@@ -71,92 +72,106 @@ const getProviderNavigation = () => {
     const processedServiceNames = new Set()
 
     enabledServices.forEach(service => {
-      // console.log('🧭 Navigation Debug:', { name: service.service_name, id: service.service_id })
-
       const serviceId = (service.service_id || '').toUpperCase()
       const serviceName = (service.service_name || '').toLowerCase().trim()
 
-      // Deduplication Check
       if (processedServiceIds.has(serviceId) || processedServiceNames.has(serviceName)) return
       processedServiceIds.add(serviceId)
       processedServiceNames.add(serviceName)
 
-      // CHECK: Is this Veterinary?
-      // Strict check for ANY veterinary key to exclude from Business Services list
-      const isVeterinary = serviceName.includes('veterinary') ||
-        serviceId.startsWith('VETERINARY_')
+      const isVeterinary = serviceName.includes('veterinary') || serviceId.startsWith('VETERINARY_')
 
-      // We explicitly Separated Clinic. So we DO NOT add Veterinary to serviceItems loop.
-      // And we handle ClinicItems separately via explicit permission check below.
       if (!isVeterinary) {
-        // It is a Business Service (Grooming, Daycare, etc)
+        // Map premium icons based on service names
+        let serviceIcon = service.icon || 'tabler-box'
+        if (serviceName.includes('grooming')) serviceIcon = 'tabler-cut'
+        if (serviceName.includes('day care') || serviceName.includes('daycare')) serviceIcon = 'tabler-paw'
+        if (serviceName.includes('training')) serviceIcon = 'tabler-award'
+
         serviceItems.push({
           title: service.service_name,
           to: { name: 'provider-service-details', params: { serviceId: service.service_id } },
-          icon: { icon: service.icon || 'tabler-box' },
-          canView: () => permissionStore.canViewService(service.service_name),
+          icon: { icon: serviceIcon },
         })
       }
     })
   }
 
-  // --- STRICT CLINIC CHECK (Permission-Driven) ---
-  // Check if user has ANY veterinary permission (even if VETERINARY_CORE is missing from enabledServices list)
-  // We check the raw permissions array or use hasCapability check helper if available
+  // Clinic Section
   const hasVeterinaryAccess = permissionStore.permissions.some(p => {
     const key = (p.service_key || '').toUpperCase()
     const name = (p.service_name || '').toLowerCase()
-    // Check for enabled VETERINARY_* permission
-    // Note: p.can_view is already filtered in enabledServices check usually,
-    // but here we check raw store permissions just to be safe if filtering logic differs.
-    // Actually permissionStore.permissions IS the source.
     return (key.startsWith('VETERINARY_') || name.includes('veterinary')) && p.can_view
   })
 
-  // Also check if they triggered the VETERINARY_CORE "implicit grant" logic in store
-  const implicitVetAccess = permissionStore.hasCapability('VETERINARY_CORE')
-
-  if (hasVeterinaryAccess || implicitVetAccess) {
-    // Filter children to show only what they have access to 
-    // AND exclude the dashboard/heading items to keep it clean if nested
+  if (hasVeterinaryAccess || permissionStore.hasCapability('VETERINARY_CORE')) {
     clinicItems.push({
-      title: 'Veterinary', // Hardcoded clean name
+      title: 'Veterinary',
       to: { name: 'veterinary-dashboard' },
-      icon: { icon: 'tabler-stethoscope' },
-      canView: () => true // Access is verified above
+      icon: { icon: 'tabler-building-hospital' },
     })
   }
-  // -----------------------------------------------
 
-  // Push "Clinic" Section
   if (clinicItems.length > 0) {
     navigation.push({ heading: 'Clinic' })
     navigation.push(...clinicItems)
   }
 
-  // Push "Services" Section
-  if (serviceItems.length > 0) {
+  // Services Section
+  if (isProviderOrOrg && serviceItems.length > 0) {
     navigation.push({ heading: 'Services' })
     navigation.push(...serviceItems)
   }
 
-  // Add other conditional items
-  if (permissionStore.canViewService('bookings')) {
+  // Customer Bookings (New Premium Page)
+  // Visible to:
+  // 1. Providers/Orgs (Owners) - Always
+  // 2. Employees - Always, but with different titles
+  const bookingsTitle = isProviderOrOrg ? 'Customer Bookings' : 'My Bookings'
+  navigation.push({
+    title: bookingsTitle,
+    to: isProviderOrOrg ? { name: 'provider-customer-bookings' } : { name: 'employee-bookings' },
+    icon: { icon: 'tabler-calendar-star' },
+  })
+
+  // My Customers (Employees only)
+  if (!isProviderOrOrg) {
     navigation.push({
-      title: 'Bookings',
-      to: { name: 'provider-bookings' },
-      icon: { icon: 'tabler-calendar' },
+      title: 'My Customers',
+      to: { name: 'employee-customers' },
+      icon: { icon: 'tabler-users' },
     })
   }
 
-  // Check for Organization role to show Employees and Roles
-  if (roleUpper === 'ORGANIZATION' || roleUpper === 'ORGANIZATION_PROVIDER') {
+  // Schedule & Availability
+  // Visible to Providers/Orgs and authorized employees
+  if (isProviderOrOrg || permissionStore.hasCapability('manage_schedule')) {
+    navigation.push({
+      title: 'Availability',
+      to: isProviderOrOrg ? { name: 'provider-availability' } : { name: 'employee-schedule' },
+      icon: { icon: 'tabler-clock' },
+    })
+  }
+
+  // Reviews/Ratings
+  navigation.push({
+    title: 'Reviews',
+    to: isProviderOrOrg ? { name: 'provider-reviews' } : { name: 'employee-reviews' },
+    icon: { icon: 'tabler-star' },
+  })
+
+  // Organization Section - Only for ORGANIZATION type providers
+  // Individual providers don't manage employees, roles or multi-clinics
+  const isOrganization = roleUpper === 'ORGANIZATION' ||
+    (userData.provider_type || '').toUpperCase() === 'ORGANIZATION'
+
+  if (isOrganization) {
     navigation.push(
       { heading: 'Organization' },
       {
         title: 'Employees',
         to: { name: 'provider-employees' },
-        icon: { icon: 'tabler-users' },
+        icon: { icon: 'tabler-users-group' },
       },
       {
         title: 'Roles',
@@ -166,10 +181,11 @@ const getProviderNavigation = () => {
       {
         title: 'Clinics',
         to: { name: 'provider-clinics' },
-        icon: { icon: 'tabler-building-hospital' },
+        icon: { icon: 'tabler-map-pin' },
       }
     )
   }
+
 
 
 

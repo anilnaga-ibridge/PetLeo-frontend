@@ -28,7 +28,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
 
       this.loading = true
       try {
-        const response = await veterinaryApi.get(`/veterinary/forms/definitions/${code}/?t=${Date.now()}`)
+        const response = await veterinaryApi.get(`/api/veterinary/forms/definitions/${code}/?t=${Date.now()}`)
 
         this.formDefinitions[code] = response.data
 
@@ -45,7 +45,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async fetchVisitSummary(visitId) {
       this.loading = true
       try {
-        const response = await veterinaryApi.get(`/veterinary/visits/${visitId}/summary/?t=${Date.now()}`)
+        const response = await veterinaryApi.get(`/api/veterinary/visits/${visitId}/summary/?t=${Date.now()}`)
 
         this.currentVisit = response.data
         if (response.data.visit?.clinic_id) {
@@ -66,7 +66,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async submitForm(visitId, formCode, data) {
       this.loading = true
       try {
-        const response = await veterinaryApi.post(`/veterinary/visits/${visitId}/submit/${formCode}/`, data)
+        const response = await veterinaryApi.post(`/api/veterinary/visits/${visitId}/submit/${formCode}/`, data)
 
 
         // Refresh visit summary to show new submission
@@ -87,7 +87,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
       try {
         // Use dedicated transition endpoint for robust state management
         // This bypasses serializer complexity and ensures WorkflowService is authoritative
-        const response = await veterinaryApi.post(`/veterinary/visits/${visitId}/transition/`, { status })
+        const response = await veterinaryApi.post(`/api/veterinary/visits/${visitId}/transition/`, { status })
 
         await this.fetchVisitSummary(visitId)
 
@@ -103,7 +103,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async fetchPendingVisits(role, clinicId) {
       this.loading = true
       try {
-        let endpoint = '/veterinary/visits/'
+        let endpoint = '/api/veterinary/visits/'
         const params = { clinic_id: clinicId }
 
         if (role === 'VITALS_STAFF') {
@@ -129,7 +129,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async fetchPets() {
       this.loading = true
       try {
-        const response = await veterinaryApi.get('/veterinary/pets/')
+        const response = await veterinaryApi.get('/api/veterinary/pets/')
 
         this.pets = response.data.results || response.data
 
@@ -146,7 +146,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async fetchPetById(petId) {
       this.loading = true
       try {
-        const response = await veterinaryApi.get(`/veterinary/pets/${petId}/`)
+        const response = await veterinaryApi.get(`/api/veterinary/pets/${petId}/`)
 
         return response.data
       } catch (err) {
@@ -160,7 +160,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async updatePet(petId, petData) {
       this.loading = true
       try {
-        const response = await veterinaryApi.patch(`/veterinary/pets/${petId}/`, petData)
+        const response = await veterinaryApi.patch(`/api/veterinary/pets/${petId}/`, petData)
 
         return response.data
       } catch (err) {
@@ -174,7 +174,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async deletePet(petId) {
       this.loading = true
       try {
-        await veterinaryApi.delete(`/veterinary/pets/${petId}/`)
+        await veterinaryApi.delete(`/api/veterinary/pets/${petId}/`)
       } catch (err) {
         console.error(`Failed to delete pet ${petId}:`, err)
         throw err
@@ -186,7 +186,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async createVisit(visitData) {
       this.loading = true
       try {
-        const response = await veterinaryApi.post('/veterinary/visits/', visitData)
+        const response = await veterinaryApi.post('/api/veterinary/visits/', visitData)
 
         return response.data
       } catch (err) {
@@ -201,7 +201,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async updateVisit(visitId, visitData) {
       this.loading = true
       try {
-        const response = await veterinaryApi.patch(`/veterinary/visits/${visitId}/`, visitData)
+        const response = await veterinaryApi.patch(`/api/veterinary/visits/${visitId}/`, visitData)
 
         return response.data
       } catch (err) {
@@ -215,7 +215,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async deleteVisit(visitId) {
       this.loading = true
       try {
-        await veterinaryApi.delete(`/veterinary/visits/${visitId}/`)
+        await veterinaryApi.delete(`/api/veterinary/visits/${visitId}/`)
       } catch (err) {
         console.error(`Failed to delete visit ${visitId}:`, err)
         throw err
@@ -227,7 +227,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async fetchClinics() {
       this.loading = true
       try {
-        const response = await veterinaryApi.get('/veterinary/clinics/')
+        const response = await veterinaryApi.get('/api/veterinary/clinics/')
         const clinics = response.data.results || response.data
 
         // [NEW] Robust Auto-select Logic
@@ -325,7 +325,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
 
       this.loading = true
       try {
-        const response = await veterinaryApi.get('/veterinary/field-definitions/', {
+        const response = await veterinaryApi.get('/api/veterinary/field-definitions/', {
           params: { entity_type: entityType, clinic: clinicId },
         })
 
@@ -446,7 +446,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
           data: data,
         }
 
-        const response = await veterinaryApi.post('/veterinary/entities/', payload)
+        const response = await veterinaryApi.post('/api/veterinary/entities/', payload)
 
         return response.data
       } catch (err) {
@@ -481,7 +481,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
 
       this.loading = true
       try {
-        const response = await veterinaryApi.get(`/veterinary/visits/queues/${queueName}/`, {
+        const response = await veterinaryApi.get(`/api/veterinary/visits/queues/${queueName}/`, {
           params: { clinic_id: clinicId, ...filters },
         })
 
@@ -501,7 +501,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
         const params = { clinic_id: clinicId }
         if (date) params.date = date
 
-        const response = await veterinaryApi.get('/veterinary/analytics/dashboard/', { params })
+        const response = await veterinaryApi.get('/api/veterinary/analytics/dashboard/', { params })
 
         return response.data
       } catch (err) {
@@ -518,7 +518,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
       try {
         const params = { clinic_id: clinicId }
         if (date) params.date = date
-        const response = await veterinaryApi.get('/veterinary/analytics/summary/', { params })
+        const response = await veterinaryApi.get('/api/veterinary/analytics/summary/', { params })
         return response.data
       } catch (err) {
         console.error('Failed to fetch live summary:', err)
@@ -532,7 +532,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async fetchVisitTimeline(visitId) {
       this.loading = true
       try {
-        const response = await veterinaryApi.get(`/veterinary/visits/${visitId}/timeline/`)
+        const response = await veterinaryApi.get(`/api/veterinary/visits/${visitId}/timeline/`)
 
         return response.data
       } catch (err) {
@@ -547,7 +547,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async checkInVisit(visitId) {
       this.loading = true
       try {
-        const response = await veterinaryApi.post(`/veterinary/visits/${visitId}/check-in/`)
+        const response = await veterinaryApi.post(`/api/veterinary/visits/${visitId}/check-in/`)
 
         return response.data
       } catch (err) {
@@ -565,7 +565,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
         // If owner details are provided but no owner ID, we might need a separate call 
         // but let's assume the backend handles it or we do it here.
         // For now, let's keep it simple and just hit the endpoint.
-        const response = await veterinaryApi.post('/veterinary/pets/', petData)
+        const response = await veterinaryApi.post('/api/veterinary/pets/', petData)
 
         // Refresh pets list
         await this.fetchPets()
@@ -596,8 +596,8 @@ export const useVeterinaryStore = defineStore('veterinary', {
         const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER'].includes(role)
 
         const endpoint = isProvider
-          ? `/veterinary/pets/${petId}/`
-          : `/veterinary/pets/${petId}/clinic-update/`
+          ? `/api/veterinary/pets/${petId}/`
+          : `/api/veterinary/pets/${petId}/clinic-update/`
 
         const response = await veterinaryApi.patch(endpoint, petData)
 
@@ -615,7 +615,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     async deletePet(petId) {
       this.loading = true
       try {
-        await veterinaryApi.delete(`/veterinary/pets/${petId}/`)
+        await veterinaryApi.delete(`/api/veterinary/pets/${petId}/`)
         await this.fetchPets()
       } catch (err) {
         console.error('Failed to delete pet:', err)
@@ -697,6 +697,45 @@ export const useVeterinaryStore = defineStore('veterinary', {
         return newBreed
       } catch (err) {
         console.error('Failed to create pet breed:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchMedicalAppointments(params = {}) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.getMedicalAppointments(params)
+        return response.data.results || response.data
+      } catch (err) {
+        console.error('Failed to fetch medical appointments:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async createMedicalAppointment(appointmentData) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.createMedicalAppointment(appointmentData)
+        return response.data
+      } catch (err) {
+        console.error('Failed to create medical appointment:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchDoctorAvailability(clinicId, params) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.getVeterinaryAvailability(clinicId, params)
+        return response.data.slots
+      } catch (err) {
+        console.error('Failed to fetch doctor availability:', err)
         throw err
       } finally {
         this.loading = false
