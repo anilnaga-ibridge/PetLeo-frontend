@@ -26,41 +26,18 @@ onMounted(async () => {
 
 const filteredNavItems = computed(() => {
   const user = userData.value || {}
-  const role = (user.role?.name || user.role || '').toUpperCase()
-
-  // [FIX] Use Reactive Store Permissions (synced from Clinic), not static Cookie
-  const permissions = permissionStore.permissions || []
-
-  console.log('Sidebar Debug:', { 
-    role, 
-    isAdmin: ['ORGANIZATION', 'INDIVIDUAL', 'ORGANIZATION_PROVIDER', 'ORGANIZATION_ADMIN', 'SUPER_ADMIN'].includes(role),
-    permissionsCount: permissions.length,
-    firstPerm: permissions[0]?.service_key,
-  })
-
-  // 1. Filter for all users (Admins & Employees) based on assigned capabilities
-  console.log('🧭 Filtering Veterinary Navigation...')
-  console.log('   Total Items:', veterinaryNavigation.length)
+  const rawRole = (user.role?.name || user.role || '').toUpperCase()
   
-  const filtered = veterinaryNavigation.filter(item => {
-    // Check capability presence in user's permission list (for both items and headings)
-    if (item.capability) {
-      const hasAccess = permissionStore.hasCapability(item.capability)
-      console.log(`   ${item.title || item.heading}: capability=${item.capability} → ${hasAccess ? '✅' : '❌'}`)
-      return hasAccess
-    }
+  console.log(`🏥 VeterinaryLayout: Role = "${rawRole}" | Filtering by capabilities...`)
+
+  // Pure capability-based filtering for ALL roles
+  // Each item in veterinaryNavigation has a 'capability' field with a direct VETERINARY_* key
+  // hasCapability() does a deep search in permissionStore.permissions for that key
+  return veterinaryNavigation.filter(item => {
+    if (!item.capability) return true  // No restriction = visible to all vet staff
     
-    if (item.heading) {
-      console.log(`   ${item.heading}: (heading) → ✅`)
-      return true
-    }
-    
-    console.log(`   ${item.title}: (no capability check) → ✅`)
-    return true
+    return permissionStore.hasCapability(item.capability)
   })
-  
-  console.log('   Filtered Items:', filtered.length)
-  return filtered
 })
 </script>
 

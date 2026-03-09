@@ -19,8 +19,16 @@ const visitData = ref({
   pet_id: null,
   visit_type: 'OFFLINE',
   reason: '',
+  priority: 'P3',
+  triage_notes: '',
   date: new Date().toISOString().substr(0, 10),
 })
+
+const priorityOptions = [
+  { title: 'Critical (P1)', value: 'P1', color: 'error' },
+  { title: 'Urgent (P2)', value: 'P2', color: 'warning' },
+  { title: 'Routine (P3)', value: 'P3', color: 'success' },
+]
 
 const visitTypes = [
   { title: 'Offline', value: 'OFFLINE' },
@@ -35,6 +43,8 @@ watch(() => props.visit, newVisit => {
       pet_id: newVisit.pet?.id || newVisit.pet_id,
       visit_type: newVisit.visit_type,
       reason: newVisit.reason || '',
+      priority: newVisit.priority || 'P3',
+      triage_notes: newVisit.triage_notes || '',
       date: newVisit.created_at ? new Date(newVisit.created_at).toISOString().substr(0, 10) : new Date().toISOString().substr(0, 10),
     }
   } else {
@@ -42,6 +52,8 @@ watch(() => props.visit, newVisit => {
       pet_id: null,
       visit_type: 'OFFLINE',
       reason: '',
+      priority: 'P3',
+      triage_notes: '',
       date: new Date().toISOString().substr(0, 10),
     }
   }
@@ -55,10 +67,22 @@ const handleSave = async () => {
     if (props.visit?.id) {
       await store.updateVisit(props.visit.id, visitData.value)
     } else {
-      await store.createVisit({
+      const newVisit = await store.createVisit({
         ...visitData.value,
         clinic: store.activeClinicId,
       })
+
+      // Immediately check-in if it's a new "Quick Check-in"
+      if (newVisit && newVisit.id) {
+        try {
+          await store.checkInVisit(newVisit.id)
+        } catch (checkInErr) {
+          console.error("Visit created but automated check-in failed:", checkInErr)
+
+          // We don't throw here as the visit WAS created successfully.
+          // The user can manually check-in from the UI.
+        }
+      }
     }
     emit('saved')
     emit('update:modelValue', false)
@@ -124,12 +148,34 @@ const handleSave = async () => {
                 label="Date"
               />
             </VCol>
+            <VCol
+              cols="12"
+              md="6"
+            >
+              <AppSelect
+                v-model="visitData.priority"
+                :items="priorityOptions"
+                item-title="title"
+                item-value="value"
+                label="Triage Priority"
+                prepend-inner-icon="tabler-alert-triangle"
+              />
+            </VCol>
             <VCol cols="12">
               <AppTextField
                 v-model="visitData.reason"
                 label="Reason for Visit"
                 placeholder="Short description"
                 prepend-inner-icon="tabler-notes"
+              />
+            </VCol>
+            <VCol cols="12">
+              <AppTextarea
+                v-model="visitData.triage_notes"
+                label="Triage / Clinical Notes"
+                placeholder="Initial assessment notes..."
+                prepend-inner-icon="tabler-clipboard-text"
+                rows="2"
               />
             </VCol>
           </VRow>

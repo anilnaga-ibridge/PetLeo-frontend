@@ -194,32 +194,32 @@ const toggleStatus = async pricing => {
 }
 
 // AUTO-MAP LOGIC: Set pricing strategy based on duration basis
-watch(() => form.value.service_duration_type, (newType) => {
+watch(() => form.value.service_duration_type, newType => {
   switch (newType) {
-    case 'MINUTES':
-      form.value.pricing_model = 'PER_UNIT'
-      form.value.billing_unit = 'PER_SESSION'
-      break
-    case 'HOURS':
-      form.value.pricing_model = 'PER_UNIT'
-      form.value.billing_unit = 'HOURLY'
-      break
-    case 'DAYS':
-      form.value.pricing_model = 'PER_UNIT'
-      form.value.billing_unit = 'DAILY'
-      break
-    case 'SESSIONS':
-      form.value.pricing_model = 'FIXED'
-      form.value.billing_unit = 'PER_SESSION'
-      break
-    case 'PRODUCT':
-      form.value.pricing_model = 'FIXED'
-      form.value.billing_unit = 'ONE_TIME'
-      break
-    case 'SUBSCRIPTION':
-      form.value.pricing_model = 'MONTHLY'
-      form.value.billing_unit = 'MONTHLY'
-      break
+  case 'MINUTES':
+    form.value.pricing_model = 'PER_UNIT'
+    form.value.billing_unit = 'PER_SESSION'
+    break
+  case 'HOURS':
+    form.value.pricing_model = 'PER_UNIT'
+    form.value.billing_unit = 'HOURLY'
+    break
+  case 'DAYS':
+    form.value.pricing_model = 'PER_UNIT'
+    form.value.billing_unit = 'DAILY'
+    break
+  case 'SESSIONS':
+    form.value.pricing_model = 'FIXED'
+    form.value.billing_unit = 'PER_SESSION'
+    break
+  case 'PRODUCT':
+    form.value.pricing_model = 'FIXED'
+    form.value.billing_unit = 'ONE_TIME'
+    break
+  case 'SUBSCRIPTION':
+    form.value.pricing_model = 'MONTHLY'
+    form.value.billing_unit = 'MONTHLY'
+    break
   }
 })
 
@@ -750,8 +750,14 @@ watch(() => props.state.selectedServiceId, () => {
                   </VCol>
                   <!-- HIDDEN ADVANCED FIELDS (Auto-mapped) -->
                   <div v-if="false">
-                    <VSelect v-model="form.pricing_model" :items="pricingModelOptions" />
-                    <VSelect v-model="form.billing_unit" :items="billingUnitOptions" />
+                    <VSelect
+                      v-model="form.pricing_model"
+                      :items="pricingModelOptions"
+                    />
+                    <VSelect
+                      v-model="form.billing_unit"
+                      :items="billingUnitOptions"
+                    />
                   </div>
                 </VRow>
 

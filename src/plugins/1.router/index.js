@@ -13,7 +13,7 @@ const router = createRouter({
     return { top: 0 }
   },
   extendRoutes: pages => {
-    const patchLayout = (routesList) => {
+    const patchLayout = routesList => {
       return routesList.map(route => {
         const isBuilder = (route.path && route.path.includes('superadmin/builder')) ||
           (route.name && String(route.name).includes('superadmin-builder'))
@@ -25,7 +25,9 @@ const router = createRouter({
           (route.name && (String(route.name).startsWith('provider-') || String(route.name).startsWith('employee-')))
 
         const isVeterinary = (route.path && route.path.toLowerCase().includes('veterinary')) ||
-          (route.name && String(route.name).toLowerCase().includes('veterinary'))
+          (route.name && String(route.name).toLowerCase().includes('veterinary')) ||
+          (route.path && route.path.includes('enterprise-booking')) ||
+          (route.name && String(route.name).includes('enterprise-booking'))
 
         if (isBuilder || isPetOwner || isInternalArea || isVeterinary) {
           route.meta = { ...route.meta, layout: 'blank' }
@@ -48,7 +50,9 @@ const router = createRouter({
         (route.name && (String(route.name).startsWith('provider-') || String(route.name).startsWith('employee-')))
 
       const isVeterinary = (route.path && route.path.toLowerCase().includes('veterinary')) ||
-        (route.name && String(route.name).toLowerCase().includes('veterinary'))
+        (route.name && String(route.name).toLowerCase().includes('veterinary')) ||
+        (route.path && route.path.includes('enterprise-booking')) ||
+        (route.name && String(route.name).includes('enterprise-booking'))
 
       if (isInternalArea || isVeterinary) {
         // Ensure meta is set on the top-level route object returned by setupLayouts

@@ -17,16 +17,20 @@ const showSnack = (text, color = 'success') => {
   snackbar.value = { show: true, text, color }
 }
 
-const statusColor = (status) => {
+const statusColor = status => {
   if (status === 'APPROVED') return 'success'
   if (status === 'REJECTED') return 'error'
   if (status === 'PENDING') return 'warning'
+  
   return 'grey'
 }
 
-const addEntry = (dateObj = null) => {
-  const targetDate = dateObj || new Date()
-  if (!dateObj) targetDate.setDate(targetDate.getDate() + 1)
+const addEntry = (dateInput = null) => {
+  const isDate = dateInput instanceof Date
+  const targetDate = isDate ? dateInput : new Date()
+
+  // If no valid date provided, default to tomorrow
+  if (!isDate) targetDate.setDate(targetDate.getDate() + 1)
   
   const dateStr = targetDate.toISOString().substring(0, 10)
   
@@ -36,12 +40,12 @@ const addEntry = (dateObj = null) => {
   schedules.value.unshift({
     date: dateStr,
     start_time: '09:00',
-    end_time: '18:00',
+    end_time: '19:00',
     reason: '',
     off: false,
     status: null,
     id: null,
-    rejection_reason: ''
+    rejection_reason: '',
   })
 }
 
@@ -50,24 +54,44 @@ const addTomorrow = () => addEntry()
 const addNext3Days = () => {
   for (let i = 1; i <= 3; i++) {
     const d = new Date()
+
     d.setDate(d.getDate() + i)
     addEntry(d)
   }
 }
 
-const removeDraft = (index) => {
+const removeDraft = index => {
   schedules.value.splice(index, 1)
+}
+
+const deleteEntry = async (id, index) => {
+  if (!confirm('Are you sure you want to delete this schedule entry?')) return
+  
+  try {
+    if (id) {
+      await providerApi.delete(`/api/provider/schedules/${id}/`)
+      showSnack('Schedule entry deleted.', 'success')
+    }
+    schedules.value.splice(index, 1)
+  } catch (err) {
+    showSnack('Failed to delete entry.', 'error')
+  }
+}
+
+const editEntry = day => {
+  day.is_editing = true
 }
 
 const fetchMySchedule = async () => {
   loading.value = true
   try {
     const res = await providerApi.get('/api/provider/schedules/')
+
     schedules.value = res.data.map(d => ({
       ...d,
       start_time: (d.start_time || '09:00').substring(0, 5),
-      end_time: (d.end_time || '18:00').substring(0, 5),
-      off: d.start_time === d.end_time && d.start_time === '00:00:00'
+      end_time: (d.end_time || '19:00').substring(0, 5),
+      off: d.start_time === d.end_time && d.start_time === '00:00:00',
     }))
   } catch (err) {
     console.error('Failed to load schedule:', err)
@@ -77,15 +101,17 @@ const fetchMySchedule = async () => {
 }
 
 const submitSchedule = async () => {
-  const drafts = schedules.value.filter(s => !s.status || s.status === 'REJECTED')
+  const drafts = schedules.value.filter(s => !s.status || s.status === 'REJECTED' || s.is_editing)
   if (drafts.length === 0) {
     showSnack('No new or rejected entries to submit.', 'info')
+    
     return
   }
 
   // Validate reasons (only required for OFF days)
   if (drafts.some(d => d.off && !d.reason)) {
     showSnack('Please provide a reason for all your "Off" day requests.', 'error')
+    
     return
   }
 
@@ -97,9 +123,10 @@ const submitSchedule = async () => {
         off: d.off,
         start_time: d.off ? '00:00' : d.start_time,
         end_time: d.off ? '00:00' : d.end_time,
-        reason: d.reason
-      }))
+        reason: d.reason,
+      })),
     }
+
     await providerApi.post('/api/provider/schedules/bulk-submit/', payload)
     showSnack('Availability submitted successfully!', 'success')
     await fetchMySchedule()
@@ -120,7 +147,11 @@ onMounted(fetchMySchedule)
       <div class="d-flex align-center justify-space-between mb-10 header-container">
         <div>
           <div class="d-flex align-center gap-2 mb-2">
-            <VIcon icon="tabler-calendar-heart" color="primary" size="24" />
+            <VIcon
+              icon="tabler-calendar-heart"
+              color="primary"
+              size="24"
+            />
             <span class="text-overline font-weight-bold text-primary tracking-widest uppercase">Planning & Availability</span>
           </div>
           <h1 class="text-h2 font-weight-black text-slate-800 tracking-tightest mb-2">
@@ -139,7 +170,10 @@ onMounted(fetchMySchedule)
             :loading="saving"
             @click="submitSchedule"
           >
-            <VIcon icon="tabler-cloud-upload" class="mr-2" />
+            <VIcon
+              icon="tabler-cloud-upload"
+              class="mr-2"
+            />
             Submit All Drafts
           </VBtn>
         </div>
@@ -148,40 +182,92 @@ onMounted(fetchMySchedule)
       <!-- Quick Actions Bar -->
       <div class="quick-actions-bar d-flex align-center gap-4 mb-8 pa-4 rounded-2xl glass-panel">
         <span class="text-caption font-weight-black text-slate-400 uppercase tracking-wider ml-2">Quick Add:</span>
-        <VBtn variant="tonal" size="small" color="secondary" prepend-icon="tabler-calendar-plus" class="rounded-lg" @click="addTomorrow">
+        <VBtn
+          variant="tonal"
+          size="small"
+          color="secondary"
+          prepend-icon="tabler-calendar-plus"
+          class="rounded-lg"
+          @click="addTomorrow"
+        >
           Tomorrow
         </VBtn>
-        <VBtn variant="tonal" size="small" color="secondary" prepend-icon="tabler-calendar-plus" class="rounded-lg" @click="addNext3Days">
+        <VBtn
+          variant="tonal"
+          size="small"
+          color="secondary"
+          prepend-icon="tabler-calendar-plus"
+          class="rounded-lg"
+          @click="addNext3Days"
+        >
           Next 3 Days
         </VBtn>
         <VSpacer />
-        <VBtn variant="text" size="small" color="primary" prepend-icon="tabler-plus" class="rounded-lg font-weight-bold" @click="addEntry()">
+        <VBtn
+          variant="text"
+          size="small"
+          color="primary"
+          prepend-icon="tabler-plus"
+          class="rounded-lg font-weight-bold"
+          @click="addEntry"
+        >
           Custom Date
         </VBtn>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="text-center py-20">
-        <VProgressCircular indeterminate color="primary" size="64" width="6" />
-        <div class="mt-4 text-slate-400 font-weight-medium">Fetching your schedule...</div>
+      <div
+        v-if="loading"
+        class="text-center py-20"
+      >
+        <VProgressCircular
+          indeterminate
+          color="primary"
+          size="64"
+          width="6"
+        />
+        <div class="mt-4 text-slate-400 font-weight-medium">
+          Fetching your schedule...
+        </div>
       </div>
 
       <!-- Empty State -->
-      <VCard v-else-if="schedules.length === 0" flat border class="pa-16 text-center rounded-[40px] border-dashed glass-card empty-state">
+      <VCard
+        v-else-if="schedules.length === 0"
+        flat
+        border
+        class="pa-16 text-center rounded-[40px] border-dashed glass-card empty-state"
+      >
         <div class="empty-icon-container mb-6">
-          <VIcon icon="tabler-calendar-stats" size="80" color="primary" class="opacity-30" />
+          <VIcon
+            icon="tabler-calendar-stats"
+            size="80"
+            color="primary"
+            class="opacity-30"
+          />
         </div>
-        <h3 class="text-h4 font-weight-black text-slate-800 mb-3">Your calendar is open</h3>
+        <h3 class="text-h4 font-weight-black text-slate-800 mb-3">
+          Your calendar is open
+        </h3>
         <p class="text-slate-500 mb-8 max-w-md mx-auto">
           Start building your availability by adding specific dates you're able to work or need to be off.
         </p>
-        <VBtn variant="flat" color="primary" size="large" class="rounded-xl px-10" @click="addEntry()">
+        <VBtn
+          variant="flat"
+          color="primary"
+          size="large"
+          class="rounded-xl px-10"
+          @click="addEntry"
+        >
           Start Adding Dates
         </VBtn>
       </VCard>
 
       <!-- Schedule List with Transitions -->
-      <div v-else class="schedule-list">
+      <div
+        v-else
+        class="schedule-list"
+      >
         <TransitionGroup name="list">
           <VCard 
             v-for="(day, idx) in schedules" 
@@ -193,13 +279,20 @@ onMounted(fetchMySchedule)
               { 'is-off': day.off, 'is-draft': !day.status }
             ]"
           >
-            <div class="card-glass-overlay"></div>
+            <div class="card-glass-overlay" />
             <div class="pa-6 relative z-10">
               <div class="d-flex align-center flex-wrap gap-6">
                 <!-- Date Section -->
-                <div class="input-group" style="width: 180px">
+                <div
+                  class="input-group"
+                  style="width: 180px"
+                >
                   <div class="d-flex align-center gap-1 mb-1">
-                    <VIcon icon="tabler-calendar-event" size="14" class="text-slate-400" />
+                    <VIcon
+                      icon="tabler-calendar-event"
+                      size="14"
+                      class="text-slate-400"
+                    />
                     <span class="text-caption-2 font-weight-bold text-slate-400 uppercase tracking-widest">Selection Date</span>
                   </div>
                   <VTextField
@@ -208,15 +301,22 @@ onMounted(fetchMySchedule)
                     variant="outlined"
                     density="compact"
                     hide-details
-                    :disabled="!!day.status && day.status !== 'REJECTED'"
+                    :disabled="!!day.status && day.status !== 'REJECTED' && !day.is_editing"
                     class="custom-field"
                   />
                 </div>
 
                 <!-- Status Select -->
-                <div class="input-group" style="width: 140px">
+                <div
+                  class="input-group"
+                  style="width: 140px"
+                >
                   <div class="d-flex align-center gap-1 mb-1">
-                    <VIcon icon="tabler-activity" size="14" class="text-slate-400" />
+                    <VIcon
+                      icon="tabler-activity"
+                      size="14"
+                      class="text-slate-400"
+                    />
                     <span class="text-caption-2 font-weight-bold text-slate-400 uppercase tracking-widest">Status</span>
                   </div>
                   <VSelect
@@ -227,16 +327,26 @@ onMounted(fetchMySchedule)
                     variant="outlined"
                     density="compact"
                     hide-details
-                    :disabled="!!day.status && day.status !== 'REJECTED'"
+                    :disabled="!!day.status && day.status !== 'REJECTED' && !day.is_editing"
                     class="custom-field status-select"
                   />
                 </div>
 
                 <!-- Hours Section -->
-                <div v-if="!day.off" class="d-flex gap-4">
-                  <div class="input-group" style="width: 130px">
+                <div
+                  v-if="!day.off"
+                  class="d-flex gap-4"
+                >
+                  <div
+                    class="input-group"
+                    style="width: 130px"
+                  >
                     <div class="d-flex align-center gap-1 mb-1">
-                      <VIcon icon="tabler-clock-start" size="14" class="text-slate-400" />
+                      <VIcon
+                        icon="tabler-clock-start"
+                        size="14"
+                        class="text-slate-400"
+                      />
                       <span class="text-caption-2 font-weight-bold text-slate-400 uppercase tracking-widest">Starts</span>
                     </div>
                     <VTextField
@@ -245,13 +355,20 @@ onMounted(fetchMySchedule)
                       variant="outlined"
                       density="compact"
                       hide-details
-                      :disabled="!!day.status && day.status !== 'REJECTED'"
+                      :disabled="!!day.status && day.status !== 'REJECTED' && !day.is_editing"
                       class="custom-field"
                     />
                   </div>
-                  <div class="input-group" style="width: 130px">
+                  <div
+                    class="input-group"
+                    style="width: 130px"
+                  >
                     <div class="d-flex align-center gap-1 mb-1">
-                      <VIcon icon="tabler-clock-end" size="14" class="text-slate-400" />
+                      <VIcon
+                        icon="tabler-clock-end"
+                        size="14"
+                        class="text-slate-400"
+                      />
                       <span class="text-caption-2 font-weight-bold text-slate-400 uppercase tracking-widest">Ends</span>
                     </div>
                     <VTextField
@@ -260,16 +377,23 @@ onMounted(fetchMySchedule)
                       variant="outlined"
                       density="compact"
                       hide-details
-                      :disabled="!!day.status && day.status !== 'REJECTED'"
+                      :disabled="!!day.status && day.status !== 'REJECTED' && !day.is_editing"
                       class="custom-field"
                     />
                   </div>
                 </div>
 
                 <!-- Off Reason (Inline for brevity) -->
-                <div v-else class="flex-grow-1">
+                <div
+                  v-else
+                  class="flex-grow-1"
+                >
                   <div class="d-flex align-center gap-1 mb-1">
-                    <VIcon icon="tabler-note" size="14" class="text-slate-400" />
+                    <VIcon
+                      icon="tabler-note"
+                      size="14"
+                      class="text-slate-400"
+                    />
                     <span class="text-caption-2 font-weight-bold text-slate-400 uppercase tracking-widest">Off reason</span>
                   </div>
                   <VTextField
@@ -284,26 +408,82 @@ onMounted(fetchMySchedule)
                 </div>
 
                 <!-- Final Action Area -->
-                <div class="ml-auto d-flex align-center gap-4">
-                  <div v-if="day.status" class="status-badge-container">
+                <div class="ml-auto d-flex align-center gap-2">
+                  <div
+                    v-if="day.status && !day.is_editing"
+                    class="status-badge-container d-flex align-center gap-2"
+                  >
                     <VChip
                       :color="statusColor(day.status)"
                       size="small"
                       variant="flat"
                       class="px-4 font-weight-black text-white rounded-lg status-chip"
                     >
-                      <VIcon :icon="day.status === 'APPROVED' ? 'tabler-circle-check' : day.status === 'REJECTED' ? 'tabler-circle-x' : 'tabler-hourglass-high'" size="14" class="mr-2" />
+                      <VIcon
+                        :icon="day.status === 'APPROVED' ? 'tabler-circle-check' : day.status === 'REJECTED' ? 'tabler-circle-x' : 'tabler-hourglass-high'"
+                        size="14"
+                        class="mr-2"
+                      />
                       {{ day.status }}
                     </VChip>
                     
-                    <VTooltip v-if="day.status === 'REJECTED' && day.rejection_reason" offset="10">
+                    <VTooltip
+                      v-if="day.status === 'REJECTED' && day.rejection_reason"
+                      offset="10"
+                    >
                       <template #activator="{ props }">
-                        <VIcon v-bind="props" icon="tabler-alert-circle" color="error" size="20" class="ml-2 icon-pulse" />
+                        <VIcon
+                          v-bind="props"
+                          icon="tabler-alert-circle"
+                          color="error"
+                          size="20"
+                          class="ml-2 icon-pulse"
+                        />
                       </template>
-                      <div class="pa-2 font-weight-bold">{{ day.rejection_reason }}</div>
+                      <div class="pa-2 font-weight-bold">
+                        {{ day.rejection_reason }}
+                      </div>
                     </VTooltip>
+
+                    <VBtn
+                      icon="tabler-pencil"
+                      variant="tonal"
+                      color="secondary"
+                      size="x-small"
+                      class="rounded-lg ml-2"
+                      @click="editEntry(day)"
+                    />
+                    <VBtn
+                      icon="tabler-trash"
+                      variant="tonal"
+                      color="error"
+                      size="x-small"
+                      class="rounded-lg"
+                      @click="deleteEntry(day.id, idx)"
+                    />
                   </div>
                   
+                  <div
+                    v-else-if="day.is_editing"
+                    class="d-flex align-center gap-2"
+                  >
+                    <VChip
+                      color="primary"
+                      variant="tonal"
+                      size="small"
+                      class="px-3"
+                    >
+                      Editing Mode
+                    </VChip>
+                    <VBtn
+                      icon="tabler-x"
+                      variant="text"
+                      color="medium-emphasis"
+                      size="small"
+                      @click="fetchMySchedule"
+                    />
+                  </div>
+
                   <VBtn
                     v-else
                     icon="tabler-trash-x"
@@ -317,9 +497,16 @@ onMounted(fetchMySchedule)
               </div>
 
               <!-- Expanded Reason field for Working -->
-              <div v-if="!day.off" class="mt-5 pt-4 border-t border-slate-100/50">
+              <div
+                v-if="!day.off"
+                class="mt-5 pt-4 border-t border-slate-100/50"
+              >
                 <div class="d-flex align-center gap-1 mb-2">
-                  <VIcon icon="tabler-message-2" size="14" class="text-slate-400" />
+                  <VIcon
+                    icon="tabler-message-2"
+                    size="14"
+                    class="text-slate-400"
+                  />
                   <span class="text-caption-2 font-weight-bold text-slate-400 uppercase tracking-widest">Submission Context</span>
                 </div>
                 <VTextField
@@ -338,13 +525,23 @@ onMounted(fetchMySchedule)
       </div>
 
       <!-- Footer Help -->
-      <VAlert border="start" color="primary" variant="tonal" class="mt-12 rounded-2xl glass-alert">
+      <VAlert
+        border="start"
+        color="primary"
+        variant="tonal"
+        class="mt-12 rounded-2xl glass-alert"
+      >
         <template #prepend>
           <div class="alert-icon-bg mr-4">
-            <VIcon icon="tabler-info-hexagon" size="24" />
+            <VIcon
+              icon="tabler-info-hexagon"
+              size="24"
+            />
           </div>
         </template>
-        <div class="text-subtitle-2 font-weight-black mb-1">Submission Guide</div>
+        <div class="text-subtitle-2 font-weight-black mb-1">
+          Submission Guide
+        </div>
         <p class="text-body-2 text-slate-600 mb-0">
           Entries marked as <strong>Working</strong> will generate bookable slots for pet owners upon approval.
           Entries marked as <strong>Off</strong> effectively block your calendar for that period.
@@ -353,7 +550,13 @@ onMounted(fetchMySchedule)
     </div>
 
     <!-- Feedback Snackbar -->
-    <VSnackbar v-model="snackbar.show" :color="snackbar.color" timeout="4000" location="top right" class="custom-snack">
+    <VSnackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      timeout="4000"
+      location="top right"
+      class="custom-snack"
+    >
       <div class="d-flex align-center gap-3">
         <VIcon :icon="snackbar.color === 'success' ? 'tabler-circle-check' : 'tabler-alert-triangle'" />
         <span class="font-weight-bold">{{ snackbar.text }}</span>

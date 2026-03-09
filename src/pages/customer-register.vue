@@ -42,7 +42,7 @@ const fetchPetOwnerRole = async () => {
     
     // Find the petowner (or customer) role
     const petOwnerRole = res.data.find(r => 
-      ['petowner', 'customer'].includes(r.name.toLowerCase())
+      ['petowner', 'customer'].includes(r.name.toLowerCase()),
     )
 
     if (petOwnerRole) {
@@ -59,6 +59,7 @@ const fetchPetOwnerRole = async () => {
 const registerUser = async () => {
   if (!form.value.privacyPolicies) {
     errorMessage.value = 'Please accept privacy policy to continue.'
+    
     return
   }
 

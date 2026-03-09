@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 
 const props = defineProps({
   field: {
@@ -20,7 +20,11 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'change'])
+
+const AIMedicineAutocomplete = defineAsyncComponent(() => 
+  import('@/components/veterinary/AIMedicineAutocomplete.vue'),
+)
 
 const localValue = computed({
   get: () => props.modelValue,
@@ -52,9 +56,18 @@ const inputType = computed(() => {
 
 <template>
   <div class="dynamic-field">
+    <!-- SPECIAL: AI Medicine Autocomplete for Prescription Forms -->
+    <AIMedicineAutocomplete
+      v-if="['medicine_name', 'medicine', 'medication'].includes(field.field_key)"
+      v-model="localValue"
+      :label="hideLabel ? '' : field.label"
+      class="mb-2"
+      @suggestion-selected="$emit('change', { field: field.field_key, data: $event })"
+    />
+
     <!-- TEXT & NUMBER -->
     <VTextField
-      v-if="['TEXT', 'NUMBER'].includes(field.field_type)"
+      v-else-if="['TEXT', 'NUMBER'].includes(field.field_type)"
       v-model="localValue"
       :label="hideLabel ? '' : field.label"
       :type="inputType"

@@ -7,16 +7,16 @@ import SkeletonCard from '../components/SkeletonCard.vue'
 const props = defineProps({
   allProviders: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   filters: {
     type: Object,
-    default: () => ({ search: '', city: '', category: 'all' })
-  }
+    default: () => ({ search: '', city: '', category: 'all' }),
+  },
 })
 
 const currentPage = ref(1)
@@ -28,15 +28,17 @@ const filteredProviders = computed(() => {
 
   if (props.filters.search) {
     const q = props.filters.search.toLowerCase()
+
     list = list.filter(p => 
       p.name.toLowerCase().includes(q) || 
       p.organization?.toLowerCase().includes(q) ||
-      p.services.some(s => s.toLowerCase().includes(q))
+      p.services.some(s => s.toLowerCase().includes(q)),
     )
   }
 
   if (props.filters.city) {
     const city = props.filters.city.toLowerCase()
+
     list = list.filter(p => p.location.toLowerCase().includes(city))
   }
 
@@ -68,6 +70,7 @@ const totalPages = computed(() => {
 const visibleProviders = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   const end = start + itemsPerPage
+  
   return filteredProviders.value.slice(start, end)
 })
 
@@ -82,9 +85,15 @@ watch(() => props.filters, () => {
       <!-- Section Header -->
       <div class="providers-header mb-14 animate-fade-down">
         <div class="header-left">
-          <div class="section-eyebrow">Find a Professional</div>
-          <h2 class="section-title">Top-Rated Pet Care Providers</h2>
-          <p class="section-sub">Browse and book from our curated network of verified, reviewed pet care professionals.</p>
+          <div class="section-eyebrow">
+            Find a Professional
+          </div>
+          <h2 class="section-title">
+            Top-Rated Pet Care Providers
+          </h2>
+          <p class="section-sub">
+            Browse and book from our curated network of verified, reviewed pet care professionals.
+          </p>
         </div>
         <div class="header-right">
           <div class="count-badge">
@@ -98,28 +107,64 @@ watch(() => props.filters, () => {
             class="view-toggle"
             color="primary"
           >
-            <button :class="['toggle-btn', { active: viewMode === 'list' }]" @click="viewMode = 'list'">
-              <VIcon icon="tabler-list" size="18" />
+            <button
+              class="toggle-btn"
+              :class="[{ active: viewMode === 'list' }]"
+              @click="viewMode = 'list'"
+            >
+              <VIcon
+                icon="tabler-list"
+                size="18"
+              />
             </button>
-            <button :class="['toggle-btn', { active: viewMode === 'grid' }]" @click="viewMode = 'grid'">
-              <VIcon icon="tabler-layout-grid" size="18" />
+            <button
+              class="toggle-btn"
+              :class="[{ active: viewMode === 'grid' }]"
+              @click="viewMode = 'grid'"
+            >
+              <VIcon
+                icon="tabler-layout-grid"
+                size="18"
+              />
             </button>
           </VBtnToggle>
         </div>
       </div>
 
       <!-- Loading State -->
-      <VRow v-if="loading" class="g-6">
-        <VCol v-for="i in 8" :key="i" :cols="viewMode === 'list' ? 12 : 12" :sm="viewMode === 'list' ? 12 : 6" :md="viewMode === 'list' ? 12 : 4" :lg="viewMode === 'list' ? 12 : 3">
+      <VRow
+        v-if="loading"
+        class="g-6"
+      >
+        <VCol
+          v-for="i in 8"
+          :key="i"
+          :cols="viewMode === 'list' ? 12 : 12"
+          :sm="viewMode === 'list' ? 12 : 6"
+          :md="viewMode === 'list' ? 12 : 4"
+          :lg="viewMode === 'list' ? 12 : 3"
+        >
           <SkeletonCard />
         </VCol>
       </VRow>
 
       <!-- Empty State -->
-      <div v-else-if="filteredProviders.length === 0" class="text-center py-20 px-6 bg-slate-50 rounded-3xl border-dashed">
-        <VIcon icon="tabler-search-off" size="64" color="slate-200" class="mb-4" />
-        <h3 class="text-h4 font-weight-black text-slate-900 mb-2">No professionals found</h3>
-        <p class="text-h6 text-slate-400 font-medium">Try adjusting your filters or search terms.</p>
+      <div
+        v-else-if="filteredProviders.length === 0"
+        class="text-center py-20 px-6 bg-slate-50 rounded-3xl border-dashed"
+      >
+        <VIcon
+          icon="tabler-search-off"
+          size="64"
+          color="slate-200"
+          class="mb-4"
+        />
+        <h3 class="text-h4 font-weight-black text-slate-900 mb-2">
+          No professionals found
+        </h3>
+        <p class="text-h6 text-slate-400 font-medium">
+          Try adjusting your filters or search terms.
+        </p>
       </div>
 
       <!-- Provider Grid -->
@@ -139,12 +184,18 @@ watch(() => props.filters, () => {
             class="provider-col staggered-item"
             :style="{ '--stagger-index': index }"
           >
-            <ProviderCard :provider="provider" :view-mode="viewMode" />
+            <ProviderCard
+              :provider="provider"
+              :view-mode="viewMode"
+            />
           </VCol>
         </TransitionGroup>
 
         <!-- Pagination Section -->
-        <div v-if="totalPages > 1" class="pagination-container mt-16 d-flex justify-center">
+        <div
+          v-if="totalPages > 1"
+          class="pagination-container mt-16 d-flex justify-center"
+        >
           <VPagination
             v-model="currentPage"
             :length="totalPages"

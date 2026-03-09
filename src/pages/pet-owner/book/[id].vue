@@ -44,9 +44,10 @@ const onBookingSuccess = () => {
 
 const PROVIDER_BASE = import.meta.env.VITE_PROVIDER_API_URL || 'http://127.0.0.1:8002'
 
-const resolveMediaUrl = (url) => {
+const resolveMediaUrl = url => {
   if (!url) return null
   if (url.startsWith('http://') || url.startsWith('https://')) return url
+  
   return `${PROVIDER_BASE}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
@@ -68,6 +69,7 @@ const fetchProvider = async () => {
       avatar: avatarUrl,
       banner_image: bannerUrl,
     }
+
     store.setActiveProvider(mappedData)
   } catch (err) {
     console.error('Failed to fetch provider details', err)
@@ -80,6 +82,7 @@ const fetchReviews = async () => {
   store.setReviewsLoading(true)
   try {
     const res = await providerApi.get(`/api/provider/public-ratings/${route.params.id}/`)
+
     store.setReviews(res.data)
   } catch (err) {
     console.error('Failed to fetch reviews', err)
@@ -93,6 +96,7 @@ const handleViewOnMap = () => {
   const address = provider.value.address || provider.value.location
   if (address) {
     const query = encodeURIComponent(address)
+
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank')
   }
 }
@@ -120,17 +124,45 @@ onMounted(() => {
 
 
     <!-- Loading State -->
-    <div v-if="loading" class="d-flex flex-column align-center justify-center" style="min-height: 60vh">
-      <VProgressCircular indeterminate color="primary" size="52" width="3" />
-      <p class="mt-6 text-body-1 text-slate-400 font-weight-medium">Loading provider profile...</p>
+    <div
+      v-if="loading"
+      class="d-flex flex-column align-center justify-center"
+      style="min-height: 60vh"
+    >
+      <VProgressCircular
+        indeterminate
+        color="primary"
+        size="52"
+        width="3"
+      />
+      <p class="mt-6 text-body-1 text-slate-400 font-weight-medium">
+        Loading provider profile...
+      </p>
     </div>
 
     <!-- Error State -->
-    <VContainer v-else-if="!provider" class="text-center py-32">
-      <VIcon icon="tabler-circle-x" size="80" color="error" class="mb-6 opacity-20" />
-      <h3 class="text-h3 font-weight-black text-slate-900 mb-3">Profile Unavailable</h3>
-      <p class="text-h6 text-slate-400 font-medium mb-10">This provider profile is private or does not exist.</p>
-      <VBtn to="/pet-owner/book" color="primary" height="56" class="px-10 font-weight-black rounded-2xl">
+    <VContainer
+      v-else-if="!provider"
+      class="text-center py-32"
+    >
+      <VIcon
+        icon="tabler-circle-x"
+        size="80"
+        color="error"
+        class="mb-6 opacity-20"
+      />
+      <h3 class="text-h3 font-weight-black text-slate-900 mb-3">
+        Profile Unavailable
+      </h3>
+      <p class="text-h6 text-slate-400 font-medium mb-10">
+        This provider profile is private or does not exist.
+      </p>
+      <VBtn
+        to="/pet-owner/book"
+        color="primary"
+        height="56"
+        class="px-10 font-weight-black rounded-2xl"
+      >
         Back to Discovery
       </VBtn>
     </VContainer>
@@ -163,8 +195,17 @@ onMounted(() => {
               class="hero-profile-avatar flex-shrink-0"
               color="white"
             >
-              <VImg v-if="provider.avatar" :src="provider.avatar" cover />
-              <VIcon v-else icon="tabler-user-check" size="64" color="primary" />
+              <VImg
+                v-if="provider.avatar"
+                :src="provider.avatar"
+                cover
+              />
+              <VIcon
+                v-else
+                icon="tabler-user-check"
+                size="64"
+                color="primary"
+              />
             </VAvatar>
 
             <!-- Text Info -->
@@ -182,12 +223,23 @@ onMounted(() => {
                   class="rating-pill d-flex align-center gap-2 cursor-pointer"
                   @click="router.push(`/pet-owner/book/${route.params.id}/reviews`)"
                 >
-                  <VIcon icon="tabler-star-filled" size="14" color="amber" />
+                  <VIcon
+                    icon="tabler-star-filled"
+                    size="14"
+                    color="amber"
+                  />
                   <span class="text-white font-weight-black">{{ provider.rating }}</span>
                   <span class="text-white opacity-60 text-caption">({{ provider.reviewCount }} reviews)</span>
                 </div>
-                <div v-if="provider.isVerified || provider.verified" class="verified-badge d-flex align-center gap-2">
-                  <VIcon icon="tabler-discount-check-filled" size="16" color="primary" />
+                <div
+                  v-if="provider.isVerified || provider.verified"
+                  class="verified-badge d-flex align-center gap-2"
+                >
+                  <VIcon
+                    icon="tabler-discount-check-filled"
+                    size="16"
+                    color="primary"
+                  />
                   <span class="text-white font-weight-bold text-caption">PetLeo Verified</span>
                 </div>
               </div>
@@ -196,12 +248,21 @@ onMounted(() => {
                 {{ provider.full_name }}
               </h1>
 
-              <p v-if="provider.detailed_profile?.tagline" class="text-h6 text-white font-weight-medium mb-4 opacity-85">
+              <p
+                v-if="provider.detailed_profile?.tagline"
+                class="text-h6 text-white font-weight-medium mb-4 opacity-85"
+              >
                 {{ provider.detailed_profile.tagline }}
               </p>
 
-              <div v-if="provider.location" class="d-flex align-center gap-2 text-white opacity-70">
-                <VIcon icon="tabler-map-pin" size="18" />
+              <div
+                v-if="provider.location"
+                class="d-flex align-center gap-2 text-white opacity-70"
+              >
+                <VIcon
+                  icon="tabler-map-pin"
+                  size="18"
+                />
                 <span class="text-subtitle-1 font-medium">{{ provider.location }}</span>
               </div>
             </div>
@@ -214,7 +275,11 @@ onMounted(() => {
                 class="px-8 font-weight-black rounded-2xl shadow-xl mb-3 w-100"
                 @click="showRatingDialog = true"
               >
-                <VIcon icon="tabler-pencil-star" size="20" class="mr-2" />
+                <VIcon
+                  icon="tabler-pencil-star"
+                  size="20"
+                  class="mr-2"
+                />
                 Write a Review
               </VBtn>
             </div>
@@ -226,43 +291,85 @@ onMounted(() => {
       <VContainer class="py-12">
         <VRow>
           <!-- Dynamic Content -->
-          <VCol cols="12" md="8">
+          <VCol
+            cols="12"
+            md="8"
+          >
             <RouterView />
           </VCol>
 
           <!-- Sidebar -->
-          <VCol cols="12" md="4">
+          <VCol
+            cols="12"
+            md="4"
+          >
             <!-- Contact Card -->
-            <VCard flat rounded="3xl" class="pa-8 mb-6 sidebar-card">
-              <h3 class="text-h5 font-weight-black text-slate-900 mb-8">Contact Details</h3>
+            <VCard
+              flat
+              rounded="3xl"
+              class="pa-8 mb-6 sidebar-card"
+            >
+              <h3 class="text-h5 font-weight-black text-slate-900 mb-8">
+                Contact Details
+              </h3>
               <div class="d-flex flex-column gap-6">
-                <div v-if="provider.email" class="contact-row">
+                <div
+                  v-if="provider.email"
+                  class="contact-row"
+                >
                   <div class="contact-icon-box email">
-                    <VIcon icon="tabler-mail" size="20" />
+                    <VIcon
+                      icon="tabler-mail"
+                      size="20"
+                    />
                   </div>
                   <div>
-                    <div class="text-tiny text-slate-400 font-weight-black uppercase tracking-widest mb-1">Email</div>
-                    <div class="text-body-1 font-weight-bold">{{ provider.email }}</div>
+                    <div class="text-tiny text-slate-400 font-weight-black uppercase tracking-widest mb-1">
+                      Email
+                    </div>
+                    <div class="text-body-1 font-weight-bold">
+                      {{ provider.email }}
+                    </div>
                   </div>
                 </div>
 
-                <div v-if="provider.phone_number" class="contact-row">
+                <div
+                  v-if="provider.phone_number"
+                  class="contact-row"
+                >
                   <div class="contact-icon-box phone">
-                    <VIcon icon="tabler-phone" size="20" />
+                    <VIcon
+                      icon="tabler-phone"
+                      size="20"
+                    />
                   </div>
                   <div>
-                    <div class="text-tiny text-slate-400 font-weight-black uppercase tracking-widest mb-1">Phone</div>
-                    <div class="text-body-1 font-weight-bold">{{ provider.phone_number }}</div>
+                    <div class="text-tiny text-slate-400 font-weight-black uppercase tracking-widest mb-1">
+                      Phone
+                    </div>
+                    <div class="text-body-1 font-weight-bold">
+                      {{ provider.phone_number }}
+                    </div>
                   </div>
                 </div>
 
-                <div v-if="provider.address || provider.location" class="contact-row">
+                <div
+                  v-if="provider.address || provider.location"
+                  class="contact-row"
+                >
                   <div class="contact-icon-box location">
-                    <VIcon icon="tabler-map-pin" size="20" />
+                    <VIcon
+                      icon="tabler-map-pin"
+                      size="20"
+                    />
                   </div>
                   <div class="flex-grow-1">
-                    <div class="text-tiny text-slate-400 font-weight-black uppercase tracking-widest mb-1">Address</div>
-                    <div class="text-body-1 font-weight-bold mb-3">{{ provider.address || provider.location }}</div>
+                    <div class="text-tiny text-slate-400 font-weight-black uppercase tracking-widest mb-1">
+                      Address
+                    </div>
+                    <div class="text-body-1 font-weight-bold mb-3">
+                      {{ provider.address || provider.location }}
+                    </div>
                     <VBtn
                       variant="tonal"
                       color="primary"
@@ -277,18 +384,34 @@ onMounted(() => {
                 </div>
               </div>
 
-              <VBtn block color="primary" height="52" class="mt-10 font-weight-black rounded-2xl" prepend-icon="tabler-message-2">
+              <VBtn
+                block
+                color="primary"
+                height="52"
+                class="mt-10 font-weight-black rounded-2xl"
+                prepend-icon="tabler-message-2"
+              >
                 Send Message
               </VBtn>
             </VCard>
 
             <!-- Write a Review Card -->
-            <VCard flat rounded="3xl" class="pa-8 mb-6 review-prompt-card">
+            <VCard
+              flat
+              rounded="3xl"
+              class="pa-8 mb-6 review-prompt-card"
+            >
               <div class="d-flex align-center gap-4 mb-4">
                 <div class="review-icon-box">
-                  <VIcon icon="tabler-star" size="22" color="#d97706" />
+                  <VIcon
+                    icon="tabler-star"
+                    size="22"
+                    color="#d97706"
+                  />
                 </div>
-                <h4 class="text-h6 font-weight-black text-slate-900">Your Experience?</h4>
+                <h4 class="text-h6 font-weight-black text-slate-900">
+                  Your Experience?
+                </h4>
               </div>
               <p class="text-body-2 text-slate-500 font-weight-medium mb-6 line-height-relaxed">
                 Help others make informed decisions by sharing your honest review.
@@ -307,14 +430,26 @@ onMounted(() => {
             </VCard>
 
             <!-- Verified Badge Card -->
-            <VCard flat rounded="3xl" class="pa-8 verified-card">
+            <VCard
+              flat
+              rounded="3xl"
+              class="pa-8 verified-card"
+            >
               <div class="d-flex align-center gap-4">
                 <div class="verified-icon-box">
-                  <VIcon icon="tabler-shield-check" size="26" color="#10b981" />
+                  <VIcon
+                    icon="tabler-shield-check"
+                    size="26"
+                    color="#10b981"
+                  />
                 </div>
                 <div>
-                  <div class="text-subtitle-1 font-weight-black text-slate-900 mb-1">PetLeo Verified</div>
-                  <div class="text-caption text-slate-500 font-weight-medium">Credentials & identity confirmed</div>
+                  <div class="text-subtitle-1 font-weight-black text-slate-900 mb-1">
+                    PetLeo Verified
+                  </div>
+                  <div class="text-caption text-slate-500 font-weight-medium">
+                    Credentials & identity confirmed
+                  </div>
                 </div>
               </div>
             </VCard>

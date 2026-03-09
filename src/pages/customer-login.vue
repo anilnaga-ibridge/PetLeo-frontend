@@ -68,18 +68,20 @@ const pinLength = ref(4)
 const fetchingPinLength = ref(false)
 
 // Watch pinPhone and fetch PIN length dynamically
-watch(pinPhone, async (newPhone) => {
+watch(pinPhone, async newPhone => {
   // Reset to default if phone is cleared
   if (!newPhone || newPhone.length < 10) {
     pinLength.value = 4
+    
     return
   }
 
   // Fetch PIN length for this phone number
   try {
     fetchingPinLength.value = true
+
     const res = await axios.get(`${API_BASE}/auth/api/auth/check-pin-length/`, {
-      params: { phone_number: newPhone }
+      params: { phone_number: newPhone },
     })
     
     if (res.data?.pin_length) {
@@ -281,6 +283,7 @@ onMounted(() => {
   
   // Clear lock state for fresh login
   const { isLocked } = useIdleTimer()
+
   isLocked.value = false
 })
 </script>
@@ -331,10 +334,17 @@ onMounted(() => {
       </VCarousel>
 
       <!-- Static Overlay -->
-      <div class="position-absolute top-0 left-0 h-100 w-100 d-flex align-end pa-12" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); z-index: 2; pointer-events: none;">
+      <div
+        class="position-absolute top-0 left-0 h-100 w-100 d-flex align-end pa-12"
+        style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); z-index: 2; pointer-events: none;"
+      >
         <div class="text-white">
-          <h1 class="text-h2 font-weight-bold mb-4">Welcome to PetLeo</h1>
-          <p class="text-h5 font-weight-regular">Premium Veterinary & Pet Care Management</p>
+          <h1 class="text-h2 font-weight-bold mb-4">
+            Welcome to PetLeo
+          </h1>
+          <p class="text-h5 font-weight-regular">
+            Premium Veterinary & Pet Care Management
+          </p>
         </div>
       </div>
     </VCol>

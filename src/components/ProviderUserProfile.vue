@@ -14,12 +14,14 @@ const { userData } = storeToRefs(permissionStore)
 const loading = ref(false)
 const refInputEl = ref()
 
-const uploadAvatar = async (e) => {
+const uploadAvatar = async e => {
   const file = e.target.files[0]
   if (!file) return
 
   loading.value = true
+
   const fd = new FormData()
+
   fd.append('avatar', file)
   fd.append('auth_user_id', userData.value.id || userData.value.auth_user_id)
 
@@ -66,9 +68,44 @@ const isEmployee = computed(() => {
   return false
 })
 
+// Human-readable label for the role shown in the profile menu
+const roleLabel = computed(() => {
+  const role = (userData.value?.role || '').toUpperCase()
+  const pType = (userData.value?.provider_type || userData.value?.providerType || '').toUpperCase()
+
+  // Prioritize Provider Type for the label only if they are a primary provider
+  const providerRoles = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER']
+  if (providerRoles.includes(role)) {
+    if (pType === 'ORGANIZATION') return 'Organization'
+    if (pType === 'INDIVIDUAL') return 'Individual Provider'
+  }
+
+  const ROLE_LABELS = {
+    'ORGANIZATION': 'Organization',
+    'INDIVIDUAL': 'Individual Provider',
+    'PROVIDER': 'Provider',
+    'SERVICE_PROVIDER': 'Service Provider',
+    'DOCTOR': 'Doctor',
+    'RECEPTIONIST': 'Receptionist',
+    'EMPLOYEE': 'Employee',
+    'LAB TECH': 'Lab Technician',
+    'PHARMACY': 'Pharmacist',
+    'VITALS STAFF': 'Vitals Staff',
+    'PETOWNER': 'Pet Owner',
+  }
+  
+  if (ROLE_LABELS[role]) return ROLE_LABELS[role]
+
+  // Fallback to capitalized role
+  return userData.value?.role 
+    ? userData.value.role.charAt(0).toUpperCase() + userData.value.role.slice(1).toLowerCase() 
+    : 'User'
+})
+
 const profileRoute = computed(() => {
   console.log('🚀 [ProviderUserProfile] userData:', userData.value)
   console.log('🚀 [ProviderUserProfile] isEmployee:', isEmployee.value)
+  
   return isEmployee.value ? '/employee/profile' : '/provider/profile'
 })
 
@@ -211,7 +248,7 @@ const userProfileList = computed(() => {
               {{ userData?.fullName || userData?.username }}
             </VListItemTitle>
             <VListItemSubtitle>
-              {{ userData?.role }}
+              {{ roleLabel }}
             </VListItemSubtitle>
           </VListItem>
 

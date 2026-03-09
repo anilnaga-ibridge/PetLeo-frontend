@@ -7,8 +7,8 @@ const props = defineProps({
   booking: {
     type: Object,
     required: false,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'saved', 'cancelled'])
@@ -27,6 +27,7 @@ const fetchSlots = async () => {
   slotsLoading.value = true
   try {
     const res = await providerApi.get(`/api/provider/availability/${props.booking.provider_id}/available-slots/?date=${selected_date.value}`)
+
     availableSlots.value = res.data.slots
   } catch (err) {
     console.error('Failed to fetch slots:', err)
@@ -35,11 +36,12 @@ const fetchSlots = async () => {
   }
 }
 
-watch(() => props.booking, (newBooking) => {
+watch(() => props.booking, newBooking => {
   if (newBooking) {
     notes.value = newBooking.notes || ''
     if (newBooking.selected_time) {
       const dt = new Date(newBooking.selected_time)
+
       selected_date.value = dt.toISOString().split('T')[0]
       selected_time.value = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
       fetchSlots()
@@ -49,13 +51,13 @@ watch(() => props.booking, (newBooking) => {
 
 watch(selected_date, fetchSlots)
 
-const getStatusColor = (status) => {
+const getStatusColor = status => {
   switch (status?.toUpperCase()) {
-    case 'CONFIRMED': return 'success'
-    case 'PENDING': return 'warning'
-    case 'CANCELLED': return 'error'
-    case 'COMPLETED': return 'primary'
-    default: return 'slate'
+  case 'CONFIRMED': return 'success'
+  case 'PENDING': return 'warning'
+  case 'CANCELLED': return 'error'
+  case 'COMPLETED': return 'primary'
+  default: return 'slate'
   }
 }
 
@@ -65,7 +67,7 @@ const handleUpdate = async () => {
   try {
     const payload = {
       notes: notes.value,
-      selected_time: `${selected_date.value}T${selected_time.value}:00Z`
+      selected_time: `${selected_date.value}T${selected_time.value}:00Z`,
     }
     
     await customerApi.patch(`/api/pet-owner/bookings/bookings/${props.booking.id}/`, payload)
@@ -104,21 +106,40 @@ const handleCancel = async () => {
     persistent
     @update:model-value="val => emit('update:modelValue', val)"
   >
-    <VCard class="rounded-xl overflow-hidden glass-card" v-if="booking">
+    <VCard
+      v-if="booking"
+      class="rounded-xl overflow-hidden glass-card"
+    >
       <div class="pa-8 pb-4">
         <div class="d-flex align-center justify-space-between mb-4">
-          <h2 class="text-h4 font-weight-black text-slate-900">Manage Booking</h2>
-          <VBtn icon="tabler-x" variant="text" @click="emit('update:modelValue', false)" />
+          <h2 class="text-h4 font-weight-black text-slate-900">
+            Manage Booking
+          </h2>
+          <VBtn
+            icon="tabler-x"
+            variant="text"
+            @click="emit('update:modelValue', false)"
+          />
         </div>
         
         <div class="d-flex align-center gap-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
-           <VAvatar size="48" color="primary-lighten-5">
-             <VIcon icon="tabler-calendar-heart" color="primary" />
-           </VAvatar>
-           <div>
-             <div class="text-h6 font-weight-black text-slate-800">{{ booking.provider_name || 'Service Provider' }}</div>
-             <div class="text-body-2 text-slate-500">{{ booking.service_name || 'Veterinary Consultation' }}</div>
-           </div>
+          <VAvatar
+            size="48"
+            color="primary-lighten-5"
+          >
+            <VIcon
+              icon="tabler-calendar-heart"
+              color="primary"
+            />
+          </VAvatar>
+          <div>
+            <div class="text-h6 font-weight-black text-slate-800">
+              {{ booking.provider_name || 'Service Provider' }}
+            </div>
+            <div class="text-body-2 text-slate-500">
+              {{ booking.service_name || 'Veterinary Consultation' }}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -127,13 +148,20 @@ const handleCancel = async () => {
         <div class="d-flex align-center justify-space-between mb-8">
           <div>
             <label class="text-caption font-weight-black text-slate-400 uppercase mb-1 d-block">Status</label>
-            <VChip :color="getStatusColor(booking.status)" size="small" variant="flat" class="font-weight-black px-4">
+            <VChip
+              :color="getStatusColor(booking.status)"
+              size="small"
+              variant="flat"
+              class="font-weight-black px-4"
+            >
               {{ booking.status }}
             </VChip>
           </div>
           <div class="text-right">
             <label class="text-caption font-weight-black text-slate-400 uppercase mb-1 d-block">Pet</label>
-            <div class="text-body-1 font-weight-bold text-slate-700">{{ booking.pet_name || 'Pet' }}</div>
+            <div class="text-body-1 font-weight-bold text-slate-700">
+              {{ booking.pet_name || 'Pet' }}
+            </div>
           </div>
         </div>
 
@@ -152,15 +180,39 @@ const handleCancel = async () => {
         <!-- Slot Selection -->
         <div class="mb-8">
           <label class="text-caption font-weight-black text-slate-400 uppercase mb-4 d-block">Select Time</label>
-          <div v-if="slotsLoading" class="d-flex justify-center py-4">
-            <VProgressCircular indeterminate size="24" color="primary" />
+          <div
+            v-if="slotsLoading"
+            class="d-flex justify-center py-4"
+          >
+            <VProgressCircular
+              indeterminate
+              size="24"
+              color="primary"
+            />
           </div>
-          <div v-else-if="availableSlots.length === 0" class="text-center py-6 bg-slate-50 rounded-xl border-2 border-dashed">
-            <VIcon icon="tabler-calendar-x" color="slate-300" size="32" class="mb-2" />
-            <p class="text-caption text-slate-400 mb-0 font-weight-bold">No slots available</p>
+          <div
+            v-else-if="availableSlots.length === 0"
+            class="text-center py-6 bg-slate-50 rounded-xl border-2 border-dashed"
+          >
+            <VIcon
+              icon="tabler-calendar-x"
+              color="slate-300"
+              size="32"
+              class="mb-2"
+            />
+            <p class="text-caption text-slate-400 mb-0 font-weight-bold">
+              No slots available
+            </p>
           </div>
-          <div v-else class="slot-container">
-            <VChipGroup v-model="selected_time" mandatory selected-class="bg-primary text-white">
+          <div
+            v-else
+            class="slot-container"
+          >
+            <VChipGroup
+              v-model="selected_time"
+              mandatory
+              selected-class="bg-primary text-white"
+            >
               <VChip
                 v-for="slot in availableSlots"
                 :key="slot"
@@ -176,21 +228,28 @@ const handleCancel = async () => {
         </div>
 
         <div class="mb-8">
-           <label class="text-caption font-weight-black text-slate-400 uppercase mb-2 d-block">Update Notes</label>
-           <VTextarea
-             v-model="notes"
-             placeholder="Any updates for the provider?"
-             variant="outlined"
-             rows="3"
-             class="luxury-input"
-             hide-details
-             :disabled="booking.status === 'CANCELLED' || booking.status === 'COMPLETED'"
-           />
+          <label class="text-caption font-weight-black text-slate-400 uppercase mb-2 d-block">Update Notes</label>
+          <VTextarea
+            v-model="notes"
+            placeholder="Any updates for the provider?"
+            variant="outlined"
+            rows="3"
+            class="luxury-input"
+            hide-details
+            :disabled="booking.status === 'CANCELLED' || booking.status === 'COMPLETED'"
+          />
         </div>
 
-        <div v-if="booking.rejection_reason" class="pa-4 bg-error-lighten-5 rounded-xl border border-error-lighten-4 mb-8">
-          <div class="text-caption font-weight-black text-error uppercase mb-1">Rejection Reason</div>
-          <p class="text-body-2 text-error-darken-1 mb-0">{{ booking.rejection_reason }}</p>
+        <div
+          v-if="booking.rejection_reason"
+          class="pa-4 bg-error-lighten-5 rounded-xl border border-error-lighten-4 mb-8"
+        >
+          <div class="text-caption font-weight-black text-error uppercase mb-1">
+            Rejection Reason
+          </div>
+          <p class="text-body-2 text-error-darken-1 mb-0">
+            {{ booking.rejection_reason }}
+          </p>
         </div>
       </VCardText>
 
@@ -202,8 +261,8 @@ const handleCancel = async () => {
           height="56"
           class="rounded-xl font-weight-black mb-4"
           :loading="loading"
-          @click="handleUpdate"
           :disabled="booking.status === 'CANCELLED' || booking.status === 'REJECTED' || booking.status === 'COMPLETED'"
+          @click="handleUpdate"
         >
           Update Booking
         </VBtn>

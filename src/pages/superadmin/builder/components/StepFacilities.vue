@@ -34,6 +34,7 @@ const services = ref([])
 const fetchServices = async () => {
   try {
     const res = await superAdminApi.get('/api/superadmin/services/')
+
     services.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch services:', err)
@@ -44,8 +45,9 @@ const fetchCategories = async () => {
   if (!props.state.selectedServiceId) return
   try {
     const res = await superAdminApi.get('/api/superadmin/categories/', {
-      params: { service: props.state.selectedServiceId }
+      params: { service: props.state.selectedServiceId },
     })
+
     categories.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch categories:', err)
@@ -63,7 +65,7 @@ const fetchFacilities = async () => {
       }),
       superAdminApi.get('/api/superadmin/pricing-rules/', {
         params: { service: props.state.selectedServiceId },
-      })
+      }),
     ])
 
     facilities.value = facRes.data.results || facRes.data || []
@@ -83,6 +85,7 @@ const fetchFacilities = async () => {
 const categorizedMenu = computed(() => {
   const menu = categories.value.map(cat => {
     const rules = pricingRules.value.filter(rule => rule.category?.id === cat.id && rule.facility)
+    
     return {
       ...cat,
       items: rules.map(rule => ({
@@ -93,8 +96,8 @@ const categorizedMenu = computed(() => {
         price: rule.base_price,
         duration: (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         billing_unit: rule.billing_unit,
-        is_active: rule.is_active
-      }))
+        is_active: rule.is_active,
+      })),
     }
   })
 
@@ -113,8 +116,8 @@ const categorizedMenu = computed(() => {
         price: rule.base_price,
         duration: (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         billing_unit: rule.billing_unit,
-        is_active: rule.is_active
-      }))
+        is_active: rule.is_active,
+      })),
     })
   }
 
@@ -145,7 +148,7 @@ const openEditDrawer = (item, category) => {
     category: category.id === 'uncategorized' ? null : category.id,
     base_price: item.price,
     duration_minutes: item.duration,
-    billing_unit: item.billing_unit
+    billing_unit: item.billing_unit,
   }
   drawerOpen.value = true
 }
@@ -162,7 +165,7 @@ const submit = async () => {
         protocol_type: form.value.protocol_type,
         pricing_strategy: form.value.pricing_model, // pricing_model maps to strategy
         duration_minutes: form.value.duration_minutes,
-        base_price: form.value.base_price
+        base_price: form.value.base_price,
       })
       
       // 2. Update Pricing Rule
@@ -180,7 +183,7 @@ const submit = async () => {
           duration_value: form.value.duration_value,
           daily_capacity: form.value.daily_capacity,
           monthly_limit: form.value.monthly_limit,
-          is_active: form.value.is_active
+          is_active: form.value.is_active,
         })
       }
     } else {
@@ -193,7 +196,7 @@ const submit = async () => {
         protocol_type: form.value.protocol_type,
         pricing_strategy: form.value.pricing_model,
         duration_minutes: form.value.duration_minutes,
-        base_price: form.value.base_price
+        base_price: form.value.base_price,
       })
       
       // 2. Create Pricing Rule (The actual link)
@@ -209,7 +212,7 @@ const submit = async () => {
         duration_value: form.value.duration_value,
         daily_capacity: form.value.daily_capacity,
         monthly_limit: form.value.monthly_limit,
-        is_active: form.value.is_active
+        is_active: form.value.is_active,
       })
     }
     drawerOpen.value = false
@@ -274,14 +277,14 @@ onMounted(async () => {
   await Promise.all([
     fetchServices(),
     fetchCategories(),
-    fetchFacilities()
+    fetchFacilities(),
   ])
 })
 
 watch(() => props.state.selectedServiceId, async () => {
   await Promise.all([
     fetchCategories(),
-    fetchFacilities()
+    fetchFacilities(),
   ])
 })
 </script>
@@ -367,23 +370,44 @@ watch(() => props.state.selectedServiceId, async () => {
     <VExpandTransition>
       <div v-if="usesFacilities">
         <VRow v-if="loading">
-          <VCol v-for="i in 3" :key="i" cols="12" sm="6" md="4">
-            <VSkeletonLoader type="card" class="rounded-lg" />
+          <VCol
+            v-for="i in 3"
+            :key="i"
+            cols="12"
+            sm="6"
+            md="4"
+          >
+            <VSkeletonLoader
+              type="card"
+              class="rounded-lg"
+            />
           </VCol>
         </VRow>
 
         <template v-else>
           <!-- NESTED MENU VIEW -->
-          <div v-for="category in categorizedMenu" :key="category.id" class="mb-12">
+          <div
+            v-for="category in categorizedMenu"
+            :key="category.id"
+            class="mb-12"
+          >
             <!-- CATEGORY HEADER -->
             <div class="d-flex align-center justify-space-between mb-6 border-b pb-4">
               <div class="d-flex align-center gap-4">
-                <VAvatar color="primary" variant="tonal" rounded="xl">
+                <VAvatar
+                  color="primary"
+                  variant="tonal"
+                  rounded="xl"
+                >
                   <VIcon icon="tabler-category" />
                 </VAvatar>
                 <div>
-                  <h2 class="text-h4 font-weight-bold gradient-text mb-0">{{ category.name }} Facilities</h2>
-                  <p class="text-caption text-medium-emphasis mb-0">Define facilities and prices for {{ category.name }}</p>
+                  <h2 class="text-h4 font-weight-bold gradient-text mb-0">
+                    {{ category.name }} Facilities
+                  </h2>
+                  <p class="text-caption text-medium-emphasis mb-0">
+                    Define facilities and prices for {{ category.name }}
+                  </p>
                 </div>
               </div>
               
@@ -401,24 +425,43 @@ watch(() => props.state.selectedServiceId, async () => {
 
             <!-- FACILITIES UNDER THIS CATEGORY -->
             <div v-if="category.items.length > 0">
-              
               <!-- TABLE VIEW -->
-              <VTable v-if="viewMode === 'table'" density="comfortable" class="bg-transparent mb-4">
+              <VTable
+                v-if="viewMode === 'table'"
+                density="comfortable"
+                class="bg-transparent mb-4"
+              >
                 <thead>
                   <tr>
-                    <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis pl-0">Facility</th>
-                    <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis">Details</th>
-                    <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis text-right pr-0">Pricing</th>
+                    <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis pl-0">
+                      Facility
+                    </th>
+                    <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis">
+                      Details
+                    </th>
+                    <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis text-right pr-0">
+                      Pricing
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="item in category.items" :key="item.id" class="facility-row">
+                  <tr
+                    v-for="item in category.items"
+                    :key="item.id"
+                    class="facility-row"
+                  >
                     <td class="pl-0 py-3">
                       <div class="d-flex align-center gap-3">
-                        <VIcon icon="tabler-building-hospital" size="20" color="primary" />
+                        <VIcon
+                          icon="tabler-building-hospital"
+                          size="20"
+                          color="primary"
+                        />
                         <div>
-                          <div class="text-body-2 font-weight-bold text-high-emphasis">{{ item.name }}</div>
-                           <VSwitch
+                          <div class="text-body-2 font-weight-bold text-high-emphasis">
+                            {{ item.name }}
+                          </div>
+                          <VSwitch
                             v-model="item.is_active"
                             color="success"
                             density="compact"
@@ -432,27 +475,33 @@ watch(() => props.state.selectedServiceId, async () => {
                       </div>
                     </td>
                     <td class="py-3">
-                        <p class="text-body-2 text-medium-emphasis mb-0 line-clamp-1" style="max-width: 300px;">
-                          {{ (item.description && item.description !== 'null') ? item.description : '-' }}
-                        </p>
+                      <p
+                        class="text-body-2 text-medium-emphasis mb-0 line-clamp-1"
+                        style="max-width: 300px;"
+                      >
+                        {{ (item.description && item.description !== 'null') ? item.description : '-' }}
+                      </p>
                     </td>
                     <td class="text-right pr-0 py-3">
                       <div class="d-flex flex-column align-end">
                         <span class="text-body-2 font-weight-bold text-primary">₹{{ item.price }}</span>
                         <div class="d-flex align-center gap-1">
                           <span class="text-caption text-medium-emphasis">{{ item.billing_unit.replace('_', ' ') }}</span>
-                          <span v-if="item.duration" class="text-caption text-warning font-weight-medium"> • {{ item.duration }}m</span>
+                          <span
+                            v-if="item.duration"
+                            class="text-caption text-warning font-weight-medium"
+                          > • {{ item.duration }}m</span>
                         </div>
                         
                         <div class="d-flex gap-2 mt-2">
-                           <VBtn 
+                          <VBtn 
                             icon="tabler-edit" 
                             size="x-small" 
                             variant="text" 
                             color="primary"
                             @click="openEditDrawer(item, category)"
                           />
-                           <VBtn 
+                          <VBtn 
                             icon="tabler-trash" 
                             size="x-small" 
                             variant="text" 
@@ -487,8 +536,14 @@ watch(() => props.state.selectedServiceId, async () => {
                           ₹{{ item.price }} <span class="text-caption font-weight-medium">/ {{ item.billing_unit.toLowerCase().replace('_', ' ') }}</span>
                         </div>
 
-                        <div v-if="item.duration && item.duration !== 'null'" class="pa-2 px-3 rounded-lg bg-warning-lighten-5 text-warning font-weight-bold d-flex align-center gap-1">
-                          <VIcon icon="tabler-clock" size="14" />
+                        <div
+                          v-if="item.duration && item.duration !== 'null'"
+                          class="pa-2 px-3 rounded-lg bg-warning-lighten-5 text-warning font-weight-bold d-flex align-center gap-1"
+                        >
+                          <VIcon
+                            icon="tabler-clock"
+                            size="14"
+                          />
                           <span class="text-caption">{{ item.duration }}m</span>
                         </div>
                       
@@ -522,7 +577,10 @@ watch(() => props.state.selectedServiceId, async () => {
                         >
                           {{ item.description }}
                         </p>
-                        <p v-else class="text-caption text-disabled font-italic mb-0">
+                        <p
+                          v-else
+                          class="text-caption text-disabled font-italic mb-0"
+                        >
                           No description provided
                         </p>
                       </div>
@@ -555,10 +613,25 @@ watch(() => props.state.selectedServiceId, async () => {
             </div>
 
             <!-- EMPTY STATE FOR CATEGORY -->
-            <div v-else class="text-center py-10 bg-light rounded-xl border-dashed">
-              <VIcon icon="tabler-building-hospital" size="40" color="disabled" class="mb-2" />
-              <p class="text-body-2 text-disabled mb-4">No items defined for this category yet.</p>
-              <VBtn variant="text" color="primary" rounded="lg" @click="openAddDrawer(category)">
+            <div
+              v-else
+              class="text-center py-10 bg-light rounded-xl border-dashed"
+            >
+              <VIcon
+                icon="tabler-building-hospital"
+                size="40"
+                color="disabled"
+                class="mb-2"
+              />
+              <p class="text-body-2 text-disabled mb-4">
+                No items defined for this category yet.
+              </p>
+              <VBtn
+                variant="text"
+                color="primary"
+                rounded="lg"
+                @click="openAddDrawer(category)"
+              >
                 Create First Item
               </VBtn>
             </div>
@@ -571,36 +644,86 @@ watch(() => props.state.selectedServiceId, async () => {
       v-if="!usesFacilities"
       class="text-center py-12 bg-light rounded-lg border-dashed"
     >
-      <VIcon icon="tabler-info-circle" size="48" color="medium-emphasis" class="mb-4" />
-      <h3 class="text-h6 font-weight-bold mb-2">Facilities Disabled</h3>
-      <p class="text-body-2 text-medium-emphasis">Toggle the switch above if this service requires specific facilities.</p>
+      <VIcon
+        icon="tabler-info-circle"
+        size="48"
+        color="medium-emphasis"
+        class="mb-4"
+      />
+      <h3 class="text-h6 font-weight-bold mb-2">
+        Facilities Disabled
+      </h3>
+      <p class="text-body-2 text-medium-emphasis">
+        Toggle the switch above if this service requires specific facilities.
+      </p>
     </div>
 
-    <div v-if="!hideNavigation" class="d-flex justify-space-between mt-8">
-      <VBtn variant="text" prepend-icon="tabler-arrow-left" @click="emit('prev')">
+    <div
+      v-if="!hideNavigation"
+      class="d-flex justify-space-between mt-8"
+    >
+      <VBtn
+        variant="text"
+        prepend-icon="tabler-arrow-left"
+        @click="emit('prev')"
+      >
         Back
       </VBtn>
-      <VBtn color="primary" append-icon="tabler-arrow-right" @click="emit('next')">
+      <VBtn
+        color="primary"
+        append-icon="tabler-arrow-right"
+        @click="emit('next')"
+      >
         Next Step
       </VBtn>
     </div>
 
     <!-- DELETE CONFIRMATION -->
-    <VDialog v-model="deleteDialog" width="420" transition="dialog-bottom-transition" persistent>
-      <VCard class="pa-4 rounded-xl" elevation="12">
+    <VDialog
+      v-model="deleteDialog"
+      width="420"
+      transition="dialog-bottom-transition"
+      persistent
+    >
+      <VCard
+        class="pa-4 rounded-xl"
+        elevation="12"
+      >
         <div class="text-center mb-3">
-          <VAvatar size="60" color="red" variant="tonal" class="mb-3">
-            <VIcon icon="tabler-alert-triangle" size="32" color="red-darken-2" />
+          <VAvatar
+            size="60"
+            color="red"
+            variant="tonal"
+            class="mb-3"
+          >
+            <VIcon
+              icon="tabler-alert-triangle"
+              size="32"
+              color="red-darken-2"
+            />
           </VAvatar>
-          <h2 class="text-h6 font-weight-bold text-high-emphasis">Delete Menu Item?</h2>
+          <h2 class="text-h6 font-weight-bold text-high-emphasis">
+            Delete Menu Item?
+          </h2>
           <p class="text-body-2 mt-1 text-medium-emphasis">
             Remove <strong class="text-primary">{{ deleteItem?.name }}</strong> and its pricing from this category?
           </p>
         </div>
         <VDivider class="my-3" />
         <div class="d-flex justify-end gap-2">
-          <VBtn variant="text" @click="deleteDialog = false">Cancel</VBtn>
-          <VBtn color="red" prepend-icon="tabler-trash" @click="deleteFacility">Delete</VBtn>
+          <VBtn
+            variant="text"
+            @click="deleteDialog = false"
+          >
+            Cancel
+          </VBtn>
+          <VBtn
+            color="red"
+            prepend-icon="tabler-trash"
+            @click="deleteFacility"
+          >
+            Delete
+          </VBtn>
         </div>
       </VCard>
     </VDialog>
@@ -615,7 +738,11 @@ watch(() => props.state.selectedServiceId, async () => {
     >
       <div class="d-flex w-100 h-100">
         <!-- Overlay/Scrim click area -->
-        <div class="flex-grow-1" style="background: rgba(0,0,0,0.3); cursor: pointer;" @click="drawerOpen = false"></div>
+        <div
+          class="flex-grow-1"
+          style="background: rgba(0,0,0,0.3); cursor: pointer;"
+          @click="drawerOpen = false"
+        />
         
         <!-- Sidebar Content -->
         <VCard
@@ -629,7 +756,11 @@ watch(() => props.state.selectedServiceId, async () => {
             <h3 class="text-h6 font-weight-bold">
               {{ isEdit ? 'Edit Facility & Price' : 'Add Facility & Price' }}
             </h3>
-            <VBtn icon="tabler-x" variant="text" @click="drawerOpen = false" />
+            <VBtn
+              icon="tabler-x"
+              variant="text"
+              @click="drawerOpen = false"
+            />
           </div>
 
           <div class="flex-grow-1 overflow-y-auto pa-6">

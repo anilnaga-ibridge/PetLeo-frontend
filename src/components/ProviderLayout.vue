@@ -30,10 +30,12 @@ const fetchAllowedServices = async () => {
 
 onMounted(async () => {
   const role = (permissionStore.userData?.role?.name || permissionStore.userData?.role || '').toUpperCase()
+
   console.log(`⏱️ [${new Date().toISOString()}] ProviderLayout: Mounting... Role: ${role}, Ready: ${permissionStore.isDynamicAccessLoaded}`)
   
   if (!permissionStore.isDynamicAccessLoaded || !permissionStore.isPermissionsLoaded) {
     console.log(`⚠️ ProviderLayout: Data missing on mount! Initializing...`)
+
     // 1. Fetch Permissions (Standard)
     await permissionStore.fetchPermissions()
     

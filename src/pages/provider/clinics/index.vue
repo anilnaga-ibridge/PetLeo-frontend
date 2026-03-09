@@ -128,190 +128,190 @@ onMounted(() => {
 <template>
   <ProviderLayout>
     <section class="pa-4">
-    <!-- HEADER -->
-    <VCard class="mb-6">
-      <VCardItem class="pb-2">
-        <VCardTitle class="text-h5 font-weight-bold">
-          My Clinics
-        </VCardTitle>
-      </VCardItem>
+      <!-- HEADER -->
+      <VCard class="mb-6">
+        <VCardItem class="pb-2">
+          <VCardTitle class="text-h5 font-weight-bold">
+            My Clinics
+          </VCardTitle>
+        </VCardItem>
 
-      <VCardText>
-        <VRow>
-          <VCol
-            cols="12"
-            sm="4"
-          >
-            <AppTextField
-              v-model="searchQuery"
-              placeholder="Search clinics..."
-              prepend-inner-icon="tabler-search"
-            />
-          </VCol>
-
-          <VCol
-            cols="12"
-            sm="8"
-            class="d-flex justify-end"
-          >
-            <VBtn
-              color="primary"
-              prepend-icon="tabler-plus"
-              class="px-6"
-              @click="openAddDrawer"
+        <VCardText>
+          <VRow>
+            <VCol
+              cols="12"
+              sm="4"
             >
-              Add Clinic
-            </VBtn>
-          </VCol>
-        </VRow>
-      </VCardText>
+              <AppTextField
+                v-model="searchQuery"
+                placeholder="Search clinics..."
+                prepend-inner-icon="tabler-search"
+              />
+            </VCol>
 
-      <VDivider />
-
-      <!-- TABLE -->
-      <VDataTable
-        :headers="headers"
-        :items="clinics"
-        :loading="loading"
-        :search="searchQuery"
-        hover
-        density="comfortable"
-        class="text-no-wrap"
-      >
-        <!-- Name -->
-        <template #item.name="{ item }">
-          <strong class="text-primary">{{ item.name }}</strong>
-        </template>
-
-        <!-- Status -->
-        <template #item.is_primary="{ item }">
-          <VChip
-            v-if="item.is_primary"
-            size="small"
-            color="success"
-          >
-            Active
-          </VChip>
-          <VChip
-            v-else
-            size="small"
-            color="secondary"
-            variant="tonal"
-          >
-            Standard
-          </VChip>
-        </template>
-
-        <!-- Actions -->
-        <template #item.actions="{ item }">
-          <IconBtn @click="openEditDrawer(item)">
-            <VIcon icon="tabler-edit" />
-          </IconBtn>
-
-          <IconBtn 
-            v-if="!item.is_primary"
-            color="error" 
-            @click="deleteClinic(item)"
-          >
-            <VIcon icon="tabler-trash" />
-          </IconBtn>
-        </template>
-        
-        <!-- Empty State -->
-        <template #no-data>
-          <div class="text-center py-4">
-            No clinics found.
-          </div>
-        </template>
-      </VDataTable>
-    </VCard>
-
-    <!-- DRAWER -->
-    <VNavigationDrawer
-      v-model="drawerOpen"
-      location="end"
-      width="450"
-      temporary
-      class="pa-4"
-      style="border-left: 2px solid #E2E8F0;"
-    >
-      <!-- Drawer Header -->
-      <div
-        class="pa-4 mb-4 rounded-lg"
-        style="background:linear-gradient(135deg,#7367F0,#9E95F5);color:white;"
-      >
-        <h3 class="text-h6 font-weight-bold mb-1">
-          {{ isEdit ? "Update Clinic" : "Create Clinic" }}
-        </h3>
-        <p class="text-caption opacity-90">
-          Manage your clinic details.
-        </p>
-      </div>
-
-      <!-- Form -->
-      <VForm @submit.prevent="handleSubmit">
-        <VRow>
-          <VCol cols="12">
-            <AppTextField
-              v-model="form.name"
-              label="Clinic Name"
-              placeholder="e.g. Happy Paws Vet Clinic"
-              required
-            />
-          </VCol>
-
-          <VCol cols="12">
-            <AppTextField
-              v-model="form.address"
-              label="Address"
-              placeholder="Full address"
-            />
-          </VCol>
-
-          <VCol cols="12">
-            <AppTextField
-              v-model="form.phone"
-              label="Phone Number"
-              placeholder="Contact number"
-            />
-          </VCol>
-          
-          <VCol
-            v-if="errorMessage"
-            cols="12"
-          >
-            <VAlert
-              type="error"
-              variant="tonal"
+            <VCol
+              cols="12"
+              sm="8"
+              class="d-flex justify-end"
             >
-              {{ errorMessage }}
-            </VAlert>
-          </VCol>
+              <VBtn
+                color="primary"
+                prepend-icon="tabler-plus"
+                class="px-6"
+                @click="openAddDrawer"
+              >
+                Add Clinic
+              </VBtn>
+            </VCol>
+          </VRow>
+        </VCardText>
 
-          <VCol
-            cols="12"
-            class="d-flex gap-3 pt-4"
-          >
-            <VBtn
-              type="submit"
-              color="primary"
-              block
-              :loading="saving"
+        <VDivider />
+
+        <!-- TABLE -->
+        <VDataTable
+          :headers="headers"
+          :items="clinics"
+          :loading="loading"
+          :search="searchQuery"
+          hover
+          density="comfortable"
+          class="text-no-wrap"
+        >
+          <!-- Name -->
+          <template #item.name="{ item }">
+            <strong class="text-primary">{{ item.name }}</strong>
+          </template>
+
+          <!-- Status -->
+          <template #item.is_primary="{ item }">
+            <VChip
+              v-if="item.is_primary"
+              size="small"
+              color="success"
             >
-              {{ isEdit ? 'Update' : 'Create' }}
-            </VBtn>
-            <VBtn
-              variant="tonal"
+              Active
+            </VChip>
+            <VChip
+              v-else
+              size="small"
               color="secondary"
-              block
-              @click="drawerOpen = false"
+              variant="tonal"
             >
-              Cancel
-            </VBtn>
-          </VCol>
-        </VRow>
-      </VForm>
-    </VNavigationDrawer>
+              Standard
+            </VChip>
+          </template>
+
+          <!-- Actions -->
+          <template #item.actions="{ item }">
+            <IconBtn @click="openEditDrawer(item)">
+              <VIcon icon="tabler-edit" />
+            </IconBtn>
+
+            <IconBtn 
+              v-if="!item.is_primary"
+              color="error" 
+              @click="deleteClinic(item)"
+            >
+              <VIcon icon="tabler-trash" />
+            </IconBtn>
+          </template>
+        
+          <!-- Empty State -->
+          <template #no-data>
+            <div class="text-center py-4">
+              No clinics found.
+            </div>
+          </template>
+        </VDataTable>
+      </VCard>
+
+      <!-- DRAWER -->
+      <VNavigationDrawer
+        v-model="drawerOpen"
+        location="end"
+        width="450"
+        temporary
+        class="pa-4"
+        style="border-left: 2px solid #E2E8F0;"
+      >
+        <!-- Drawer Header -->
+        <div
+          class="pa-4 mb-4 rounded-lg"
+          style="background:linear-gradient(135deg,#7367F0,#9E95F5);color:white;"
+        >
+          <h3 class="text-h6 font-weight-bold mb-1">
+            {{ isEdit ? "Update Clinic" : "Create Clinic" }}
+          </h3>
+          <p class="text-caption opacity-90">
+            Manage your clinic details.
+          </p>
+        </div>
+
+        <!-- Form -->
+        <VForm @submit.prevent="handleSubmit">
+          <VRow>
+            <VCol cols="12">
+              <AppTextField
+                v-model="form.name"
+                label="Clinic Name"
+                placeholder="e.g. Happy Paws Vet Clinic"
+                required
+              />
+            </VCol>
+
+            <VCol cols="12">
+              <AppTextField
+                v-model="form.address"
+                label="Address"
+                placeholder="Full address"
+              />
+            </VCol>
+
+            <VCol cols="12">
+              <AppTextField
+                v-model="form.phone"
+                label="Phone Number"
+                placeholder="Contact number"
+              />
+            </VCol>
+          
+            <VCol
+              v-if="errorMessage"
+              cols="12"
+            >
+              <VAlert
+                type="error"
+                variant="tonal"
+              >
+                {{ errorMessage }}
+              </VAlert>
+            </VCol>
+
+            <VCol
+              cols="12"
+              class="d-flex gap-3 pt-4"
+            >
+              <VBtn
+                type="submit"
+                color="primary"
+                block
+                :loading="saving"
+              >
+                {{ isEdit ? 'Update' : 'Create' }}
+              </VBtn>
+              <VBtn
+                variant="tonal"
+                color="secondary"
+                block
+                @click="drawerOpen = false"
+              >
+                Cancel
+              </VBtn>
+            </VCol>
+          </VRow>
+        </VForm>
+      </VNavigationDrawer>
     </section>
   </ProviderLayout>
 </template>

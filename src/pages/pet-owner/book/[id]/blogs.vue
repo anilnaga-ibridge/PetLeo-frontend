@@ -5,19 +5,43 @@ const provider = inject('provider')
 </script>
 
 <template>
-  <div v-if="provider" class="blogs-page">
-    <div id="blogs-section" class="mb-12">
+  <div
+    v-if="provider"
+    class="blogs-page"
+  >
+    <div
+      id="blogs-section"
+      class="mb-12"
+    >
       <div class="section-title-bar d-flex align-center justify-space-between mb-8 pa-6 rounded-xl bg-gradient-orange">
         <div>
-          <h2 class="text-h4 font-weight-black text-white mb-1">Latest from Blog</h2>
-          <p class="text-body-2 text-white opacity-90 mb-0">Insights, tips and pet care stories from {{ provider.full_name }}</p>
+          <h2 class="text-h4 font-weight-black text-white mb-1">
+            Latest from Blog
+          </h2>
+          <p class="text-body-2 text-white opacity-90 mb-0">
+            Insights, tips and pet care stories from {{ provider.full_name }}
+          </p>
         </div>
-        <VIcon icon="tabler-news" size="48" color="white" class="opacity-20" />
+        <VIcon
+          icon="tabler-news"
+          size="48"
+          color="white"
+          class="opacity-20"
+        />
       </div>
 
       <VRow>
-        <VCol v-for="i in 2" :key="i" cols="12" sm="6">
-          <VCard flat border class="rounded-xl overflow-hidden blog-card h-100">
+        <VCol
+          v-for="i in 2"
+          :key="i"
+          cols="12"
+          sm="6"
+        >
+          <VCard
+            flat
+            border
+            class="rounded-xl overflow-hidden blog-card h-100"
+          >
             <VImg
               src="https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=600&q=80"
               height="200"
@@ -25,14 +49,29 @@ const provider = inject('provider')
             />
             <div class="pa-5">
               <div class="d-flex align-center gap-2 mb-3">
-                <VChip size="x-small" color="primary" variant="tonal">{{ i === 1 ? 'Health' : 'Lifestyle' }}</VChip>
+                <VChip
+                  size="x-small"
+                  color="primary"
+                  variant="tonal"
+                >
+                  {{ i === 1 ? 'Health' : 'Lifestyle' }}
+                </VChip>
                 <span class="text-caption text-slate-400">Feb 12, 2026</span>
               </div>
-              <h4 class="text-h6 font-weight-bold text-slate-900 mb-2">Essential care tips for your furry friends in 2026</h4>
+              <h4 class="text-h6 font-weight-bold text-slate-900 mb-2">
+                Essential care tips for your furry friends in 2026
+              </h4>
               <p class="text-body-2 text-slate-500 mb-4 line-clamp-2">
                 Discover the latest trends in pet health and wellness to keep your companions happy and healthy all year round.
               </p>
-              <VBtn variant="text" color="primary" class="px-0 font-weight-bold" append-icon="tabler-arrow-right">Read More</VBtn>
+              <VBtn
+                variant="text"
+                color="primary"
+                class="px-0 font-weight-bold"
+                append-icon="tabler-arrow-right"
+              >
+                Read More
+              </VBtn>
             </div>
           </VCard>
         </VCol>

@@ -2,12 +2,12 @@
 defineProps({
   title: {
     type: String,
-    required: true
+    required: true,
   },
   subtitle: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 </script>
 
@@ -15,18 +15,37 @@ defineProps({
   <div class="carousel-wrapper">
     <div class="d-flex align-center justify-space-between mb-6 px-4 px-md-0">
       <div>
-        <h2 class="text-h4 font-weight-black text-slate-900 mb-1 tracking-tight">{{ title }}</h2>
-        <p v-if="subtitle" class="text-body-2 text-slate-500 font-weight-medium">{{ subtitle }}</p>
+        <h2 class="text-h4 font-weight-black text-slate-900 mb-1 tracking-tight">
+          {{ title }}
+        </h2>
+        <p
+          v-if="subtitle"
+          class="text-body-2 text-slate-500 font-weight-medium"
+        >
+          {{ subtitle }}
+        </p>
       </div>
       <div class="d-flex gap-2">
-        <VBtn icon="tabler-chevron-left" variant="tonal" color="slate-400" size="small" rounded="lg" />
-        <VBtn icon="tabler-chevron-right" variant="tonal" color="slate-400" size="small" rounded="lg" />
+        <VBtn
+          icon="tabler-chevron-left"
+          variant="tonal"
+          color="slate-400"
+          size="small"
+          rounded="lg"
+        />
+        <VBtn
+          icon="tabler-chevron-right"
+          variant="tonal"
+          color="slate-400"
+          size="small"
+          rounded="lg"
+        />
       </div>
     </div>
 
     <div class="carousel-scroll-container">
       <div class="carousel-track">
-        <slot></slot>
+        <slot />
       </div>
     </div>
   </div>

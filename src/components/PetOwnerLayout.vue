@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useTheme } from 'vuetify'
 import { useCookie } from '@/@core/composable/useCookie'
 import { usePetOwnerProviderStore } from '@/stores/petOwnerProvider'
+
 // import PetOwnerTrustDialogs from './PetOwnerTrustDialogs.vue'
 
 const router = useRouter()
@@ -50,7 +51,7 @@ onMounted(() => {
 
 <template>
   <!-- Use v-layout instead of v-app to avoid nesting conflicts with App.vue -->
-  <v-layout class="premium-app h-100">
+  <VLayout class="premium-app h-100">
     <!-- Premium Navbar -->
     <VAppBar
       app
@@ -66,7 +67,7 @@ onMounted(() => {
           @click="router.push('/pet-owner/book')"
         >
           <div class="logo-box elevation-4">
-             <VIcon
+            <VIcon
               icon="tabler-paw-filled"
               color="white"
               size="24"
@@ -86,7 +87,11 @@ onMounted(() => {
             class="nav-btn text-subtitle-1 font-weight-black px-6"
             active-class="active-nav-btn"
           >
-            <VIcon :icon="item.icon" class="mr-2" size="20" />
+            <VIcon
+              :icon="item.icon"
+              class="mr-2"
+              size="20"
+            />
             {{ item.title }}
           </VBtn>
 
@@ -103,33 +108,44 @@ onMounted(() => {
             variant="tonal"
             color="secondary"
             size="small"
-            @click="theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark'"
             class="rounded-lg"
+            @click="theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark'"
           >
             <VIcon :icon="theme.global.current.value.dark ? 'tabler-sun' : 'tabler-moon'" />
           </VBtn>
           
-          <VMenu transition="slide-y-transition" offset="10">
+          <VMenu
+            transition="slide-y-transition"
+            offset="10"
+          >
             <template #activator="{ props }">
-              <VAvatar color="primary" class="elevation-4 border-avatar" v-bind="props" style="cursor: pointer">
-                <VIcon icon="tabler-user" color="white" />
+              <VAvatar
+                color="primary"
+                class="elevation-4 border-avatar"
+                v-bind="props"
+                style="cursor: pointer"
+              >
+                <VIcon
+                  icon="tabler-user"
+                  color="white"
+                />
               </VAvatar>
             </template>
             <VList class="rounded-xl mt-2 elevation-10 py-2 min-width-150">
-               <VListItem 
-                 prepend-icon="tabler-user-edit" 
-                 title="Edit Profile" 
-                 to="/pet-owner/profile"
-                 class="px-6 py-3 font-weight-bold"
-               />
-               <VDivider class="my-2 opacity-10" />
-               <VListItem 
-                 prepend-icon="tabler-logout-2" 
-                 title="Logout" 
-                 @click="logout" 
-                 color="error" 
-                 class="px-6 py-3 font-weight-black"
-               />
+              <VListItem 
+                prepend-icon="tabler-user-edit" 
+                title="Edit Profile" 
+                to="/pet-owner/profile"
+                class="px-6 py-3 font-weight-bold"
+              />
+              <VDivider class="my-2 opacity-10" />
+              <VListItem 
+                prepend-icon="tabler-logout-2" 
+                title="Logout" 
+                color="error" 
+                class="px-6 py-3 font-weight-black" 
+                @click="logout"
+              />
             </VList>
           </VMenu>
         </div>
@@ -138,7 +154,10 @@ onMounted(() => {
 
     <!-- Main Content Area -->
     <VMain class="bg-premium-light">
-      <VContainer class="pa-4 pb-16 mt-6 fade-in-up" fluid>
+      <VContainer
+        class="pa-4 pb-16 mt-6 fade-in-up"
+        fluid
+      >
         <div class="max-width-xl mx-auto">
           {{ console.log('🐾 [PetOwnerLayout] Rendering Slot Content') || '' }}
           <slot />
@@ -147,94 +166,198 @@ onMounted(() => {
     </VMain>
 
     <!-- Site Footer -->
-    <VFooter app class="bg-white border-t py-12 pb-20 pb-lg-12 px-4 d-flex flex-column align-center">
-       <VContainer class="max-width-xl">
-         <VRow>
-           <VCol cols="12" md="4">
-              <div class="d-flex align-center gap-3 mb-6">
-                <div class="logo-box elevation-4">
-                   <VIcon icon="tabler-paw-filled" color="white" size="24" />
-                </div>
-                <span class="text-h4 font-weight-black tracking-tight brand-text">PetLeo</span>
+    <VFooter
+      app
+      class="bg-white border-t py-12 pb-20 pb-lg-12 px-4 d-flex flex-column align-center"
+    >
+      <VContainer class="max-width-xl">
+        <VRow>
+          <VCol
+            cols="12"
+            md="4"
+          >
+            <div class="d-flex align-center gap-3 mb-6">
+              <div class="logo-box elevation-4">
+                <VIcon
+                  icon="tabler-paw-filled"
+                  color="white"
+                  size="24"
+                />
               </div>
-              <p class="text-body-2 text-slate-500 max-width-300">
-                Premium pet care platform connecting pet owners with the best veterinary professionals and service providers.
-              </p>
-           </VCol>
-           <VCol cols="12" md="2">
-              <h4 class="text-subtitle-1 font-weight-black mb-6 text-slate-900">Platform</h4>
-              <VList class="pa-0 bg-transparent" density="compact">
-                <VListItem to="/pet-owner/book" class="px-0 mb-2 text-body-2 text-slate-600">Find Care</VListItem>
-                <VListItem to="/pet-owner/pets" class="px-0 mb-2 text-body-2 text-slate-600">My Family</VListItem>
-                <VListItem class="px-0 mb-2 text-body-2 text-slate-600">Services</VListItem>
-              </VList>
-           </VCol>
-           <VCol cols="12" md="2">
-              <h4 class="text-subtitle-1 font-weight-black mb-6 text-slate-900">Company</h4>
-              <VList class="pa-0 bg-transparent" density="compact">
-                <VListItem class="px-0 mb-2 text-body-2 text-slate-600">About Us</VListItem>
-                <VListItem class="px-0 mb-2 text-body-2 text-slate-600">Contact</VListItem>
-                <VListItem class="px-0 mb-2 text-body-2 text-slate-600">Careers</VListItem>
-              </VList>
-           </VCol>
-           <VCol cols="12" md="4">
-              <h4 class="text-subtitle-1 font-weight-black mb-6 text-slate-900">Download Our App</h4>
-              <p class="text-body-2 text-slate-500 mb-6">Manage your pet's health on the go with our mobile application.</p>
-              <div class="d-flex gap-3 mb-8">
-                 <VBtn variant="tonal" color="primary" class="rounded-lg" prepend-icon="tabler-brand-apple">App Store</VBtn>
-                 <VBtn variant="tonal" color="primary" class="rounded-lg" prepend-icon="tabler-brand-google-play">Google Play</VBtn>
-              </div>
-
-              <!-- Trust Badges (Only when provider is active) -->
-              <div v-if="store.activeProvider" class="trust-icons-footer pt-6 border-t">
-                <h5 class="text-caption font-weight-black text-slate-400 uppercase mb-4">Trust & Credentials</h5>
-                <div class="d-flex align-center gap-4">
-                  <VTooltip text="View Certifications" location="top">
-                    <template #activator="{ props }">
-                      <div 
-                        v-bind="props"
-                        class="trust-badge-icon d-flex flex-column align-center cursor-pointer" 
-                        @click="router.push(`/pet-owner/book/${store.activeProvider.id}/certificates`)"
-                      >
-                        <div class="icon-circle mb-1">
-                          <VIcon icon="tabler-certificate" color="primary" size="24" />
-                        </div>
-                        <span class="text-tiny font-weight-bold">Certificates</span>
-                      </div>
-                    </template>
-                  </VTooltip>
-
-                  <VTooltip text="View Policies" location="top">
-                    <template #activator="{ props }">
-                      <div 
-                        v-bind="props"
-                        class="trust-badge-icon d-flex flex-column align-center cursor-pointer" 
-                        @click="router.push(`/pet-owner/book/${store.activeProvider.id}/policies`)"
-                      >
-                        <div class="icon-circle mb-1">
-                          <VIcon icon="tabler-shield-lock" color="success" size="24" />
-                        </div>
-                        <span class="text-tiny font-weight-bold">Policies</span>
-                      </div>
-                    </template>
-                  </VTooltip>
-                </div>
-              </div>
-           </VCol>
-         </VRow>
-         <VDivider class="my-12 opacity-10" />
-         <div class="d-flex flex-wrap justify-space-between align-center gap-4">
-            <div class="text-body-2 text-slate-400">
-               © 2026 PetLeo Technologies Inc. All rights reserved.
+              <span class="text-h4 font-weight-black tracking-tight brand-text">PetLeo</span>
             </div>
-            <div class="d-flex gap-6">
-               <VIcon icon="tabler-brand-facebook" size="20" color="slate-400" class="cursor-pointer" />
-               <VIcon icon="tabler-brand-instagram" size="20" color="slate-400" class="cursor-pointer" />
-               <VIcon icon="tabler-brand-twitter" size="20" color="slate-400" class="cursor-pointer" />
-               <VIcon icon="tabler-brand-linkedin" size="20" color="slate-400" class="cursor-pointer" />
+            <p class="text-body-2 text-slate-500 max-width-300">
+              Premium pet care platform connecting pet owners with the best veterinary professionals and service providers.
+            </p>
+          </VCol>
+          <VCol
+            cols="12"
+            md="2"
+          >
+            <h4 class="text-subtitle-1 font-weight-black mb-6 text-slate-900">
+              Platform
+            </h4>
+            <VList
+              class="pa-0 bg-transparent"
+              density="compact"
+            >
+              <VListItem
+                to="/pet-owner/book"
+                class="px-0 mb-2 text-body-2 text-slate-600"
+              >
+                Find Care
+              </VListItem>
+              <VListItem
+                to="/pet-owner/pets"
+                class="px-0 mb-2 text-body-2 text-slate-600"
+              >
+                My Family
+              </VListItem>
+              <VListItem class="px-0 mb-2 text-body-2 text-slate-600">
+                Services
+              </VListItem>
+            </VList>
+          </VCol>
+          <VCol
+            cols="12"
+            md="2"
+          >
+            <h4 class="text-subtitle-1 font-weight-black mb-6 text-slate-900">
+              Company
+            </h4>
+            <VList
+              class="pa-0 bg-transparent"
+              density="compact"
+            >
+              <VListItem class="px-0 mb-2 text-body-2 text-slate-600">
+                About Us
+              </VListItem>
+              <VListItem class="px-0 mb-2 text-body-2 text-slate-600">
+                Contact
+              </VListItem>
+              <VListItem class="px-0 mb-2 text-body-2 text-slate-600">
+                Careers
+              </VListItem>
+            </VList>
+          </VCol>
+          <VCol
+            cols="12"
+            md="4"
+          >
+            <h4 class="text-subtitle-1 font-weight-black mb-6 text-slate-900">
+              Download Our App
+            </h4>
+            <p class="text-body-2 text-slate-500 mb-6">
+              Manage your pet's health on the go with our mobile application.
+            </p>
+            <div class="d-flex gap-3 mb-8">
+              <VBtn
+                variant="tonal"
+                color="primary"
+                class="rounded-lg"
+                prepend-icon="tabler-brand-apple"
+              >
+                App Store
+              </VBtn>
+              <VBtn
+                variant="tonal"
+                color="primary"
+                class="rounded-lg"
+                prepend-icon="tabler-brand-google-play"
+              >
+                Google Play
+              </VBtn>
             </div>
-         </div>
-       </VContainer>
+
+            <!-- Trust Badges (Only when provider is active) -->
+            <div
+              v-if="store.activeProvider"
+              class="trust-icons-footer pt-6 border-t"
+            >
+              <h5 class="text-caption font-weight-black text-slate-400 uppercase mb-4">
+                Trust & Credentials
+              </h5>
+              <div class="d-flex align-center gap-4">
+                <VTooltip
+                  text="View Certifications"
+                  location="top"
+                >
+                  <template #activator="{ props }">
+                    <div 
+                      v-bind="props"
+                      class="trust-badge-icon d-flex flex-column align-center cursor-pointer" 
+                      @click="router.push(`/pet-owner/book/${store.activeProvider.id}/certificates`)"
+                    >
+                      <div class="icon-circle mb-1">
+                        <VIcon
+                          icon="tabler-certificate"
+                          color="primary"
+                          size="24"
+                        />
+                      </div>
+                      <span class="text-tiny font-weight-bold">Certificates</span>
+                    </div>
+                  </template>
+                </VTooltip>
+
+                <VTooltip
+                  text="View Policies"
+                  location="top"
+                >
+                  <template #activator="{ props }">
+                    <div 
+                      v-bind="props"
+                      class="trust-badge-icon d-flex flex-column align-center cursor-pointer" 
+                      @click="router.push(`/pet-owner/book/${store.activeProvider.id}/policies`)"
+                    >
+                      <div class="icon-circle mb-1">
+                        <VIcon
+                          icon="tabler-shield-lock"
+                          color="success"
+                          size="24"
+                        />
+                      </div>
+                      <span class="text-tiny font-weight-bold">Policies</span>
+                    </div>
+                  </template>
+                </VTooltip>
+              </div>
+            </div>
+          </VCol>
+        </VRow>
+        <VDivider class="my-12 opacity-10" />
+        <div class="d-flex flex-wrap justify-space-between align-center gap-4">
+          <div class="text-body-2 text-slate-400">
+            © 2026 PetLeo Technologies Inc. All rights reserved.
+          </div>
+          <div class="d-flex gap-6">
+            <VIcon
+              icon="tabler-brand-facebook"
+              size="20"
+              color="slate-400"
+              class="cursor-pointer"
+            />
+            <VIcon
+              icon="tabler-brand-instagram"
+              size="20"
+              color="slate-400"
+              class="cursor-pointer"
+            />
+            <VIcon
+              icon="tabler-brand-twitter"
+              size="20"
+              color="slate-400"
+              class="cursor-pointer"
+            />
+            <VIcon
+              icon="tabler-brand-linkedin"
+              size="20"
+              color="slate-400"
+              class="cursor-pointer"
+            />
+          </div>
+        </div>
+      </VContainer>
     </VFooter>
 
     <!-- Mobile Bottom Navigation (Enhanced) -->
@@ -252,14 +375,17 @@ onMounted(() => {
         :value="item.to"
         class="mobile-nav-btn"
       >
-        <VIcon :icon="item.icon" size="24" />
+        <VIcon
+          :icon="item.icon"
+          size="24"
+        />
         <span class="text-caption font-weight-black mt-1">{{ item.title }}</span>
       </VBtn>
     </VBottomNavigation>
 
     <!-- Trust Dialogs (shared state via Pinia) -->
     <!-- <PetOwnerTrustDialogs /> -->
-  </v-layout>
+  </VLayout>
 </template>
 
 <style>

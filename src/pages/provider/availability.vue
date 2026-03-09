@@ -25,8 +25,12 @@ onMounted(() => {
   <ProviderLayout>
     <div class="pa-6">
       <div class="mb-6">
-        <h1 class="text-h3 font-weight-black text-slate-800 tracking-tight mb-1">Schedule & Availability</h1>
-        <p class="text-subtitle-1 text-slate-500 font-weight-medium">Configure your working hours and consultation types.</p>
+        <h1 class="text-h3 font-weight-black text-slate-800 tracking-tight mb-1">
+          Schedule & Availability
+        </h1>
+        <p class="text-subtitle-1 text-slate-500 font-weight-medium">
+          Configure your working hours and consultation types.
+        </p>
       </div>
 
       <VTabs
@@ -35,8 +39,18 @@ onMounted(() => {
         color="primary"
         class="mb-8 lux-tabs"
       >
-        <VTab value="general" prepend-icon="tabler-clock-2">General Schedule</VTab>
-        <VTab value="consultation" prepend-icon="tabler-stethoscope">Consultation Types & Fees</VTab>
+        <VTab
+          value="general"
+          prepend-icon="tabler-clock-2"
+        >
+          General Schedule
+        </VTab>
+        <VTab
+          value="consultation"
+          prepend-icon="tabler-stethoscope"
+        >
+          Consultation Types & Fees
+        </VTab>
       </VTabs>
       
       <VWindow v-model="activeTab">

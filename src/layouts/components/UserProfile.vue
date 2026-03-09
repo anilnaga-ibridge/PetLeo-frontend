@@ -6,8 +6,10 @@ import { usePermissionStore } from '@/stores/permissionStore'
 import { useRouter } from 'vue-router'
 import { useCookie } from '@/@core/composable/useCookie'
 import { storeToRefs } from 'pinia'
+import { computed } from 'vue'
 
 const router = useRouter()
+
 // const userData = useCookie('userData') // ❌ Replaced by Store for reactivity
 const authStore = useAuthStore()
 const permissionStore = usePermissionStore()
@@ -15,12 +17,14 @@ const { userData } = storeToRefs(permissionStore)
 const loading = ref(false)
 const refInputEl = ref()
 
-const uploadAvatar = async (e) => {
+const uploadAvatar = async e => {
   const file = e.target.files[0]
   if (!file) return
 
   loading.value = true
+
   const fd = new FormData()
+
   fd.append('avatar', file)
   fd.append('auth_user_id', userData.value.id)
 
@@ -47,6 +51,44 @@ const logout = async () => {
   await authStore.logout()
   router.push({ name: 'login' })
 }
+
+// Human-readable role label
+const roleLabel = computed(() => {
+  const role = (userData.value?.role || '').toUpperCase()
+  const pType = (userData.value?.provider_type || userData.value?.providerType || '').toUpperCase()
+  const isSuperuser = userData.value?.is_superuser
+
+  // 1. Super Admin Priority
+  if (isSuperuser || ['SUPERADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(role)) return 'Super Admin'
+
+  // 2. Provider Type Priority
+  const providerRoles = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER']
+  if (providerRoles.includes(role)) {
+    if (pType === 'ORGANIZATION') return 'Organization'
+    if (pType === 'INDIVIDUAL') return 'Individual Provider'
+  }
+
+  const ROLE_LABELS = {
+    'ORGANIZATION': 'Organization',
+    'INDIVIDUAL': 'Individual Provider',
+    'PROVIDER': 'Provider',
+    'SERVICE_PROVIDER': 'Service Provider',
+    'DOCTOR': 'Doctor',
+    'RECEPTIONIST': 'Receptionist',
+    'EMPLOYEE': 'Employee',
+    'LAB TECH': 'Lab Technician',
+    'PHARMACY': 'Pharmacist',
+    'VITALS STAFF': 'Vitals Staff',
+    'PETOWNER': 'Pet Owner',
+  }
+  
+  if (ROLE_LABELS[role]) return ROLE_LABELS[role]
+
+  // Fallback to capitalized role
+  return userData.value?.role 
+    ? userData.value.role.charAt(0).toUpperCase() + userData.value.role.slice(1).toLowerCase() 
+    : 'User'
+})
 
 const userProfileList = [
   { type: 'divider' },
@@ -185,7 +227,7 @@ const userProfileList = [
               {{ userData?.fullName || userData?.username }}
             </VListItemTitle>
             <VListItemSubtitle>
-              {{ userData?.role }}
+              {{ roleLabel }}
             </VListItemSubtitle>
           </VListItem>
 

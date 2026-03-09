@@ -7,24 +7,24 @@ import { providerApi } from '@/plugins/axios'
 const props = defineProps({
   allProviders: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   city: {
     type: String,
-    required: true
+    required: true,
   },
   category: {
     type: String,
-    default: 'all'
+    default: 'all',
   },
   categoryName: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const filteredProviders = computed(() => {
@@ -32,14 +32,16 @@ const filteredProviders = computed(() => {
   
   if (props.city) {
     const city = props.city.toLowerCase()
+
     list = list.filter(p => p.location.toLowerCase().includes(city))
   }
 
   if (props.category && props.category !== 'all') {
     const cat = props.category.toLowerCase()
+
     list = list.filter(p => 
       p.services.some(s => s.toLowerCase().includes(cat)) ||
-      (props.categoryName && p.services.some(s => s.toLowerCase().includes(props.categoryName.toLowerCase())))
+      (props.categoryName && p.services.some(s => s.toLowerCase().includes(props.categoryName.toLowerCase()))),
     )
   }
 
@@ -52,21 +54,37 @@ const filteredProviders = computed(() => {
   <section class="recommended-section py-12 bg-white">
     <VContainer>
       <div class="section-header mb-8 px-4 px-md-0">
-        <h2 class="text-h4 font-weight-black text-slate-900 mb-2 tracking-tight">Recommended For You</h2>
+        <h2 class="text-h4 font-weight-black text-slate-900 mb-2 tracking-tight">
+          Recommended For You
+        </h2>
         <p class="text-body-1 text-slate-500 font-medium">
           {{ props.city ? `Top-rated professionals in ${props.city}` : 'Top-rated professionals near you' }}
         </p>
       </div>
 
-      <VCard v-if="loading" flat class="bg-transparent">
+      <VCard
+        v-if="loading"
+        flat
+        class="bg-transparent"
+      >
         <VRow class="g-6">
-          <VCol v-for="i in 4" :key="i" cols="12" sm="6" md="4" lg="3">
+          <VCol
+            v-for="i in 4"
+            :key="i"
+            cols="12"
+            sm="6"
+            md="4"
+            lg="3"
+          >
             <SkeletonCard />
           </VCol>
         </VRow>
       </VCard>
 
-      <VRow v-else class="g-6">
+      <VRow
+        v-else
+        class="g-6"
+      >
         <VCol 
           v-for="provider in filteredProviders" 
           :key="provider.id" 

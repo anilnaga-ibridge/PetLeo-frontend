@@ -100,20 +100,24 @@ const fetchMetadata = async () => {
   }
 }
 
-const getFacilityPrice = (facId) => {
-    const rule = rules.value.find(r => {
-        const rFacId = r.facility?.id || r.facility
-        return String(rFacId) === String(facId)
-    })
-    if (!rule) return '0.00'
-    return parseFloat(rule.base_price || 0).toFixed(2)
+const getFacilityPrice = facId => {
+  const rule = rules.value.find(r => {
+    const rFacId = r.facility?.id || r.facility
+    
+    return String(rFacId) === String(facId)
+  })
+
+  if (!rule) return '0.00'
+  
+  return parseFloat(rule.base_price || 0).toFixed(2)
 }
 
-const getCategoryFacilities = (catId) => {
-    return facilities.value.filter(f => {
-        const fCatId = f.category?.id || f.category
-        return String(fCatId) === String(catId)
-    })
+const getCategoryFacilities = catId => {
+  return facilities.value.filter(f => {
+    const fCatId = f.category?.id || f.category
+    
+    return String(fCatId) === String(catId)
+  })
 }
 
 const groupedCapabilities = computed(() => {
@@ -315,20 +319,21 @@ const submit = async () => {
         // Find service/category for this facility
         const fac = facilities.value.find(f => String(f.id) === String(facId))
         if (fac) {
-            // Priority: Service > Category > Service via Category
-            if (fac.service) { // Direct service link
-                svcId = fac.service
-            } 
+          // Priority: Service > Category > Service via Category
+          if (fac.service) { // Direct service link
+            svcId = fac.service
+          } 
             
-            // Check Category regardless
-            const fCatId = fac.category?.id || fac.category
-            if (fCatId) {
-                catId = fCatId // Send category_id too?
-                const cat = categories.value.find(c => String(c.id) === String(fCatId))
-                if (cat) {
-                    svcId = cat.service // Derive service from category if not already set
-                }
+          // Check Category regardless
+          const fCatId = fac.category?.id || fac.category
+          if (fCatId) {
+            catId = fCatId // Send category_id too?
+
+            const cat = categories.value.find(c => String(c.id) === String(fCatId))
+            if (cat) {
+              svcId = cat.service // Derive service from category if not already set
             }
+          }
         }
       }
 
@@ -338,8 +343,8 @@ const submit = async () => {
         // Backend requires service_id or category_id
         // If simply facility_id provided, backend rejects.
         if (!svcId && !catId && facId) {
-             console.warn('Skipping facility capability save due to missing context:', facId)
-             continue
+          console.warn('Skipping facility capability save due to missing context:', facId)
+          continue
         }
 
         const payload = {
@@ -405,6 +410,7 @@ const toggleCapability = (type, id, val) => {
     // ✅ AUTO-SELECT CATEGORIES Logic
     if (type === 'svc') {
       const serviceCategories = categories.value.filter(c => c.service === id)
+
       serviceCategories.forEach(cat => {
         // Recursively enable category
         toggleCapability('cat', cat.id, true)
@@ -420,6 +426,7 @@ const toggleCapability = (type, id, val) => {
     // ✅ AUTO-DESELECT CATEGORIES Logic
     if (type === 'svc') {
       const serviceCategories = categories.value.filter(c => c.service === id)
+
       serviceCategories.forEach(cat => {
         toggleCapability('cat', cat.id, false)
       })
@@ -1422,11 +1429,20 @@ onMounted(() => {
                                   >
                                     <div class="d-flex align-center justify-space-between">
                                       <div class="d-flex align-center gap-2">
-                                          <VIcon icon="tabler-tool" size="14" class="text-medium-emphasis" />
-                                          <span class="text-body-2 font-weight-medium">{{ fac.name }}</span>
-                                          <VChip size="x-small" variant="tonal" color="secondary" class="ml-1">
-                                            ₹{{ getFacilityPrice(fac.id) }}
-                                          </VChip>
+                                        <VIcon
+                                          icon="tabler-tool"
+                                          size="14"
+                                          class="text-medium-emphasis"
+                                        />
+                                        <span class="text-body-2 font-weight-medium">{{ fac.name }}</span>
+                                        <VChip
+                                          size="x-small"
+                                          variant="tonal"
+                                          color="secondary"
+                                          class="ml-1"
+                                        >
+                                          ₹{{ getFacilityPrice(fac.id) }}
+                                        </VChip>
                                       </div>
                                       <VSwitch
                                         :model-value="!!form.capabilities[`fac_${fac.id}`]?.enabled"
@@ -1440,7 +1456,10 @@ onMounted(() => {
                                     </div>
 
                                     <VExpandTransition>
-                                      <div v-if="form.capabilities[`fac_${fac.id}`]?.enabled" class="pl-6 mt-1 border-s pb-1">
+                                      <div
+                                        v-if="form.capabilities[`fac_${fac.id}`]?.enabled"
+                                        class="pl-6 mt-1 border-s pb-1"
+                                      >
                                         <div class="d-flex flex-wrap gap-x-4 gap-y-1">
                                           <VCheckbox
                                             v-model="form.capabilities[`fac_${fac.id}`].permissions.can_view"
@@ -1482,7 +1501,6 @@ onMounted(() => {
                           </div>
 
                           <!-- Facilities (Directly under Service) -->
-
                         </div>
                       </VExpandTransition>
                     </VCard>
@@ -1528,9 +1546,9 @@ onMounted(() => {
                         v-if="form.capabilities[`svc_${veterinaryService.id}`]?.enabled"
                         class="mt-4 pt-4 border-t"
                       >
-                         <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2 pl-4">
-                           Core Categories
-                         </div>
+                        <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2 pl-4">
+                          Core Categories
+                        </div>
 
                         <!-- Categories List (Veterinary) -->
                         <div
@@ -1581,7 +1599,6 @@ onMounted(() => {
                             </div>
                           </VExpandTransition>
                         </div>
-
                       </div>
                     </VExpandTransition>
                   </VCard>

@@ -13,6 +13,7 @@ const getProviderNavigation = () => {
   // STRICT: Internal Wait for Dynamic Access
   if (!permissionStore.isDynamicAccessLoaded || !permissionStore.isPermissionsLoaded) {
     console.log('🚧 Provider Nav: Waiting for dynamic access load...')
+    
     return []
   }
 
@@ -58,7 +59,7 @@ const getProviderNavigation = () => {
         title: 'My Subscription',
         to: { name: 'provider-subscription' },
         icon: { icon: 'tabler-crown' },
-      }
+      },
     )
   }
 
@@ -101,6 +102,7 @@ const getProviderNavigation = () => {
   const hasVeterinaryAccess = permissionStore.permissions.some(p => {
     const key = (p.service_key || '').toUpperCase()
     const name = (p.service_name || '').toLowerCase()
+    
     return (key.startsWith('VETERINARY_') || name.includes('veterinary')) && p.can_view
   })
 
@@ -128,6 +130,7 @@ const getProviderNavigation = () => {
   // 1. Providers/Orgs (Owners) - Always
   // 2. Employees - Always, but with different titles
   const bookingsTitle = isProviderOrOrg ? 'Customer Bookings' : 'My Bookings'
+
   navigation.push({
     title: bookingsTitle,
     to: isProviderOrOrg ? { name: 'provider-customer-bookings' } : { name: 'employee-bookings' },
@@ -182,7 +185,7 @@ const getProviderNavigation = () => {
         title: 'Clinics',
         to: { name: 'provider-clinics' },
         icon: { icon: 'tabler-map-pin' },
-      }
+      },
     )
   }
 

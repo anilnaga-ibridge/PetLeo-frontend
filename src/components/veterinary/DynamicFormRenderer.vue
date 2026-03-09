@@ -92,6 +92,22 @@ const submit = async () => {
     loading.value = false
   }
 }
+
+const handleAiSuggestion = (fieldKey, eventPayload) => {
+  // eventPayload struct: { field: "medicine_name", data: { medicine_name: "X", dosage: "Y", frequency: "Z" } }
+  if (!eventPayload || !eventPayload.data) return
+  
+  const aiData = eventPayload.data
+  
+  // Try to cleanly auto-fill corresponding fields in this repeating group or flat form
+  if (aiData.dosage && typeof formData.value.dosage !== 'undefined') {
+    formData.value.dosage = aiData.dosage
+  }
+  
+  if (aiData.frequency && typeof formData.value.frequency !== 'undefined') {
+    formData.value.frequency = aiData.frequency
+  }
+}
 </script>
 
 <template>
@@ -127,6 +143,7 @@ const submit = async () => {
             v-model="formData[field.field_key]"
             :field="field"
             :read-only="readOnly"
+            @change="handleAiSuggestion(field.field_key, $event)"
           />
         </div>
       </VForm>

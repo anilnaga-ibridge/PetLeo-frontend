@@ -32,6 +32,9 @@ veterinaryApi.createPet = data => {
 veterinaryApi.savePetDynamicData = (petId, data) => {
   return api.post(`/api/veterinary/pets/${petId}/dynamic_data/`, data)
 }
+veterinaryApi.getPetHistory = petId => {
+  return api.get(`/api/veterinary/pets/${petId}/history/`)
+}
 
 // --- Visits ---
 veterinaryApi.createVisit = data => {
@@ -70,11 +73,11 @@ veterinaryApi.createEntity = data => {
 }
 
 // --- Analytics ---
-veterinaryApi.getAnalytics = (params) => {
+veterinaryApi.getAnalytics = params => {
   return api.get('/api/veterinary/analytics/dashboard/', { params })
 }
 
-veterinaryApi.getSummary = (params) => {
+veterinaryApi.getSummary = params => {
   return api.get('/api/veterinary/analytics/summary/', { params })
 }
 
@@ -87,4 +90,25 @@ veterinaryApi.createMedicalAppointment = data => {
 }
 veterinaryApi.getVeterinaryAvailability = (clinicId, params) => {
   return api.get(`/api/veterinary/availability/${clinicId}/slots/`, { params })
+}
+
+// --- Master Catalog & Inventory ---
+veterinaryApi.getMedicines = params => {
+  return api.get('/api/veterinary/catalog/medicines/', { params })
+}
+veterinaryApi.createMedicine = data => {
+  return api.post('/api/veterinary/catalog/medicines/', data)
+}
+veterinaryApi.updateMedicine = (id, data) => {
+  return api.patch(`/api/veterinary/catalog/medicines/${id}/`, data)
+}
+veterinaryApi.deleteMedicine = id => {
+  return api.delete(`/api/veterinary/catalog/medicines/${id}/`)
+}
+veterinaryApi.dispenseMedicines = (prescriptionId) => {
+  return api.post('/api/veterinary/pharmacy/dispense/', { prescription_id: prescriptionId })
+}
+
+veterinaryApi.getLabTests = params => {
+  return api.get('/api/veterinary/catalog/lab-tests/', { params })
 }

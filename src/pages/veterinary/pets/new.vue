@@ -64,6 +64,7 @@ const createNewType = async name => {
   creatingType.value = true
   try {
     const newType = await veterinaryStore.createPetType(name)
+
     form.value.species = newType
   } catch (err) {
     console.error('Failed to create type:', err)
@@ -85,12 +86,14 @@ const createNewBreed = async breedName => {
 
   if (!speciesId) {
     alert('Please select or create a valid species first.')
+    
     return
   }
 
   creatingBreed.value = true
   try {
     const newBreed = await veterinaryStore.createPetBreed(speciesId, breedName)
+
     form.value.breed = newBreed.breed
   } catch (err) {
     console.error('Failed to create breed:', err)
@@ -125,6 +128,7 @@ const submit = async () => {
       if (typeof val === 'object') {
         return val.breed || val.name || val.title || val.label || val.id || ''
       }
+      
       return String(val)
     }
 
@@ -165,39 +169,53 @@ const submit = async () => {
           </div>
         </div>
         <div class="d-none d-sm-flex gap-2">
-           <VBtn
+          <VBtn
             variant="tonal"
             color="secondary"
             to="/veterinary/dashboard"
           >
             Cancel
           </VBtn>
-           <VBtn
+          <VBtn
             color="primary"
             :loading="loading"
-            @click="submit"
             prepend-icon="tabler-check"
+            @click="submit"
           >
             Register Patient
           </VBtn>
         </div>
       </div>
 
-      <VForm @submit.prevent="submit" class="pa-4">
+      <VForm
+        class="pa-4"
+        @submit.prevent="submit"
+      >
         <VRow>
           <!-- Left Column: Pet Details -->
-          <VCol cols="12" md="7" lg="8">
-            <VCard class="mb-6 h-100" elevation="0" border>
+          <VCol
+            cols="12"
+            md="7"
+            lg="8"
+          >
+            <VCard
+              class="mb-6 h-100"
+              elevation="0"
+              border
+            >
               <VCardItem class="pb-0">
                 <template #prepend>
-                   <VAvatar
-                      color="primary"
-                      variant="tonal"
-                      size="40"
-                      class="me-2"
-                    >
-                      <VIcon icon="tabler-paw" size="24" />
-                    </VAvatar>
+                  <VAvatar
+                    color="primary"
+                    variant="tonal"
+                    size="40"
+                    class="me-2"
+                  >
+                    <VIcon
+                      icon="tabler-paw"
+                      size="24"
+                    />
+                  </VAvatar>
                 </template>
                 <VCardTitle>Pet Information</VCardTitle>
                 <VCardSubtitle>Basic details about the patient</VCardSubtitle>
@@ -214,15 +232,21 @@ const submit = async () => {
                       class="mb-2"
                       style="border: 2px dashed rgba(var(--v-theme-primary), 0.3)"
                     >
-                      <VIcon icon="tabler-camera-plus" size="40" color="primary" />
+                      <VIcon
+                        icon="tabler-camera-plus"
+                        size="40"
+                        color="primary"
+                      />
                     </VAvatar>
-                    <div class="text-caption text-disabled">Upload Photo</div>
+                    <div class="text-caption text-disabled">
+                      Upload Photo
+                    </div>
                   </div>
                 </div>
 
                 <VRow>
                   <VCol cols="12">
-                     <AppTextField
+                    <AppTextField
                       v-model="form.name"
                       label="Pet Name *"
                       placeholder="e.g. Max"
@@ -232,8 +256,11 @@ const submit = async () => {
                     />
                   </VCol>
 
-                  <VCol cols="12" md="6">
-                     <AppCombobox
+                  <VCol
+                    cols="12"
+                    md="6"
+                  >
+                    <AppCombobox
                       v-model="form.species"
                       :items="petTypes"
                       item-title="name"
@@ -254,7 +281,10 @@ const submit = async () => {
                     </AppCombobox>
                   </VCol>
 
-                  <VCol cols="12" md="6">
+                  <VCol
+                    cols="12"
+                    md="6"
+                  >
                     <AppCombobox
                       v-model="form.breed"
                       :items="filteredBreeds"
@@ -277,7 +307,10 @@ const submit = async () => {
                     </AppCombobox>
                   </VCol>
 
-                  <VCol cols="12" md="6">
+                  <VCol
+                    cols="12"
+                    md="6"
+                  >
                     <AppSelect
                       v-model="form.sex"
                       :items="sexOptions"
@@ -287,7 +320,10 @@ const submit = async () => {
                     />
                   </VCol>
 
-                  <VCol cols="12" md="6">
+                  <VCol
+                    cols="12"
+                    md="6"
+                  >
                     <AppTextField
                       v-model="form.dob"
                       type="date"
@@ -296,7 +332,7 @@ const submit = async () => {
                     />
                   </VCol>
 
-                   <VCol cols="12">
+                  <VCol cols="12">
                     <AppTextField
                       v-model="form.color"
                       label="Color / Markings"
@@ -310,18 +346,29 @@ const submit = async () => {
           </VCol>
 
           <!-- Right Column: Owner Details -->
-          <VCol cols="12" md="5" lg="4">
-             <VCard class="h-100" elevation="0" border>
+          <VCol
+            cols="12"
+            md="5"
+            lg="4"
+          >
+            <VCard
+              class="h-100"
+              elevation="0"
+              border
+            >
               <VCardItem class="pb-0">
                 <template #prepend>
-                   <VAvatar
-                      color="info"
-                      variant="tonal"
-                      size="40"
-                      class="me-2"
-                    >
-                      <VIcon icon="tabler-user" size="24" />
-                    </VAvatar>
+                  <VAvatar
+                    color="info"
+                    variant="tonal"
+                    size="40"
+                    class="me-2"
+                  >
+                    <VIcon
+                      icon="tabler-user"
+                      size="24"
+                    />
+                  </VAvatar>
                 </template>
                 <VCardTitle>Owner Information</VCardTitle>
                 <VCardSubtitle>Contact details</VCardSubtitle>
@@ -341,7 +388,7 @@ const submit = async () => {
 
                   <VCol cols="12">
                     <div class="d-flex gap-2">
-                       <AppSelect
+                      <AppSelect
                         v-model="form.country_code"
                         :items="countryCodes"
                         label="Code"
@@ -358,7 +405,7 @@ const submit = async () => {
                   </VCol>
 
                   <VCol cols="12">
-                     <AppTextField
+                    <AppTextField
                       v-model="form.owner_email"
                       label="Email"
                       placeholder="owner@example.com"
@@ -385,17 +432,17 @@ const submit = async () => {
         
         <!-- Mobile Actions -->
         <VRow class="d-sm-none mt-4">
-           <VCol cols="12">
-             <VBtn
-                color="primary"
-                :loading="loading"
-                block
-                size="large"
-                @click="submit"
-              >
-                Register Patient
-              </VBtn>
-           </VCol>
+          <VCol cols="12">
+            <VBtn
+              color="primary"
+              :loading="loading"
+              block
+              size="large"
+              @click="submit"
+            >
+              Register Patient
+            </VBtn>
+          </VCol>
         </VRow>
       </VForm>
     </div>

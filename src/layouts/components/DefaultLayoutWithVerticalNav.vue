@@ -1,68 +1,80 @@
 <script setup>
 import navItems from '@/navigation/vertical'
+import superAdminNav from '@/navigation/vertical/super-admin'
 import getProviderNavigation from '@/navigation/vertical/provider'
 import { themeConfig } from '@themeConfig'
 import { usePermissionStore } from '@/stores/permissionStore'
-import { computed } from 'vue'
+import { computed, onMounted, watch, defineAsyncComponent, ref } from 'vue'
+import { useSkins } from '@core/composable/useSkins'
 
 const permissionStore = usePermissionStore()
 
-// Get User Role Helper (Reactive)
+// Get User Role Helper (Reactive & Normalized)
 const userRole = computed(() => {
   const data = permissionStore.userData
   if (!data) return ''
   
-  return (data.role?.name || data.role || '').toUpperCase()
+  // Normalize: Uppercase and handle underscores/dashes
+  return (data.role?.name || data.role || '').toUpperCase().replace(/[- ]/g, '_')
 })
 
-import { onMounted } from 'vue'
 
 onMounted(() => {
-    const role = userRole.value
-    console.log(`⏱️ [${new Date().toISOString()}] Sidebar: Layout Mounted. Role: ${role}, Ready: ${permissionStore.isDynamicAccessLoaded}`)
+  const role = userRole.value
+
+  console.log(`⏱️ [${new Date().toISOString()}] Sidebar: Layout Mounted. Role: ${role}, Ready: ${permissionStore.isDynamicAccessLoaded}`)
     
-    // Guard: If for some reason the router guard was skipped and we aren't loaded, fetch now.
-    if (['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE'].includes(role) && !permissionStore.isDynamicAccessLoaded) {
-        console.log(`⚠️ Sidebar: Data missing on mount! Calling fetchDynamicAccess...`)
-        permissionStore.fetchDynamicAccess()
-    } else {
-        permissionStore.isDynamicAccessLoaded = true
-    }
+  // Guard: If for some reason the router guard was skipped and we aren't loaded, fetch now.
+  const providerRoles = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE', 'SERVICE_PROVIDER']
+  if (providerRoles.includes(role) && !permissionStore.isDynamicAccessLoaded) {
+    console.log(`⚠️ Sidebar: Data missing on mount! Calling fetchDynamicAccess...`)
+    permissionStore.fetchDynamicAccess()
+  } else {
+    permissionStore.isDynamicAccessLoaded = true
+  }
 })
 
 const filteredNavItems = computed(() => {
   console.log('🔄 Sidebar: Re-calculating filteredNavItems')
-  const role = userRole.value
-  const isProvider = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE'].includes(role)
-  
-  // Use Provider Navigation if Provider Role, otherwise Default (SuperAdmin)
-  console.log('🔍 Sidebar Debug: Role:', role, 'isProvider:', isProvider)
-  
-  // [FIX] Force Super Admin Navigation (navItems also contains provider, but index.js spreads superadmin first)
-  // Actually index.js exports EVERYTHING. DefaultLayout filters them.
-  // Wait, getProviderNavigation returns ONLY provider items.
-  // navItems returns EVERYTHING.
-  // So if we are SuperAdmin, we want navItems.
-  
-  let items = (role === 'SUPERADMIN' || role === 'ADMIN') 
-    ? navItems 
-    : (isProvider ? getProviderNavigation() : navItems)
 
-  console.log('🔍 Sidebar Debug: Is SuperAdmin Force:', (role === 'SUPERADMIN' || role === 'ADMIN'))
-  console.log('🔍 Sidebar Debug: Items Source:', (role === 'SUPERADMIN' || role === 'ADMIN') ? 'Forced Default/Index' : (isProvider ? 'Provider' : 'Default/Index'))
+  const role = userRole.value
+  
+  // Roles that use the Provider-specific dynamic navigation
+  const providerRoles = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'EMPLOYEE', 'SERVICE_PROVIDER']
+  const isProvider = providerRoles.includes(role)
+  
+  // Roles that use the internal Super Admin navigation
+  const isSuperAdmin = ['SUPERADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(role) || permissionStore.userData?.is_superuser
+  
+  console.log('🔍 Sidebar Debug: Role:', role, 'isProvider:', isProvider, 'isSuperAdmin:', isSuperAdmin)
+  
+  let items = []
+
+  if (isSuperAdmin) {
+    console.log('🛡️ Sidebar: Applying STRICT Super Admin Navigation (is_superuser check passed)')
+    items = superAdminNav
+  } else if (isProvider) {
+    console.log('🏥 Sidebar: Applying Provider Navigation')
+    items = getProviderNavigation()
+  } else {
+    console.log('📦 Sidebar: Applying Default Navigation (Demo/Common)')
+    items = navItems
+  }
   
   console.log(`🧭 Sidebar: Initial Items: ${items.length}, DynamicLoaded: ${permissionStore.isDynamicAccessLoaded}`)
 
   // MERGE DYNAMIC ITEMS
   if (permissionStore.dynamicModules && permissionStore.dynamicModules.length) {
-      const dynItems = permissionStore.dynamicModules.map(mod => ({
-          title: mod.name,
-          to: mod.route.startsWith('/') ? { path: mod.route } : { name: mod.route },
-          icon: { icon: mod.icon || 'tabler-box' },
-          // Ensure they are not filtered out by default logic unless explicit capability check fails
-          // But since they are dynamic, they are inherently allowed if present in the list returned by 'my-access'
-      }))
-      items = [...items, ...dynItems]
+    const dynItems = permissionStore.dynamicModules.map(mod => ({
+      title: mod.name,
+      to: mod.route.startsWith('/') ? { path: mod.route } : { name: mod.route },
+      icon: { icon: mod.icon || 'tabler-box' },
+
+      // Ensure they are not filtered out by default logic unless explicit capability check fails
+      // But since they are dynamic, they are inherently allowed if present in the list returned by 'my-access'
+    }))
+
+    items = [...items, ...dynItems]
   }
   
   console.log('🧭 Sidebar: Raw Items:', items.length)
@@ -71,6 +83,7 @@ const filteredNavItems = computed(() => {
     if (item.canView) {
       const res = item.canView()
       if (!res) console.log(`🚫 Sidebar: Hiding ${item.title} (canView=false)`)
+      
       return res
     }
     
@@ -95,13 +108,12 @@ const isAppReady = computed(() => {
   return true
 })
 
-import { watch } from 'vue'
 watch(
   () => permissionStore.permissions,
-  (newVal) => {
+  newVal => {
     console.log('⚡ PERMISSIONS CHANGED:', newVal)
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 )
 
 // Components
@@ -118,6 +130,7 @@ import { VerticalNavLayout } from '@layouts'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+
 const isProviderArea = computed(() => {
   return (route.path && (route.path.includes('/provider/') || route.path.includes('/employee/'))) || 
          (route.name && (String(route.name).startsWith('provider-') || String(route.name).startsWith('employee-'))) ||
@@ -126,7 +139,10 @@ const isProviderArea = computed(() => {
 </script>
 
 <template>
-  <VerticalNavLayout v-if="!isProviderArea" :nav-items="filteredNavItems">
+  <VerticalNavLayout
+    v-if="!isProviderArea"
+    :nav-items="filteredNavItems"
+  >
     <!-- 👉 navbar -->
     <template #navbar="{ toggleVerticalOverlayNavActive }">
       <div class="d-flex h-100 align-center">
@@ -167,7 +183,10 @@ const isProviderArea = computed(() => {
     <!-- 👉 Customizer -->
     <TheCustomizer />
   </VerticalNavLayout>
-  <div v-else class="layout-wrapper layout-blank">
+  <div
+    v-else
+    class="layout-wrapper layout-blank"
+  >
     <slot />
   </div>
 </template>

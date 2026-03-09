@@ -17,9 +17,10 @@ export const getPostLoginRoute = userData => {
   console.log('🚀 [Redirection] userData:', userData)
   console.log('🚀 [Redirection] computed role:', role)
 
-  // 1. Super Admin (Strict Check)
-  // ALWAYS redirect to SuperAdmin dashboard if role is SUPERADMIN
-  if (role === 'SUPERADMIN') {
+  // 1. Super Admin — match ALL known role string variants
+  // Backend may return: 'SUPERADMIN', 'Super Admin', 'super_admin', 'super admin'
+  // .toUpperCase() of 'Super Admin' = 'SUPER ADMIN' so we must handle both forms
+  if (role === 'SUPERADMIN' || role === 'SUPER ADMIN' || role === 'SUPER_ADMIN') {
     return '/superadmin/dashboard'
   }
 

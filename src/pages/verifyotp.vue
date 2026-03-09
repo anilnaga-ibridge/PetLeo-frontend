@@ -31,6 +31,7 @@ const otp = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
 const isLoading = ref(false)
+const debugOtp = ref('')
 
 /* Resend OTP */
 const resendLoading = ref(false)
@@ -53,6 +54,12 @@ const startTimer = () => {
 
 onMounted(() => {
   startTimer()
+  
+  // [DEBUG] Check for debug OTP stored during login/register
+  const storedOtp = localStorage.getItem('debug_otp')
+  if (storedOtp) {
+    debugOtp.value = storedOtp
+  }
 })
 
 onBeforeUnmount(() => {
@@ -103,6 +110,7 @@ const verifyOtp = async () => {
 
   // Clear any existing lock state initially
   const { isLocked } = useIdleTimer()
+
   isLocked.value = false
 
   try {
@@ -162,6 +170,7 @@ const verifyOtp = async () => {
       // Case 1: PIN unset or not set TODAY -> Show SET PIN screen
       if (!pin_set_today) {
         console.log('⚠️ PIN not set TODAY -> Navigating to PIN setup...')
+
         // We do NOT lock screen here. We redirect to setup.
         isLocked.value = false 
         
@@ -210,6 +219,12 @@ const verifyOtp = async () => {
       "Invalid OTP."
   } finally {
     isLoading.value = false
+    
+    // Clear debug OTP on success OR if verification was attempted (to prevent stale display)
+    if (successMessage.value || errorMessage.value) {
+      localStorage.removeItem('debug_otp')
+      debugOtp.value = ''
+    }
   }
 }
 
@@ -249,6 +264,13 @@ const resendOtp = async () => {
     if (res.data.session_id) {
       localStorage.setItem('session_id', res.data.session_id)
     }
+
+    // [DEBUG] Capture new OTP on resend
+    if (res.data.otp) {
+      localStorage.setItem('debug_otp', res.data.otp)
+      debugOtp.value = res.data.otp
+    }
+
     startTimer()
 
   } catch (err) {
@@ -375,6 +397,17 @@ const skipSetPin = () => {
             closable
           >
             {{ errorMessage }}
+          </VAlert>
+
+          <!-- [DEBUG] Testing OTP Display -->
+          <VAlert
+            v-if="debugOtp"
+            type="info"
+            variant="tonal"
+            class="mb-6 rounded-lg border-info"
+            icon="tabler-info-circle"
+          >
+            Testing OTP (Debug): <strong>{{ debugOtp }}</strong>
           </VAlert>
 
           <VForm @submit.prevent="verifyOtp">

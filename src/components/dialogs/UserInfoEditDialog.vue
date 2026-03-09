@@ -45,6 +45,7 @@ const isUseAsBillingAddress = ref(false)
 
 const syncNames = () => {
   const parts = (userData.value.fullName || '').split(' ')
+
   firstName.value = parts[0] || ''
   lastName.value = parts.slice(1).join(' ') || ''
 }
@@ -52,8 +53,17 @@ const syncNames = () => {
 const syncDynamicFields = () => {
   // Filter out standard fields that are already handled by specific inputs
   const ignoredFields = [
-    'first_name', 'last_name', 'email', 'phone_number', 'country', 'language', 'profile_image',
-    'username', 'status', 'tax_id', 'contact'
+    'first_name',
+    'last_name',
+    'email',
+    'phone_number',
+    'country',
+    'language',
+    'profile_image',
+    'username',
+    'status',
+    'tax_id',
+    'contact',
   ]
   
   if (props.providerProfile) {

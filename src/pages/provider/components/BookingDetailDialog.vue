@@ -4,56 +4,59 @@ import { computed } from 'vue'
 const props = defineProps({
   modelValue: {
     type: Boolean,
-    required: true
+    required: true,
   },
   booking: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'action'])
 
-const getStatusColor = (status) => {
+const getStatusColor = status => {
   switch (status?.toUpperCase()) {
-    case 'CONFIRMED': return 'success'
-    case 'PENDING': return 'warning'
-    case 'CANCELLED': return 'error'
-    case 'COMPLETED': return 'primary'
-    default: return 'slate'
+  case 'CONFIRMED': return 'success'
+  case 'PENDING': return 'warning'
+  case 'CANCELLED': return 'error'
+  case 'COMPLETED': return 'primary'
+  default: return 'slate'
   }
 }
 
 const formattedTime = computed(() => {
   if (!props.booking?.selected_time) return ''
+  
   return new Date(props.booking.selected_time).toLocaleString('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 })
 
 const formattedCompletedTime = computed(() => {
   if (!props.booking?.completed_at) return ''
+  
   return new Date(props.booking.completed_at).toLocaleString('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 })
 
-const getPetPhoto = (pet) => {
+const getPetPhoto = pet => {
   if (!pet?.photo) return null
+  
   return pet.photo.startsWith('http') ? pet.photo : `http://localhost:8005${pet.photo}`
 }
 
-const handleAction = (action) => {
+const handleAction = action => {
   emit('action', action)
   emit('update:modelValue', false)
 }
@@ -66,12 +69,21 @@ const handleAction = (action) => {
     persistent
     @update:model-value="val => emit('update:modelValue', val)"
   >
-    <VCard v-if="booking" class="booking-detail-dialog rounded-[40px] overflow-hidden glass-card" border>
+    <VCard
+      v-if="booking"
+      class="booking-detail-dialog rounded-[40px] overflow-hidden glass-card"
+      border
+    >
       <!-- Header -->
       <div class="pa-6 pb-0 d-flex justify-space-between align-center">
         <div class="d-flex align-center gap-3">
-          <div class="status-indicator" :class="booking.status?.toLowerCase()"></div>
-          <h2 class="text-h4 font-weight-black text-slate-900">Booking Details</h2>
+          <div
+            class="status-indicator"
+            :class="booking.status?.toLowerCase()"
+          />
+          <h2 class="text-h4 font-weight-black text-slate-900">
+            Booking Details
+          </h2>
           <VChip
             :color="getStatusColor(booking.status)"
             size="small"
@@ -92,17 +104,38 @@ const handleAction = (action) => {
       <VCardText class="pa-6">
         <VRow>
           <!-- Left Column: Pet & Owner Info -->
-          <VCol cols="12" md="7">
+          <VCol
+            cols="12"
+            md="7"
+          >
             <!-- Pet Section -->
             <div class="info-section mb-8">
               <div class="d-flex align-center gap-4 mb-4">
-                <VAvatar size="80" rounded="24" class="elevation-4 shadow-sm" color="primary-lighten-5">
-                  <VImg v-if="getPetPhoto(booking.pet_details)" :src="getPetPhoto(booking.pet_details)" cover />
-                  <VIcon v-else icon="tabler-paw" size="40" color="primary" />
+                <VAvatar
+                  size="80"
+                  rounded="24"
+                  class="elevation-4 shadow-sm"
+                  color="primary-lighten-5"
+                >
+                  <VImg
+                    v-if="getPetPhoto(booking.pet_details)"
+                    :src="getPetPhoto(booking.pet_details)"
+                    cover
+                  />
+                  <VIcon
+                    v-else
+                    icon="tabler-paw"
+                    size="40"
+                    color="primary"
+                  />
                 </VAvatar>
                 <div>
-                  <div class="text-overline font-weight-black text-primary mb-1">PET INFORMATION</div>
-                  <h3 class="text-h3 font-weight-black text-slate-800">{{ booking.pet_details?.name }}</h3>
+                  <div class="text-overline font-weight-black text-primary mb-1">
+                    PET INFORMATION
+                  </div>
+                  <h3 class="text-h3 font-weight-black text-slate-800">
+                    {{ booking.pet_details?.name }}
+                  </h3>
                   <div class="text-body-1 text-slate-500 font-weight-medium">
                     {{ booking.pet_details?.breed }} • {{ booking.pet_details?.age_display }}
                   </div>
@@ -127,29 +160,54 @@ const handleAction = (action) => {
 
             <!-- Owner Section -->
             <div class="info-section">
-              <div class="text-overline font-weight-black text-primary mb-4">OWNER INFORMATION</div>
+              <div class="text-overline font-weight-black text-primary mb-4">
+                OWNER INFORMATION
+              </div>
               
               <div class="d-flex align-center gap-4 mb-6">
-                <VAvatar size="48" color="success-lighten-5">
-                  <VIcon icon="tabler-user" color="success" />
+                <VAvatar
+                  size="48"
+                  color="success-lighten-5"
+                >
+                  <VIcon
+                    icon="tabler-user"
+                    color="success"
+                  />
                 </VAvatar>
                 <div>
-                  <h4 class="text-h5 font-weight-bold text-slate-800">{{ booking.owner_details?.full_name }}</h4>
-                  <div class="text-body-2 text-slate-500">Pet Parent</div>
+                  <h4 class="text-h5 font-weight-bold text-slate-800">
+                    {{ booking.owner_details?.full_name }}
+                  </h4>
+                  <div class="text-body-2 text-slate-500">
+                    Pet Parent
+                  </div>
                 </div>
               </div>
 
               <div class="contact-card pa-4 rounded-2xl bg-slate-50 border border-slate-100 mb-4">
                 <div class="d-flex align-center gap-3 mb-3">
-                  <VIcon icon="tabler-phone" size="20" color="slate-400" />
+                  <VIcon
+                    icon="tabler-phone"
+                    size="20"
+                    color="slate-400"
+                  />
                   <span class="text-body-1 font-weight-bold text-slate-700">{{ booking.owner_details?.phone_number || 'No phone number' }}</span>
                 </div>
                 <div class="d-flex align-center gap-3 mb-3">
-                  <VIcon icon="tabler-mail" size="20" color="slate-400" />
+                  <VIcon
+                    icon="tabler-mail"
+                    size="20"
+                    color="slate-400"
+                  />
                   <span class="text-body-1 font-weight-bold text-slate-700">{{ booking.owner_details?.email || 'No email provided' }}</span>
                 </div>
                 <div class="d-flex align-start gap-3">
-                  <VIcon icon="tabler-map-pin" size="20" color="slate-400" class="mt-1" />
+                  <VIcon
+                    icon="tabler-map-pin"
+                    size="20"
+                    color="slate-400"
+                    class="mt-1"
+                  />
                   <div>
                     <div class="text-body-1 font-weight-bold text-slate-700">
                       {{ booking.address_snapshot?.address_line1 || 'In-Clinic Service' }}
@@ -164,13 +222,21 @@ const handleAction = (action) => {
           </VCol>
 
           <!-- Right Column: Booking Details -->
-          <VCol cols="12" md="5">
+          <VCol
+            cols="12"
+            md="5"
+          >
             <div class="schedule-card pa-6 rounded-[32px] bg-primary-lighten-5 border-2 border-primary-lighten-4 h-100">
-              <div class="text-overline font-weight-black text-primary mb-6">SCHEDULE & SERVICE</div>
+              <div class="text-overline font-weight-black text-primary mb-6">
+                SCHEDULE & SERVICE
+              </div>
               
               <div class="mb-6">
                 <div class="d-flex align-center gap-3 mb-2">
-                  <VIcon icon="tabler-calendar-event" color="primary" />
+                  <VIcon
+                    icon="tabler-calendar-event"
+                    color="primary"
+                  />
                   <span class="text-subtitle-1 font-weight-black text-slate-800">Appointment Time</span>
                 </div>
                 <div class="text-h5 font-weight-bold text-primary pl-9 mb-6">
@@ -179,7 +245,10 @@ const handleAction = (action) => {
 
                 <template v-if="booking.status === 'COMPLETED' && formattedCompletedTime">
                   <div class="d-flex align-center gap-3 mb-2">
-                    <VIcon icon="tabler-circle-check" color="success" />
+                    <VIcon
+                      icon="tabler-circle-check"
+                      color="success"
+                    />
                     <span class="text-subtitle-1 font-weight-black text-slate-800">Completion Time</span>
                   </div>
                   <div class="text-h5 font-weight-bold text-success pl-9 mb-6">
@@ -188,14 +257,19 @@ const handleAction = (action) => {
                 </template>
 
                 <div class="d-flex align-center gap-3 mb-2">
-                  <VIcon icon="tabler-settings" color="primary" />
+                  <VIcon
+                    icon="tabler-settings"
+                    color="primary"
+                  />
                   <span class="text-subtitle-1 font-weight-black text-slate-800">Booked Service</span>
                 </div>
                 
                 <div class="service-card pa-4 rounded-xl bg-white border border-slate-200 mb-6">
                   <div class="d-flex justify-space-between align-start">
                     <div>
-                      <div class="text-caption font-weight-bold text-slate-400 text-uppercase mb-1">Service</div>
+                      <div class="text-caption font-weight-bold text-slate-400 text-uppercase mb-1">
+                        Service
+                      </div>
                       <div class="text-h6 font-weight-black text-slate-800 line-height-tight mb-1">
                         {{ booking.service_name }}
                       </div>
@@ -203,8 +277,13 @@ const handleAction = (action) => {
                         {{ booking.category_name }} • {{ booking.facility_name }}
                       </div>
                     </div>
-                    <div class="text-right" v-if="booking.service_snapshot?.price">
-                      <div class="text-caption font-weight-bold text-slate-400 text-uppercase mb-1">Price</div>
+                    <div
+                      v-if="booking.service_snapshot?.price"
+                      class="text-right"
+                    >
+                      <div class="text-caption font-weight-bold text-slate-400 text-uppercase mb-1">
+                        Price
+                      </div>
                       <div class="text-h6 font-weight-black text-primary">
                         ${{ booking.service_snapshot.price }}
                       </div>
@@ -214,7 +293,11 @@ const handleAction = (action) => {
                   <VDivider class="my-3" />
                   
                   <div class="d-flex align-center gap-2">
-                    <VIcon icon="tabler-info-circle" size="16" color="slate-400" />
+                    <VIcon
+                      icon="tabler-info-circle"
+                      size="16"
+                      color="slate-400"
+                    />
                     <span class="text-caption text-slate-500">Professional service provided by verified experts.</span>
                   </div>
                 </div>
@@ -222,7 +305,10 @@ const handleAction = (action) => {
 
               <div class="mb-8">
                 <div class="d-flex align-center gap-3 mb-2">
-                  <VIcon icon="tabler-notes" color="primary" />
+                  <VIcon
+                    icon="tabler-notes"
+                    color="primary"
+                  />
                   <span class="text-subtitle-1 font-weight-black text-slate-800">Booking Notes</span>
                 </div>
                 <div class="text-body-1 text-slate-600 pl-9 bg-white/50 pa-4 rounded-xl border border-white">
@@ -231,12 +317,20 @@ const handleAction = (action) => {
               </div>
 
               <!-- Rejection Reason if any -->
-              <div v-if="booking.rejection_reason" class="mb-8 pa-4 rounded-xl bg-error-lighten-5 border border-error-lighten-4">
+              <div
+                v-if="booking.rejection_reason"
+                class="mb-8 pa-4 rounded-xl bg-error-lighten-5 border border-error-lighten-4"
+              >
                 <div class="d-flex align-center gap-2 mb-1 text-error">
-                  <VIcon icon="tabler-alert-circle" size="18" />
+                  <VIcon
+                    icon="tabler-alert-circle"
+                    size="18"
+                  />
                   <span class="text-caption font-weight-black uppercase">Rejection Reason</span>
                 </div>
-                <div class="text-body-2 text-error-darken-1">{{ booking.rejection_reason }}</div>
+                <div class="text-body-2 text-error-darken-1">
+                  {{ booking.rejection_reason }}
+                </div>
               </div>
 
               <!-- Inline Actions -->

@@ -14,7 +14,7 @@ const theme = useTheme()
 
 const series = computed(() => [{
   name: 'Visits',
-  data: props.data.map(d => d.visits)
+  data: props.data.map(d => d.visits),
 }])
 
 const chartOptions = computed(() => {
@@ -35,8 +35,8 @@ const chartOptions = computed(() => {
         shadeIntensity: 1,
         opacityFrom: 0.7,
         opacityTo: 0.2,
-        stops: [0, 90, 100]
-      }
+        stops: [0, 90, 100],
+      },
     },
     colors: [primaryColor],
     xaxis: {
@@ -52,14 +52,17 @@ const chartOptions = computed(() => {
       show: false, // Minimalist
     },
     tooltip: {
-      theme: 'dark'
-    }
+      theme: 'dark',
+    },
   }
 })
 </script>
 
 <template>
-  <VCard class="border" elevation="0">
+  <VCard
+    class="border"
+    elevation="0"
+  >
     <VCardItem>
       <VCardTitle>Weekly Traffic</VCardTitle>
       <VCardSubtitle>Visits over the last 7 days</VCardSubtitle>

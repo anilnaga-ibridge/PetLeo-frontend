@@ -6,7 +6,7 @@ const testimonials = [
     author: "Alexandra Wright",
     role: "Pet Parent",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80",
-    rating: 5
+    rating: 5,
   },
   {
     id: 2,
@@ -14,7 +14,7 @@ const testimonials = [
     author: "Jonathan Pierce",
     role: "Pet Health Advocate",
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80",
-    rating: 5
+    rating: 5,
   },
   {
     id: 3,
@@ -22,8 +22,8 @@ const testimonials = [
     author: "Sophia Martinez",
     role: "Pet Stylist",
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
-    rating: 5
-  }
+    rating: 5,
+  },
 ]
 </script>
 
@@ -31,26 +31,55 @@ const testimonials = [
   <section class="testimonials-section py-16 bg-white">
     <VContainer>
       <div class="text-center mb-12">
-        <h2 class="text-h3 font-weight-black text-slate-900 mb-2 tracking-tight">Loved by Pet Owners</h2>
-        <p class="text-body-1 text-slate-500">Discover why thousands of pet parents trust PetLeo for their companion's needs.</p>
+        <h2 class="text-h3 font-weight-black text-slate-900 mb-2 tracking-tight">
+          Loved by Pet Owners
+        </h2>
+        <p class="text-body-1 text-slate-500">
+          Discover why thousands of pet parents trust PetLeo for their companion's needs.
+        </p>
       </div>
 
       <VRow>
-        <VCol v-for="t in testimonials" :key="t.id" cols="12" md="4" class="d-flex">
-          <VCard class="testimonial-card-premium pa-10 flex-grow-1" flat rounded="3xl">
+        <VCol
+          v-for="t in testimonials"
+          :key="t.id"
+          cols="12"
+          md="4"
+          class="d-flex"
+        >
+          <VCard
+            class="testimonial-card-premium pa-10 flex-grow-1"
+            flat
+            rounded="3xl"
+          >
             <div class="quote-icon mb-6">
-              <VIcon icon="tabler-quote" size="48" color="primary" class="opacity-10" />
+              <VIcon
+                icon="tabler-quote"
+                size="48"
+                color="primary"
+                class="opacity-10"
+              />
             </div>
             <p class="text-h6 text-slate-700 font-weight-medium line-height-relaxed mb-10 italic-soft">
               "{{ t.text }}"
             </p>
             <div class="d-flex align-center mt-auto pt-6 border-top-light">
-              <VAvatar size="56" class="mr-4 ring-offset-2 ring-primary ring-2 shadow-sm">
-                <VImg :src="t.avatar" cover />
+              <VAvatar
+                size="56"
+                class="mr-4 ring-offset-2 ring-primary ring-2 shadow-sm"
+              >
+                <VImg
+                  :src="t.avatar"
+                  cover
+                />
               </VAvatar>
               <div>
-                <div class="text-subtitle-1 font-weight-black text-slate-900 leading-tight">{{ t.author }}</div>
-                <div class="text-caption text-primary font-weight-black uppercase tracking-widest mt-1">{{ t.role }}</div>
+                <div class="text-subtitle-1 font-weight-black text-slate-900 leading-tight">
+                  {{ t.author }}
+                </div>
+                <div class="text-caption text-primary font-weight-black uppercase tracking-widest mt-1">
+                  {{ t.role }}
+                </div>
               </div>
             </div>
           </VCard>
@@ -68,9 +97,11 @@ const testimonials = [
 }
 
 .testimonial-card-premium:hover {
-  transform: translateY(-8px);
+  transform: perspective(1000px) translateZ(30px) rotateX(3deg) translateY(-10px);
   border-color: #6366f1 !important;
-  box-shadow: 0 40px 80px rgba(99, 102, 241, 0.06) !important;
+  box-shadow: 
+    0 40px 80px rgba(99, 102, 241, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.05) !important;
 }
 
 .quote-icon {

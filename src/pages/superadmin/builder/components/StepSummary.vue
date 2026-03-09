@@ -19,11 +19,11 @@ const fetchServiceDetails = async () => {
     const [serviceRes, catRes, priceRes] = await Promise.all([
       superAdminApi.get(`/api/superadmin/services/${props.state.selectedServiceId}/`),
       superAdminApi.get('/api/superadmin/categories/', {
-        params: { service: props.state.selectedServiceId }
+        params: { service: props.state.selectedServiceId },
       }),
       superAdminApi.get('/api/superadmin/pricing-rules/', {
-        params: { service: props.state.selectedServiceId }
-      })
+        params: { service: props.state.selectedServiceId },
+      }),
     ])
 
     service.value = serviceRes.data
@@ -41,6 +41,7 @@ const hierarchy = computed(() => {
   
   const menu = categories.value.map(cat => {
     const rules = pricingRules.value.filter(rule => rule.category?.id === cat.id && rule.facility)
+    
     return {
       ...cat,
       items: rules.map(rule => ({
@@ -50,8 +51,8 @@ const hierarchy = computed(() => {
         price: rule.base_price,
         duration: (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         billing_unit: rule.billing_unit,
-        is_active: rule.is_active
-      }))
+        is_active: rule.is_active,
+      })),
     }
   })
 
@@ -69,8 +70,8 @@ const hierarchy = computed(() => {
         price: rule.base_price,
         duration: (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
         billing_unit: rule.billing_unit,
-        is_active: rule.is_active
-      }))
+        is_active: rule.is_active,
+      })),
     })
   }
 
@@ -97,7 +98,7 @@ const form = ref({
   is_active: true,
 })
 
-const openAddDrawer = (category) => {
+const openAddDrawer = category => {
   isEdit.value = false
   form.value = {
     name: '',
@@ -121,7 +122,7 @@ const openEditDrawer = (item, category) => {
     category: category.id === 'uncategorized' ? null : category.id,
     base_price: item.price,
     duration: item.duration_minutes,
-    billing_unit: item.billing_unit
+    billing_unit: item.billing_unit,
   }
   drawerOpen.value = true
 }
@@ -133,7 +134,7 @@ const submit = async () => {
       await superAdminApi.put(`/api/superadmin/facilities/${editId.value}/`, {
         name: form.value.name,
         description: form.value.description,
-        service: form.value.service
+        service: form.value.service,
       })
       
       // 2. Update Pricing Rule
@@ -146,7 +147,7 @@ const submit = async () => {
           base_price: form.value.base_price,
           duration_minutes: form.value.duration_minutes,
           billing_unit: form.value.billing_unit,
-          is_active: form.value.is_active
+          is_active: form.value.is_active,
         })
       }
     } else {
@@ -154,7 +155,7 @@ const submit = async () => {
       const facRes = await superAdminApi.post('/api/superadmin/facilities/', {
         name: form.value.name,
         description: form.value.description,
-        service: form.value.service
+        service: form.value.service,
       })
       
       // 2. Create Pricing Rule
@@ -165,7 +166,7 @@ const submit = async () => {
         base_price: form.value.base_price,
         duration_minutes: form.value.duration_minutes,
         billing_unit: form.value.billing_unit,
-        is_active: form.value.is_active
+        is_active: form.value.is_active,
       })
     }
     drawerOpen.value = false
@@ -213,23 +214,42 @@ const toggleStatus = async (item, category) => {
 
 <template>
   <div class="h-100 d-flex flex-column">
-    <div v-if="loading" class="d-flex justify-center align-center flex-grow-1">
-      <VProgressCircular indeterminate color="primary" size="64" />
+    <div
+      v-if="loading"
+      class="d-flex justify-center align-center flex-grow-1"
+    >
+      <VProgressCircular
+        indeterminate
+        color="primary"
+        size="64"
+      />
     </div>
 
     <template v-else-if="service">
       <div class="mb-6">
         <div class="d-flex justify-space-between align-start">
           <div>
-            <h2 class="text-h4 font-weight-bold gradient-text mb-2">{{ service.display_name }} Overview</h2>
-            <p class="text-body-1 text-medium-emphasis mb-0">{{ service.description }}</p>
+            <h2 class="text-h4 font-weight-bold gradient-text mb-2">
+              {{ service.display_name }} Overview
+            </h2>
+            <p class="text-body-1 text-medium-emphasis mb-0">
+              {{ service.description }}
+            </p>
           </div>
           <div class="d-flex flex-column align-end gap-3">
-            <VChip size="small" :color="service.is_active ? 'success' : 'secondary'" variant="tonal" class="font-weight-bold">
+            <VChip
+              size="small"
+              :color="service.is_active ? 'success' : 'secondary'"
+              variant="tonal"
+              class="font-weight-bold"
+            >
               {{ service.is_active ? 'ACTIVE SERVICE' : 'INACTIVE SERVICE' }}
             </VChip>
 
-            <div class="d-flex bg-surface-variant rounded-lg pa-1" style="height: 32px">
+            <div
+              class="d-flex bg-surface-variant rounded-lg pa-1"
+              style="height: 32px"
+            >
               <VBtn
                 size="x-small"
                 :variant="viewMode === 'table' ? 'elevated' : 'text'"
@@ -238,7 +258,10 @@ const toggleStatus = async (item, category) => {
                 height="100%"
                 @click="viewMode = 'table'"
               >
-                <VIcon icon="tabler-list" size="16" />
+                <VIcon
+                  icon="tabler-list"
+                  size="16"
+                />
               </VBtn>
               <VBtn
                 size="x-small"
@@ -248,7 +271,10 @@ const toggleStatus = async (item, category) => {
                 height="100%"
                 @click="viewMode = 'card'"
               >
-                <VIcon icon="tabler-layout-grid" size="16" />
+                <VIcon
+                  icon="tabler-layout-grid"
+                  size="16"
+                />
               </VBtn>
             </div>
           </div>
@@ -256,22 +282,51 @@ const toggleStatus = async (item, category) => {
       </div>
 
       <div class="flex-grow-1 overflow-y-auto pr-2 custom-scrollbar">
-        <div v-if="hierarchy.length === 0" class="text-center py-10 bg-light rounded-xl border-dashed">
-          <VIcon icon="tabler-list-details" size="48" color="medium-emphasis" class="mb-4" />
-          <h3 class="text-h6 font-weight-bold mb-2">Configuration Incomplete</h3>
-          <p class="text-body-2 text-medium-emphasis">No categories or facilities have been defined for this service yet.</p>
+        <div
+          v-if="hierarchy.length === 0"
+          class="text-center py-10 bg-light rounded-xl border-dashed"
+        >
+          <VIcon
+            icon="tabler-list-details"
+            size="48"
+            color="medium-emphasis"
+            class="mb-4"
+          />
+          <h3 class="text-h6 font-weight-bold mb-2">
+            Configuration Incomplete
+          </h3>
+          <p class="text-body-2 text-medium-emphasis">
+            No categories or facilities have been defined for this service yet.
+          </p>
         </div>
 
-        <div v-else class="d-flex flex-column gap-6">
-          <VCard v-for="category in hierarchy" :key="category.id" class="summary-card border-0 bg-surface-glass">
+        <div
+          v-else
+          class="d-flex flex-column gap-6"
+        >
+          <VCard
+            v-for="category in hierarchy"
+            :key="category.id"
+            class="summary-card border-0 bg-surface-glass"
+          >
             <VCardText class="pa-0">
               <!-- Category Header -->
               <div class="d-flex align-center gap-4 pa-6 bg-surface-variant-light">
-                <VAvatar color="primary" variant="tonal" rounded="lg" size="48">
-                  <VIcon icon="tabler-category" size="24" />
+                <VAvatar
+                  color="primary"
+                  variant="tonal"
+                  rounded="lg"
+                  size="48"
+                >
+                  <VIcon
+                    icon="tabler-category"
+                    size="24"
+                  />
                 </VAvatar>
                 <div>
-                  <h3 class="text-h6 font-weight-bold mb-1">{{ category.name }}</h3>
+                  <h3 class="text-h6 font-weight-bold mb-1">
+                    {{ category.name }}
+                  </h3>
                 </div>
 
                 <div class="ml-auto">
@@ -287,24 +342,46 @@ const toggleStatus = async (item, category) => {
               </div>
 
               <!-- Facilities List (Reference StepFacilities.vue logic) -->
-              <div v-if="category.items && category.items.length > 0" class="px-6 py-4">
-                
+              <div
+                v-if="category.items && category.items.length > 0"
+                class="px-6 py-4"
+              >
                 <!-- TABLE VIEW -->
-                <VTable v-if="viewMode === 'table'" density="comfortable" class="bg-transparent">
+                <VTable
+                  v-if="viewMode === 'table'"
+                  density="comfortable"
+                  class="bg-transparent"
+                >
                   <thead>
                     <tr>
-                      <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis pl-0">Facility</th>
-                      <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis">Details</th>
-                      <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis text-right pr-0">Pricing</th>
+                      <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis pl-0">
+                        Facility
+                      </th>
+                      <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis">
+                        Details
+                      </th>
+                      <th class="text-uppercase text-caption font-weight-bold text-medium-emphasis text-right pr-0">
+                        Pricing
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="item in category.items" :key="item.id" class="facility-row">
+                    <tr
+                      v-for="item in category.items"
+                      :key="item.id"
+                      class="facility-row"
+                    >
                       <td class="pl-0 py-3">
                         <div class="d-flex align-center gap-3">
-                          <VIcon icon="tabler-building-hospital" size="20" color="primary" />
+                          <VIcon
+                            icon="tabler-building-hospital"
+                            size="20"
+                            color="primary"
+                          />
                           <div>
-                            <div class="text-body-2 font-weight-bold text-high-emphasis">{{ item.name }}</div>
+                            <div class="text-body-2 font-weight-bold text-high-emphasis">
+                              {{ item.name }}
+                            </div>
                             <VSwitch
                               v-model="item.is_active"
                               color="success"
@@ -319,7 +396,10 @@ const toggleStatus = async (item, category) => {
                         </div>
                       </td>
                       <td class="py-3">
-                        <p class="text-body-2 text-medium-emphasis mb-0 line-clamp-1" style="max-width: 300px;">
+                        <p
+                          class="text-body-2 text-medium-emphasis mb-0 line-clamp-1"
+                          style="max-width: 300px;"
+                        >
                           {{ (item.description && item.description !== 'null') ? item.description : '-' }}
                         </p>
                       </td>
@@ -328,18 +408,21 @@ const toggleStatus = async (item, category) => {
                           <span class="text-body-2 font-weight-bold text-primary">₹{{ item.price }}</span>
                           <div class="d-flex align-center gap-1">
                             <span class="text-caption text-medium-emphasis">{{ item.billing_unit.replace('_', ' ') }}</span>
-                            <span v-if="item.duration && item.duration !== 'null'" class="text-caption text-warning font-weight-medium"> • {{ item.duration }}m</span>
+                            <span
+                              v-if="item.duration && item.duration !== 'null'"
+                              class="text-caption text-warning font-weight-medium"
+                            > • {{ item.duration }}m</span>
                           </div>
                           
                           <div class="d-flex gap-2 mt-2">
-                             <VBtn 
+                            <VBtn 
                               icon="tabler-pencil" 
                               size="x-small" 
                               variant="text" 
                               color="primary"
                               @click="openEditDrawer(item, category)"
                             />
-                             <VBtn 
+                            <VBtn 
                               icon="tabler-trash" 
                               size="x-small" 
                               variant="text" 
@@ -364,19 +447,25 @@ const toggleStatus = async (item, category) => {
                   >
                     <VCard class="premium-card-v2 h-100">
                       <VCardText class="pa-5 d-flex flex-column h-100">
-                         <!-- Price and Actions -->
+                        <!-- Price and Actions -->
                         <div class="d-flex justify-space-between align-start mb-4">
                           <div class="d-flex flex-column">
-                             <div class="price-badge pa-2 px-3 rounded-lg bg-primary-lighten-5 text-primary font-weight-bold mb-1">
+                            <div class="price-badge pa-2 px-3 rounded-lg bg-primary-lighten-5 text-primary font-weight-bold mb-1">
                               ₹{{ item.price }} <span class="text-caption font-weight-medium">/ {{ item.billing_unit?.toLowerCase().replace('_', ' ') || '' }}</span>
                             </div>
-                            <div v-if="item.duration && item.duration !== 'null'" class="d-flex align-center gap-1 text-warning font-weight-bold px-1">
-                              <VIcon icon="tabler-clock" size="14" />
-                               <span class="text-caption">{{ item.duration }}m</span>
-                             </div>
-                           </div>
+                            <div
+                              v-if="item.duration && item.duration !== 'null'"
+                              class="d-flex align-center gap-1 text-warning font-weight-bold px-1"
+                            >
+                              <VIcon
+                                icon="tabler-clock"
+                                size="14"
+                              />
+                              <span class="text-caption">{{ item.duration }}m</span>
+                            </div>
+                          </div>
                          
-                           <div class="d-flex gap-1 action-buttons-card">
+                          <div class="d-flex gap-1 action-buttons-card">
                             <VBtn 
                               icon="tabler-pencil" 
                               size="x-small" 
@@ -406,40 +495,51 @@ const toggleStatus = async (item, category) => {
                           >
                             {{ item.description }}
                           </p>
-                          <p v-else class="text-caption text-disabled font-italic mb-0">
+                          <p
+                            v-else
+                            class="text-caption text-disabled font-italic mb-0"
+                          >
                             No description
                           </p>
                         </div>
 
-                         <div class="mt-auto pt-3 border-t d-flex align-center justify-space-between">
-                            <VChip 
-                              size="x-small" 
-                              :color="item.is_active ? 'success' : 'secondary'" 
-                              variant="tonal"
-                              label
-                              class="rounded-sm"
-                            >
-                              {{ item.is_active ? 'ENABLED' : 'DISABLED' }}
-                            </VChip>
+                        <div class="mt-auto pt-3 border-t d-flex align-center justify-space-between">
+                          <VChip 
+                            size="x-small" 
+                            :color="item.is_active ? 'success' : 'secondary'" 
+                            variant="tonal"
+                            label
+                            class="rounded-sm"
+                          >
+                            {{ item.is_active ? 'ENABLED' : 'DISABLED' }}
+                          </VChip>
 
-                            <VSwitch
-                              v-model="item.is_active"
-                              density="compact"
-                              hide-details
-                              color="success"
-                              @click.stop
-                              @update:model-value="toggleStatus(item, category)"
-                            />
-                         </div>
+                          <VSwitch
+                            v-model="item.is_active"
+                            density="compact"
+                            hide-details
+                            color="success"
+                            @click.stop
+                            @update:model-value="toggleStatus(item, category)"
+                          />
+                        </div>
                       </VCardText>
                     </VCard>
                   </VCol>
                 </VRow>
-
               </div>
-              <div v-else class="px-6 py-8 text-center">
-                <p class="text-caption text-disabled font-italic mb-3">No facilities configured for this category</p>
-                <VBtn variant="outlined" size="small" @click="openAddDrawer(category)">
+              <div
+                v-else
+                class="px-6 py-8 text-center"
+              >
+                <p class="text-caption text-disabled font-italic mb-3">
+                  No facilities configured for this category
+                </p>
+                <VBtn
+                  variant="outlined"
+                  size="small"
+                  @click="openAddDrawer(category)"
+                >
                   Add First Item
                 </VBtn>
               </div>
@@ -449,7 +549,11 @@ const toggleStatus = async (item, category) => {
       </div>
 
       <div class="d-flex justify-start mt-6 pt-4 border-t">
-        <VBtn variant="text" prepend-icon="tabler-arrow-left" @click="emit('prev')">
+        <VBtn
+          variant="text"
+          prepend-icon="tabler-arrow-left"
+          @click="emit('prev')"
+        >
           Back to Facilities
         </VBtn>
       </div>
@@ -471,7 +575,11 @@ const toggleStatus = async (item, category) => {
             <h3 class="text-h6 font-weight-bold">
               {{ isEdit ? 'Edit Item' : 'New Item' }}
             </h3>
-            <VBtn icon="tabler-x" variant="text" @click="drawerOpen = false" />
+            <VBtn
+              icon="tabler-x"
+              variant="text"
+              @click="drawerOpen = false"
+            />
           </div>
 
           <div class="flex-grow-1 overflow-y-auto pa-6">
@@ -489,21 +597,51 @@ const toggleStatus = async (item, category) => {
     </Teleport>
 
     <!-- DELETE DIALOG -->
-    <VDialog v-model="deleteDialog" width="420" transition="dialog-bottom-transition" persistent>
-      <VCard class="pa-4 rounded-xl" elevation="12">
+    <VDialog
+      v-model="deleteDialog"
+      width="420"
+      transition="dialog-bottom-transition"
+      persistent
+    >
+      <VCard
+        class="pa-4 rounded-xl"
+        elevation="12"
+      >
         <div class="text-center mb-3">
-          <VAvatar size="60" color="red" variant="tonal" class="mb-3">
-            <VIcon icon="tabler-alert-triangle" size="32" color="red-darken-2" />
+          <VAvatar
+            size="60"
+            color="red"
+            variant="tonal"
+            class="mb-3"
+          >
+            <VIcon
+              icon="tabler-alert-triangle"
+              size="32"
+              color="red-darken-2"
+            />
           </VAvatar>
-          <h2 class="text-h6 font-weight-bold text-high-emphasis">Delete Item?</h2>
+          <h2 class="text-h6 font-weight-bold text-high-emphasis">
+            Delete Item?
+          </h2>
           <p class="text-body-2 mt-1 text-medium-emphasis">
             Remove <strong class="text-primary">{{ deleteItem?.name }}</strong> from {{ service?.display_name }}?
           </p>
         </div>
         <VDivider class="my-3" />
         <div class="d-flex justify-end gap-2">
-          <VBtn variant="text" @click="deleteDialog = false">Cancel</VBtn>
-          <VBtn color="red" prepend-icon="tabler-trash" @click="deleteFacility">Delete</VBtn>
+          <VBtn
+            variant="text"
+            @click="deleteDialog = false"
+          >
+            Cancel
+          </VBtn>
+          <VBtn
+            color="red"
+            prepend-icon="tabler-trash"
+            @click="deleteFacility"
+          >
+            Delete
+          </VBtn>
         </div>
       </VCard>
     </VDialog>

@@ -11,6 +11,7 @@ const fetchBookings = async () => {
   loading.value = true
   try {
     const res = await customerApi.get('/api/pet-owner/bookings/bookings/')
+
     bookings.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch bookings:', err)
@@ -28,7 +29,7 @@ const customers = computed(() => {
       map.set(owner.auth_user_id, {
         ...owner,
         lastBooking: booking.selected_time,
-        petNames: new Set([booking.pet_details?.name].filter(Boolean))
+        petNames: new Set([booking.pet_details?.name].filter(Boolean)),
       })
     } else if (owner && owner.auth_user_id) {
       const existing = map.get(owner.auth_user_id)
@@ -43,9 +44,10 @@ const customers = computed(() => {
 
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
+
     list = list.filter(c => 
       c.full_name?.toLowerCase().includes(q) || 
-      c.email?.toLowerCase().includes(q)
+      c.email?.toLowerCase().includes(q),
     )
   }
   
@@ -60,8 +62,12 @@ onMounted(fetchBookings)
     <div class="pa-6">
       <div class="d-flex justify-space-between align-center mb-6">
         <div>
-          <h1 class="text-h3 font-weight-bold mb-1">My Customers</h1>
-          <p class="text-subtitle-1 text-medium-emphasis">Pet owners you have served</p>
+          <h1 class="text-h3 font-weight-bold mb-1">
+            My Customers
+          </h1>
+          <p class="text-subtitle-1 text-medium-emphasis">
+            Pet owners you have served
+          </p>
         </div>
         
         <VTextField
@@ -92,7 +98,12 @@ onMounted(fetchBookings)
         >
           <template #item.full_name="{ item }">
             <div class="d-flex align-center py-2">
-              <VAvatar color="primary" variant="tonal" class="me-3" size="38">
+              <VAvatar
+                color="primary"
+                variant="tonal"
+                class="me-3"
+                size="38"
+              >
                 <span class="text-xs">{{ item.full_name?.split(' ').map(n => n[0]).join('') }}</span>
               </VAvatar>
               <div class="d-flex flex-column">

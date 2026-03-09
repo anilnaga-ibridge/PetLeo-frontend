@@ -73,6 +73,20 @@ const openError = msg => {
   showSnack.value = true
 }
 
+const formatDate = dateStr => {
+  if (!dateStr) return 'N/A'
+  const date = new Date(dateStr)
+  
+  return date.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
 // =============================
 // Computed Filter
 // =============================
@@ -265,6 +279,7 @@ const headers = [
   { title: 'Phone', key: 'phone_number' },
   { title: 'Role', key: 'role' },
   { title: 'Verified', key: 'is_verified', align: 'center' },
+  { title: 'Verified At', key: 'verified_at', align: 'center' },
   { title: 'Status', key: 'is_active', align: 'center' },
   { title: 'Actions', key: 'actions', sortable: false },
 ]
@@ -338,6 +353,12 @@ const headers = [
           >
             {{ item.is_verified ? 'VERIFIED' : 'NOT VERIFIED' }}
           </VChip>
+        </template>
+
+        <template #item.verified_at="{ item }">
+          <span class="text-caption font-weight-medium text-medium-emphasis">
+            {{ formatDate(item.verified_at) }}
+          </span>
         </template>
 
         <template #item.is_active="{ item }">

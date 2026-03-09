@@ -4,8 +4,8 @@ import { ref, computed } from 'vue'
 const props = defineProps({
   currentCity: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const emit = defineEmits(['search'])
@@ -21,21 +21,37 @@ const greeting = computed(() => {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good Morning'
   if (hour < 17) return 'Good Afternoon'
+  
   return 'Good Evening'
 })
 
 const handleSearch = () => {
   emit('search', { search: search.value, city: city.value })
 }
+
+// 3D Tilt Logic
+const cardTilt = ref({ x: 0, y: 0 })
+
+const handleMouseMove = e => {
+  const rect = e.currentTarget.getBoundingClientRect()
+  const x = (e.clientX - rect.left) / rect.width - 0.5
+  const y = (e.clientY - rect.top) / rect.height - 0.5
+  
+  cardTilt.value = { x: x * 15, y: y * -15 }
+}
+
+const resetTilt = () => {
+  cardTilt.value = { x: 0, y: 0 }
+}
 </script>
 
 <template>
   <section class="hero-section">
-    <!-- ANIMATED GRADIENT BACKGROUND (replaces Pexels video which blocks hotlinking) -->
-    <div class="hero-bg-canvas" />
+    <!-- PREMIUM PET CARE BACKGROUND IMAGE -->
+    <div class="hero-bg-image" />
 
     <!-- OVERLAY LAYERS -->
-    <div class="hero-overlay-dark" />
+    <div class="hero-overlay-light" />
     <div class="hero-overlay-gradient" />
 
     <!-- Floating decorative orbs -->
@@ -54,8 +70,8 @@ const handleSearch = () => {
 
       <!-- Main headline -->
       <h1 class="hero-headline animate-in delay-1">
-        Elite Care for Your<br />
-        <span class="headline-gradient">Beloved Companions</span>
+        Elite Care for Your<br>
+        <span class="headline-gradient 3d-text">Beloved Companions</span>
       </h1>
 
       <!-- Subtitle -->
@@ -64,19 +80,30 @@ const handleSearch = () => {
       </p>
 
       <!-- Search Glass -->
-      <div class="hero-search-wrap animate-in delay-3">
+      <div 
+        class="hero-search-wrap animate-in delay-3"
+        :style="{
+          transform: `perspective(1000px) rotateX(${cardTilt.y}deg) rotateY(${cardTilt.x}deg)`
+        }"
+        @mousemove="handleMouseMove"
+        @mouseleave="resetTilt"
+      >
         <div class="hero-search-glass">
           <!-- Service input -->
           <div class="search-field">
             <div class="search-field-icon">
-              <VIcon icon="tabler-search" size="18" color="#6366f1" />
+              <VIcon
+                icon="tabler-search"
+                size="18"
+                color="#6366f1"
+              />
             </div>
             <input
               v-model="search"
               class="search-field-input"
               placeholder="What service are you looking for?"
               @keyup.enter="handleSearch"
-            />
+            >
           </div>
 
           <!-- Divider -->
@@ -85,19 +112,30 @@ const handleSearch = () => {
           <!-- Location input -->
           <div class="search-field">
             <div class="search-field-icon">
-              <VIcon icon="tabler-map-pin" size="18" color="#6366f1" />
+              <VIcon
+                icon="tabler-map-pin"
+                size="18"
+                color="#6366f1"
+              />
             </div>
             <input
               v-model="city"
               class="search-field-input"
               placeholder="City or location"
               @keyup.enter="handleSearch"
-            />
+            >
           </div>
 
           <!-- CTA -->
-          <button class="search-cta" @click="handleSearch">
-            <VIcon icon="tabler-search" size="18" class="mr-2" />
+          <button
+            class="search-cta"
+            @click="handleSearch"
+          >
+            <VIcon
+              icon="tabler-search"
+              size="18"
+              class="mr-2"
+            />
             Search
           </button>
         </div>
@@ -119,22 +157,44 @@ const handleSearch = () => {
       <!-- Trust indicators -->
       <div class="trust-row animate-in delay-4">
         <div class="trust-item">
-          <VIcon icon="tabler-shield-check" size="18" color="#10b981" />
+          <VIcon
+            icon="tabler-shield-check"
+            size="18"
+            color="#10b981"
+          />
           <span>500+ Verified Providers</span>
         </div>
-        <div class="trust-sep">·</div>
+        <div class="trust-sep">
+          ·
+        </div>
         <div class="trust-item">
-          <VIcon icon="tabler-star-filled" size="16" color="#f59e0b" />
+          <VIcon
+            icon="tabler-star-filled"
+            size="16"
+            color="#f59e0b"
+          />
           <span>4.9 / 5 Rating</span>
         </div>
-        <div class="trust-sep">·</div>
+        <div class="trust-sep">
+          ·
+        </div>
         <div class="trust-item">
-          <VIcon icon="tabler-users" size="18" color="#60a5fa" />
+          <VIcon
+            icon="tabler-users"
+            size="18"
+            color="#60a5fa"
+          />
           <span>50k+ Pet Parents</span>
         </div>
-        <div class="trust-sep">·</div>
+        <div class="trust-sep">
+          ·
+        </div>
         <div class="trust-item">
-          <VIcon icon="tabler-map-pin" size="18" color="#a78bfa" />
+          <VIcon
+            icon="tabler-map-pin"
+            size="18"
+            color="#a78bfa"
+          />
           <span>20+ Cities</span>
         </div>
       </div>
@@ -161,30 +221,28 @@ const handleSearch = () => {
   overflow: hidden;
 }
 
-/* ── Animated Gradient Background ── */
-.hero-bg-canvas {
+/* ── Premium Background Image ── */
+.hero-bg-image {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 70% 30%, rgba(99, 102, 241, 0.35) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 70% at 20% 70%, rgba(59, 130, 246, 0.28) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 70%),
-    linear-gradient(160deg, #020617 0%, #0c1445 35%, #0f172a 60%, #030712 100%);
-  animation: bgShift 14s ease-in-out infinite alternate;
+  background-image: url('@images/pet-care-hero.png');
+  background-size: cover;
+  background-position: center 20%;
+  animation: bgZoom 20s ease-in-out infinite alternate;
 }
 
-@keyframes bgShift {
-  0%   { filter: hue-rotate(0deg) brightness(1); }
-  50%  { filter: hue-rotate(14deg) brightness(1.06); }
-  100% { filter: hue-rotate(-10deg) brightness(0.95); }
+@keyframes bgZoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
 }
 
 /* ── Overlays ── */
-.hero-overlay-dark {
+.hero-overlay-light {
   position: absolute;
   inset: 0;
-  background: rgba(2, 6, 23, 0.62);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(2px);
   z-index: 1;
 }
 
@@ -192,8 +250,8 @@ const handleSearch = () => {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to bottom, rgba(2,6,23,0.25) 0%, transparent 40%, rgba(2,6,23,0.6) 100%),
-    linear-gradient(135deg, rgba(99,102,241,0.18) 0%, transparent 50%, rgba(59,130,246,0.12) 100%);
+    linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, transparent 40%, rgba(255,255,255,0.9) 100%),
+    linear-gradient(135deg, rgba(99,102,241,0.08) 0%, transparent 50%, rgba(59,130,246,0.05) 100%);
   z-index: 2;
 }
 
@@ -247,16 +305,17 @@ const handleSearch = () => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(99, 102, 241, 0.08);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: rgba(255,255,255,0.9);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  color: #4338ca;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   padding: 8px 20px;
   border-radius: 100px;
   margin-bottom: 28px;
   letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.05);
 }
 
 .greeting-dot {
@@ -278,11 +337,11 @@ const handleSearch = () => {
 .hero-headline {
   font-size: 76px;
   font-weight: 900;
-  color: #ffffff;
+  color: #0f172a;
   letter-spacing: -3.5px;
   line-height: 1.0;
   margin: 0 0 24px;
-  text-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  text-shadow: 0 4px 24px rgba(0,0,0,0.05);
 }
 
 .headline-gradient {
@@ -290,13 +349,17 @@ const handleSearch = () => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  &.3d-text {
+    filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.4)) drop-shadow(0 12px 24px rgba(0, 0, 0, 0.3));
+    letter-spacing: -2px;
+  }
 }
 
 /* Subtitle */
 .hero-sub {
   font-size: 19px;
   font-weight: 500;
-  color: rgba(255,255,255,0.72);
+  color: #475569;
   line-height: 1.6;
   margin: 0 0 44px;
   max-width: 640px;
@@ -308,19 +371,26 @@ const handleSearch = () => {
 .hero-search-wrap {
   max-width: 780px;
   margin: 0 auto 36px;
+  transition: transform 0.15s ease-out;
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 
 .hero-search-glass {
   display: flex;
   align-items: center;
   gap: 0;
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(24px);
-  border: 1.5px solid rgba(255,255,255,0.5);
-  border-radius: 20px;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(28px);
+  border: 1.5px solid rgba(255,255,255,0.8);
+  border-radius: 22px;
   padding: 8px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(99,102,241,0.12);
+  box-shadow: 
+    0 20px 60px rgba(0,0,0,0.3), 
+    0 0 0 1px rgba(99,102,241,0.1),
+    inset 0 0 20px rgba(255,255,255,0.5);
   overflow: hidden;
+  transform: translateZ(50px); /* Lift element in 3D space */
 }
 
 .search-field {
@@ -396,13 +466,13 @@ const handleSearch = () => {
 .quick-label {
   font-size: 12px;
   font-weight: 700;
-  color: rgba(255,255,255,0.5);
+  color: #94a3b8;
 }
 
 .quick-tag {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: rgba(255,255,255,0.8);
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
   font-size: 12px;
   font-weight: 700;
   padding: 5px 14px;
@@ -410,6 +480,7 @@ const handleSearch = () => {
   cursor: pointer;
   font-family: inherit;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .quick-tag:hover {
@@ -433,11 +504,11 @@ const handleSearch = () => {
   gap: 6px;
   font-size: 13px;
   font-weight: 700;
-  color: rgba(255,255,255,0.75);
+  color: #64748b;
 }
 
 .trust-sep {
-  color: rgba(255,255,255,0.25);
+  color: #e2e8f0;
   font-size: 20px;
 }
 
@@ -463,7 +534,7 @@ const handleSearch = () => {
 .scroll-mouse {
   width: 24px;
   height: 38px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid #e2e8f0;
   border-radius: 12px;
   display: flex;
   align-items: flex-start;
@@ -474,7 +545,7 @@ const handleSearch = () => {
 .scroll-wheel {
   width: 3px;
   height: 8px;
-  background: rgba(255,255,255,0.5);
+  background: #cbd5e1;
   border-radius: 2px;
   animation: wheelMove 1.5s ease-in-out infinite;
 }
@@ -487,7 +558,7 @@ const handleSearch = () => {
 .scroll-label {
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255,255,255,0.4);
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 1.5px;
 }

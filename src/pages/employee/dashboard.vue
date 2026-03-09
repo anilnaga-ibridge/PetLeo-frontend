@@ -14,6 +14,7 @@ const fetchMyBookings = async () => {
   try {
     // Fetch only bookings assigned to this provider/employee
     const res = await customerApi.get('/api/pet-owner/bookings/bookings/')
+
     bookings.value = res.data.results || res.data || []
   } catch (err) {
     console.error('Failed to fetch bookings:', err)
@@ -30,6 +31,7 @@ onMounted(async () => {
 const stats = computed(() => {
   const active = bookings.value.filter(b => ['PENDING', 'CONFIRMED'].includes(b.status)).length
   const completed = bookings.value.filter(b => b.status === 'COMPLETED').length
+  
   return { active, completed }
 })
 
@@ -53,66 +55,138 @@ const todayBookings = computed(() => {
 
       <VRow>
         <!-- STATS ROW -->
-        <VCol cols="12" md="4">
-          <VCard color="primary" class="stats-card">
+        <VCol
+          cols="12"
+          md="4"
+        >
+          <VCard
+            color="primary"
+            class="stats-card"
+          >
             <VCardText class="d-flex align-center pa-6">
-              <VAvatar color="white" variant="flat" size="48" class="me-4">
-                <VIcon icon="tabler-calendar-time" color="primary" />
+              <VAvatar
+                color="white"
+                variant="flat"
+                size="48"
+                class="me-4"
+              >
+                <VIcon
+                  icon="tabler-calendar-time"
+                  color="primary"
+                />
               </VAvatar>
               <div>
-                <div class="text-h4 font-weight-bold text-white">{{ stats.active }}</div>
-                <div class="text-body-2 text-white opacity-80">Active Bookings</div>
+                <div class="text-h4 font-weight-bold text-white">
+                  {{ stats.active }}
+                </div>
+                <div class="text-body-2 text-white opacity-80">
+                  Active Bookings
+                </div>
               </div>
             </VCardText>
           </VCard>
         </VCol>
         
-        <VCol cols="12" md="4">
-          <VCard color="success" class="stats-card">
+        <VCol
+          cols="12"
+          md="4"
+        >
+          <VCard
+            color="success"
+            class="stats-card"
+          >
             <VCardText class="d-flex align-center pa-6">
-              <VAvatar color="white" variant="flat" size="48" class="me-4">
-                <VIcon icon="tabler-check" color="success" />
+              <VAvatar
+                color="white"
+                variant="flat"
+                size="48"
+                class="me-4"
+              >
+                <VIcon
+                  icon="tabler-check"
+                  color="success"
+                />
               </VAvatar>
               <div>
-                <div class="text-h4 font-weight-bold text-white">{{ stats.completed }}</div>
-                <div class="text-body-2 text-white opacity-80">Completed Today</div>
+                <div class="text-h4 font-weight-bold text-white">
+                  {{ stats.completed }}
+                </div>
+                <div class="text-body-2 text-white opacity-80">
+                  Completed Today
+                </div>
               </div>
             </VCardText>
           </VCard>
         </VCol>
 
-        <VCol cols="12" md="4">
-          <VCard color="amber-darken-3" class="stats-card">
+        <VCol
+          cols="12"
+          md="4"
+        >
+          <VCard
+            color="amber-darken-3"
+            class="stats-card"
+          >
             <VCardText class="d-flex align-center pa-6">
-              <VAvatar color="white" variant="flat" size="48" class="me-4">
-                <VIcon icon="tabler-star-filled" color="amber-darken-3" />
+              <VAvatar
+                color="white"
+                variant="flat"
+                size="48"
+                class="me-4"
+              >
+                <VIcon
+                  icon="tabler-star-filled"
+                  color="amber-darken-3"
+                />
               </VAvatar>
               <div>
-                <div class="text-h4 font-weight-bold text-white">{{ (userData.average_rating || 0).toFixed(1) }}</div>
-                <div class="text-body-2 text-white opacity-80">{{ userData.total_ratings || 0 }} Reviews</div>
+                <div class="text-h4 font-weight-bold text-white">
+                  {{ (userData.average_rating || 0).toFixed(1) }}
+                </div>
+                <div class="text-body-2 text-white opacity-80">
+                  {{ userData.total_ratings || 0 }} Reviews
+                </div>
               </div>
             </VCardText>
           </VCard>
         </VCol>
 
         <!-- MAIN TASKS SECTION -->
-        <VCol cols="12" md="8">
+        <VCol
+          cols="12"
+          md="8"
+        >
           <VCard class="h-100">
             <VCardItem>
               <template #prepend>
-                <VIcon icon="tabler-alert-circle" color="warning" size="24" class="me-2" />
+                <VIcon
+                  icon="tabler-alert-circle"
+                  color="warning"
+                  size="24"
+                  class="me-2"
+                />
               </template>
               <VCardTitle>New Requests</VCardTitle>
               <template #append>
-                <VBtn variant="text" color="primary" :to="{ name: 'employee-bookings' }">
+                <VBtn
+                  variant="text"
+                  color="primary"
+                  :to="{ name: 'employee-bookings' }"
+                >
                   View All Schedule
                 </VBtn>
               </template>
             </VCardItem>
 
             <VCardText>
-              <div v-if="loading" class="text-center py-6">
-                <VProgressCircular indeterminate color="primary" />
+              <div
+                v-if="loading"
+                class="text-center py-6"
+              >
+                <VProgressCircular
+                  indeterminate
+                  color="primary"
+                />
               </div>
               
               <div v-else-if="todayBookings.length > 0">
@@ -124,8 +198,16 @@ const todayBookings = computed(() => {
                     :to="{ name: 'employee-bookings', query: { search: booking.id } }"
                   >
                     <template #prepend>
-                      <VAvatar size="48" color="primary" variant="tonal" rounded="lg">
-                        <VIcon icon="tabler-paw" size="24" />
+                      <VAvatar
+                        size="48"
+                        color="primary"
+                        variant="tonal"
+                        rounded="lg"
+                      >
+                        <VIcon
+                          icon="tabler-paw"
+                          size="24"
+                        />
                       </VAvatar>
                     </template>
                     
@@ -137,7 +219,10 @@ const todayBookings = computed(() => {
                     </VListItemSubtitle>
 
                     <template #append>
-                      <VChip color="warning" size="small">
+                      <VChip
+                        color="warning"
+                        size="small"
+                      >
                         NEW
                       </VChip>
                     </template>
@@ -145,35 +230,67 @@ const todayBookings = computed(() => {
                 </VList>
               </div>
 
-              <div v-else class="text-center py-12">
-                <VIcon icon="tabler-circle-check" size="48" class="text-success mb-3" />
-                <h3 class="text-h6 font-weight-bold">All caught up!</h3>
-                <p class="text-body-2 text-medium-emphasis">No new pending requests.</p>
+              <div
+                v-else
+                class="text-center py-12"
+              >
+                <VIcon
+                  icon="tabler-circle-check"
+                  size="48"
+                  class="text-success mb-3"
+                />
+                <h3 class="text-h6 font-weight-bold">
+                  All caught up!
+                </h3>
+                <p class="text-body-2 text-medium-emphasis">
+                  No new pending requests.
+                </p>
               </div>
             </VCardText>
           </VCard>
         </VCol>
 
         <!-- QUICK LINKS / HELP -->
-        <VCol cols="12" md="4">
+        <VCol
+          cols="12"
+          md="4"
+        >
           <VCard class="mb-4">
             <VCardItem>
               <VCardTitle>Quick Actions</VCardTitle>
             </VCardItem>
             <VCardText class="d-flex flex-column gap-3">
-              <VBtn block variant="tonal" prepend-icon="tabler-user-edit" to="/employee/profile">
+              <VBtn
+                block
+                variant="tonal"
+                prepend-icon="tabler-user-edit"
+                to="/employee/profile"
+              >
                 My Profile
               </VBtn>
-              <VBtn block variant="tonal" prepend-icon="tabler-clock" :to="{ name: 'provider-availability' }">
+              <VBtn
+                block
+                variant="tonal"
+                prepend-icon="tabler-clock"
+                :to="{ name: 'provider-availability' }"
+              >
                 Set Work Hours
               </VBtn>
-              <VBtn block variant="tonal" prepend-icon="tabler-help" :to="{ name: 'provider-faq' }">
+              <VBtn
+                block
+                variant="tonal"
+                prepend-icon="tabler-help"
+                :to="{ name: 'provider-faq' }"
+              >
                 Employee Handbook
               </VBtn>
             </VCardText>
           </VCard>
 
-          <VCard variant="tonal" color="info">
+          <VCard
+            variant="tonal"
+            color="info"
+          >
             <VCardText class="pa-4">
               <div class="d-flex align-center gap-3 mb-2">
                 <VIcon icon="tabler-info-circle" />

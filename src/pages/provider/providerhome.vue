@@ -184,6 +184,14 @@ onMounted(() => {
   }
 })
 
+
+const onIntersect = (isIntersecting, entries, observer) => {
+  if (isIntersecting && entries && entries[0]) {
+    entries[0].target.classList.add('reveal-visible')
+    entries[0].target.classList.remove('reveal-hidden')
+  }
+}
+
 const onOnboardingComplete = () => {
   showOnboarding.value = false
 
@@ -201,6 +209,7 @@ const fetchActiveSubscription = async () => {
   if (!isLoggedIn.value) return
   try {
     const res = await api.get('http://127.0.0.1:8002/api/provider/cart/subscription/active/')
+
     activeSubscription.value = res.data.plan
   } catch (err) {
     console.error('Failed to fetch active subscription:', err)
@@ -216,17 +225,20 @@ const purchasePlan = async plan => {
         snackbar.value = { 
           show: true, 
           text: 'You already purchased this plan ☺️', 
-          color: 'info' 
+          color: 'info', 
         }
+        
         return
       }
+
       // If expiring soon, we proceed to purchase
     } else {
       snackbar.value = { 
         show: true, 
         text: 'You cannot purchase another plan while you have an active plan.', 
-        color: 'warning' 
+        color: 'warning', 
       }
+      
       return
     }
   }
@@ -249,8 +261,14 @@ const purchasePlan = async plan => {
       price_currency: plan.price?.currency || plan.currency || 'INR',
     }
 
-    await api.post('http://127.0.0.1:8002/api/provider/cart/purchase/', payload)
+    const res = await api.post('http://127.0.0.1:8002/api/provider/cart/purchase/', payload)
     
+    if (res.data && res.data.checkout_url) {
+      window.location.href = res.data.checkout_url
+      
+      return
+    }
+
     snackbar.value = { show: true, text: 'Plan purchased and activated successfully!', color: 'success' }
     
     // Redirect to subscription page to show the new plan
@@ -276,7 +294,7 @@ const purchasePlan = async plan => {
     <VAppBar
       color="surface"
       elevation="0"
-      class="px-4 border-b"
+      class="px-4 border-b frosted-app-bar"
       position="sticky"
     >
       <div class="d-flex align-center gap-2">
@@ -376,20 +394,29 @@ const purchasePlan = async plan => {
     </VAppBar>
 
     <!-- 1. HERO SECTION -->
-    <section class="hero-section position-relative bg-surface pb-12 pt-16 mt-12">
+    <section class="hero-section position-relative hero-gradient pb-12 pt-16 mt-12 overflow-hidden">
+      <!-- Decorative Cinematic Blobs -->
+      <div
+        class="position-absolute rounded-circle bg-primary opacity-20"
+        style="width: 400px; height: 400px; filter: blur(80px); top: -100px; left: -100px; pointer-events: none;"
+      />
+      <div
+        class="position-absolute rounded-circle bg-secondary opacity-20"
+        style="width: 500px; height: 500px; filter: blur(100px); bottom: -150px; right: -150px; pointer-events: none;"
+      />
       <VContainer>
         <VRow align="center">
           <VCol
             cols="12"
             md="6"
           >
-            <h1 class="text-h2 font-weight-bold text-primary mb-4">
+            <h1 class="text-h2 font-weight-bold mb-4 fade-up-1 text-gradient pb-2 line-height-1">
               Grow Your Pet Business with Petleo
             </h1>
-            <p class="text-h5 text-medium-emphasis mb-8">
+            <p class="text-h5 text-medium-emphasis mb-8 fade-up-2">
               Join 500+ trusted pet service providers and get daily clients directly.
             </p>
-            <div class="d-flex gap-4">
+            <div class="d-flex gap-4 fade-up-3">
               <VBtn
                 v-if="!isLoggedIn"
                 size="large"
@@ -423,7 +450,7 @@ const purchasePlan = async plan => {
             <VImg
               :src="heroImage"
               max-height="400"
-              class="mx-auto"
+              class="mx-auto fade-up-3"
             />
           </VCol>
         </VRow>
@@ -450,7 +477,10 @@ const purchasePlan = async plan => {
       id="services"
       class="services-section py-16 bg-background"
     >
-      <VContainer>
+      <VContainer
+        v-intersect="onIntersect"
+        class="reveal-hidden"
+      >
         <div class="text-center mb-12">
           <h2 class="text-h3 font-weight-bold mb-2">
             What Services You Can Offer
@@ -468,7 +498,7 @@ const purchasePlan = async plan => {
             md="4"
           >
             <VCard
-              class="h-100 text-center pa-6"
+              class="h-100 text-center pa-6 premium-card"
               elevation="2"
             >
               <VAvatar
@@ -510,7 +540,7 @@ const purchasePlan = async plan => {
           <VChip
             color="primary"
             variant="tonal"
-            class="mb-4 font-weight-bold"
+            class="mb-4 font-weight-bold glass-badge"
             size="small"
           >
             PRICING PLANS
@@ -538,7 +568,7 @@ const purchasePlan = async plan => {
             lg="4"
           >
             <VCard 
-              class="h-100 d-flex flex-column plan-card rounded-xl overflow-visible" 
+              class="h-100 d-flex flex-column plan-card premium-card rounded-xl overflow-hidden" 
               elevation="0"
               border
               style="transition: all 0.3s ease;"
@@ -605,115 +635,47 @@ const purchasePlan = async plan => {
 
                 <!-- Access / Capabilities -->
                 <div v-if="plan.access && plan.access.length">
-                  <div class="text-overline font-weight-bold text-medium-emphasis mb-4">
+                  <div class="text-overline font-weight-bold text-medium-emphasis mb-3">
                     CAPABILITIES
                   </div>
-                  
-                  <div class="d-flex flex-column gap-3">
+
+                  <!-- Scrollable capability list capped at 260px to prevent overflow -->
+                  <div class="caps-scroll">
                     <div
                       v-for="(serviceItem, idx) in plan.access"
                       :key="idx"
-                      class="capability-item"
+                      class="mb-3"
                     >
-                      <!-- Service Header -->
-                      <div class="d-flex align-center mb-2">
+                      <!-- Service label row -->
+                      <div class="d-flex align-center gap-2 mb-2">
                         <VAvatar
                           color="primary"
                           variant="tonal"
-                          size="32"
-                          class="me-3"
+                          size="24"
                         >
                           <VIcon
                             :icon="serviceItem.service.icon || 'tabler-box'"
-                            size="18"
+                            size="14"
                           />
                         </VAvatar>
-                        <span class="text-subtitle-1 font-weight-bold">{{ serviceItem.service.name }}</span>
+                        <span class="text-caption font-weight-bold text-uppercase text-medium-emphasis">
+                          {{ serviceItem.service.name }}
+                        </span>
                       </div>
 
-                      <!-- Categories (Clean List) -->
-                      <div class="ps-11">
-                        <div
+                      <!-- Category chips (clean labels, no raw keys) -->
+                      <div class="d-flex flex-wrap gap-1 ps-8">
+                        <VChip
                           v-for="(cat, cIdx) in serviceItem.categories"
                           :key="cIdx"
-                          class="mb-3"
+                          size="x-small"
+                          color="primary"
+                          variant="tonal"
+                          class="text-capitalize"
                         >
-                          <div class="d-flex align-center justify-space-between mb-1">
-                            <span class="text-body-2 font-weight-medium text-high-emphasis">{{ cat.name }}</span>
-                            <!-- Mini Permissions Indicators -->
-                            <div class="d-flex gap-1">
-                              <VTooltip
-                                location="top"
-                                text="View"
-                              >
-                                <template #activator="{ props }">
-                                  <div
-                                    v-bind="props"
-                                    class="perm-dot"
-                                    :class="{ 'active': cat.permissions.can_view }"
-                                  >
-                                    V
-                                  </div>
-                                </template>
-                              </VTooltip>
-                              <VTooltip
-                                location="top"
-                                text="Create"
-                              >
-                                <template #activator="{ props }">
-                                  <div
-                                    v-bind="props"
-                                    class="perm-dot"
-                                    :class="{ 'active': cat.permissions.can_create }"
-                                  >
-                                    C
-                                  </div>
-                                </template>
-                              </VTooltip>
-                              <VTooltip
-                                location="top"
-                                text="Edit"
-                              >
-                                <template #activator="{ props }">
-                                  <div
-                                    v-bind="props"
-                                    class="perm-dot"
-                                    :class="{ 'active': cat.permissions.can_edit }"
-                                  >
-                                    E
-                                  </div>
-                                </template>
-                              </VTooltip>
-                              <VTooltip
-                                location="top"
-                                text="Delete"
-                              >
-                                <template #activator="{ props }">
-                                  <div
-                                    v-bind="props"
-                                    class="perm-dot"
-                                    :class="{ 'active': cat.permissions.can_delete }"
-                                  >
-                                    D
-                                  </div>
-                                </template>
-                              </VTooltip>
-                            </div>
-                          </div>
-                          
-                          <!-- Facilities (Subtle) -->
-                          <div
-                            v-if="cat.facilities && cat.facilities.length"
-                            class="text-caption text-medium-emphasis"
-                          >
-                            <VIcon
-                              icon="tabler-building-store"
-                              size="12"
-                              class="me-1"
-                            />
-                            {{ cat.facilities.map(f => f.name).join(', ') }}
-                          </div>
-                        </div>
+                          <!-- Strip VETERINARY_ prefix and replace underscores with spaces -->
+                          {{ (cat.name || '').replace(/^VETERINARY_/i, '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) }}
+                        </VChip>
                       </div>
                     </div>
                   </div>
@@ -723,14 +685,20 @@ const purchasePlan = async plan => {
               <!-- Footer / Action -->
               <div class="pa-8 pt-0 bg-surface rounded-b-xl">
                 <!-- LOGGED IN USER: Purchase Button -->
-                <div v-if="isLoggedIn" class="w-100">
+                <div
+                  v-if="isLoggedIn"
+                  class="w-100"
+                >
                   <VTooltip
                     location="top"
                     text="Your documents must be approved before purchasing a plan."
                     :disabled="isVerificationApproved"
                   >
                     <template #activator="{ props }">
-                      <div v-bind="!isVerificationApproved ? props : {}" class="w-100">
+                      <div
+                        v-bind="!isVerificationApproved ? props : {}"
+                        class="w-100"
+                      >
                         <VBtn 
                           block 
                           size="x-large"
@@ -743,7 +711,10 @@ const purchasePlan = async plan => {
                           @click="purchasePlan(plan)"
                         >
                           <template v-if="activeSubscription?.plan_id === plan.id">
-                            <VIcon icon="tabler-check" class="me-2" />
+                            <VIcon
+                              icon="tabler-check"
+                              class="me-2"
+                            />
                             Already Purchased
                           </template>
                           <template v-else-if="activeSubscription">
@@ -800,7 +771,10 @@ const purchasePlan = async plan => {
       id="benefits"
       class="benefits-section py-16 bg-surface"
     >
-      <VContainer>
+      <VContainer
+        v-intersect="onIntersect"
+        class="reveal-hidden"
+      >
         <div class="text-center mb-12">
           <h2 class="text-h3 font-weight-bold mb-2">
             Why Join Petleo?
@@ -817,7 +791,7 @@ const purchasePlan = async plan => {
             sm="6"
             md="4"
           >
-            <div class="d-flex align-start mb-6">
+            <div class="d-flex align-start mb-6 pa-4 rounded-lg premium-card bg-surface">
               <VAvatar
                 color="success"
                 variant="tonal"
@@ -845,7 +819,10 @@ const purchasePlan = async plan => {
 
     <!-- 4. OUR WORK / CLIENTS -->
     <section class="clients-section py-16 bg-background">
-      <VContainer>
+      <VContainer
+        v-intersect="onIntersect"
+        class="reveal-hidden"
+      >
         <div class="text-center mb-12">
           <h2 class="text-h3 font-weight-bold mb-2">
             Our Trusted Partners
@@ -879,7 +856,10 @@ const purchasePlan = async plan => {
       id="testimonials"
       class="testimonials-section py-16 bg-surface"
     >
-      <VContainer>
+      <VContainer
+        v-intersect="onIntersect"
+        class="reveal-hidden"
+      >
         <div class="text-center mb-12">
           <h2 class="text-h3 font-weight-bold mb-2">
             Success Stories
@@ -896,8 +876,8 @@ const purchasePlan = async plan => {
             md="4"
           >
             <VCard
-              class="h-100 pa-6"
-              elevation="3"
+              class="h-100 pa-6 premium-card"
+              elevation="0"
             >
               <div class="mb-4">
                 <VIcon
@@ -934,7 +914,10 @@ const purchasePlan = async plan => {
 
     <!-- 6. HOW IT WORKS -->
     <section class="how-it-works-section py-16 bg-background">
-      <VContainer>
+      <VContainer
+        v-intersect="onIntersect"
+        class="reveal-hidden"
+      >
         <div class="text-center mb-12">
           <h2 class="text-h3 font-weight-bold mb-2">
             How It Works
@@ -1033,7 +1016,10 @@ const purchasePlan = async plan => {
       id="about"
       class="about-section py-16 bg-surface"
     >
-      <VContainer>
+      <VContainer
+        v-intersect="onIntersect"
+        class="reveal-hidden"
+      >
         <VRow align="center">
           <VCol
             cols="12"
@@ -1072,7 +1058,10 @@ const purchasePlan = async plan => {
 
     <!-- 8. CTA -->
     <section class="cta-section py-16 bg-primary text-white text-center">
-      <VContainer>
+      <VContainer
+        v-intersect="onIntersect"
+        class="reveal-hidden"
+      >
         <h2 class="text-h2 font-weight-bold text-white mb-6">
           Ready to Grow Your Business?
         </h2>
@@ -1094,6 +1083,67 @@ const purchasePlan = async plan => {
 </template>
 
 <style scoped>
+/* Premium UI/UX Animations & Styles */
+@keyframes gradient-xy {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.hero-gradient {
+  background: linear-gradient(-45deg, rgba(var(--v-theme-primary), 0.08), rgba(var(--v-theme-secondary), 0.05), rgba(var(--v-theme-primary), 0.02), transparent);
+  background-size: 400% 400%;
+  animation: gradient-xy 15s ease infinite;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)), rgb(var(--v-theme-secondary)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.frosted-app-bar {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  background-color: rgba(var(--v-theme-surface), 0.75) !important;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08) !important;
+}
+
+.reveal-hidden {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.premium-card {
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.05) !important;
+}
+.premium-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px -8px rgba(var(--v-theme-primary), 0.15) !important;
+  border-color: rgba(var(--v-theme-primary), 0.3) !important;
+}
+
+.fade-up-1 { animation: fadeUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s forwards; opacity: 0; }
+.fade-up-2 { animation: fadeUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s forwards; opacity: 0; }
+.fade-up-3 { animation: fadeUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards; opacity: 0; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.glass-badge {
+  background: rgba(var(--v-theme-primary), 0.1);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+}
+
 .ls-1 {
   letter-spacing: 1px !important;
 }
@@ -1127,6 +1177,24 @@ const purchasePlan = async plan => {
 .perm-dot.active {
   background-color: rgb(var(--v-theme-primary));
   color: white;
+}
+
+.caps-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--v-theme-primary), 0.25) transparent;
+}
+
+.caps-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.caps-scroll::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-primary), 0.2);
+  border-radius: 4px;
 }
 </style>
 

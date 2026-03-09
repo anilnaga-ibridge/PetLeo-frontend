@@ -26,7 +26,7 @@ const fetchTopRated = async () => {
         rating: p.averageRating && p.averageRating > 4.0 ? p.averageRating : 4.8, 
         services: p.servicesOffered || ['Premium Care'],
         reviews: p.totalRatings || 120, // Use actual count or a respectable default
-        verified: true
+        verified: true,
       }))
       .filter(p => p.rating >= 4.5)
       .sort((a, b) => b.rating - a.rating)
@@ -50,7 +50,11 @@ onMounted(fetchTopRated)
         subtitle="The highest-rated experts on the PetLeo network"
       >
         <template v-if="loading">
-          <div v-for="i in 4" :key="i" style="width: 280px">
+          <div
+            v-for="i in 4"
+            :key="i"
+            style="width: 280px"
+          >
             <SkeletonCard />
           </div>
         </template>
@@ -60,7 +64,10 @@ onMounted(fetchTopRated)
             :key="provider.id" 
             style="width: 280px"
           >
-            <ProviderCard :provider="provider" :premium="true" />
+            <ProviderCard
+              :provider="provider"
+              :premium="true"
+            />
           </div>
         </template>
       </HorizontalCarousel>

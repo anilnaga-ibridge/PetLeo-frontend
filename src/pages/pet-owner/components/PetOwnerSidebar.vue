@@ -1,16 +1,20 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 
 const userData = JSON.parse(localStorage.getItem('userData') || '{}')
 const userName = computed(() => userData.full_name || 'Pet Parent')
 const userEmail = computed(() => userData.email || '')
+
 const avatarText = computed(() => {
   const name = userName.value
-  return name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase()
+  
+  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 })
 
 const navItems = [
@@ -27,12 +31,10 @@ const bottomItems = [
   { label: 'Help', icon: 'tabler-help-circle', to: '/pet-owner/help' },
 ]
 
-const isActive = (to) => route.path === to || route.path.startsWith(to + '/')
+const isActive = to => route.path === to || route.path.startsWith(to + '/')
 
-const logout = () => {
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('userData')
-  router.push('/login')
+const logout = async () => {
+  await authStore.logout()
 }
 </script>
 
@@ -41,57 +43,88 @@ const logout = () => {
     <!-- Brand -->
     <div class="sidebar-brand">
       <div class="brand-logo">
-        <VIcon icon="tabler-paw-filled" color="white" size="20" />
+        <VIcon
+          icon="tabler-paw-filled"
+          color="white"
+          size="20"
+        />
       </div>
       <span class="brand-name">PetLeo</span>
     </div>
 
     <!-- User card -->
     <div class="sidebar-user">
-      <div class="user-avatar">{{ avatarText }}</div>
+      <div class="user-avatar">
+        {{ avatarText }}
+      </div>
       <div class="user-info">
-        <div class="user-name">{{ userName }}</div>
-        <div class="user-email">{{ userEmail }}</div>
+        <div class="user-name">
+          {{ userName }}
+        </div>
+        <div class="user-email">
+          {{ userEmail }}
+        </div>
       </div>
     </div>
 
     <!-- Label -->
-    <div class="nav-label">Navigation</div>
+    <div class="nav-label">
+      Navigation
+    </div>
 
     <!-- Nav items -->
     <nav class="sidebar-nav">
-      <router-link
+      <RouterLink
         v-for="item in navItems"
         :key="item.label"
         :to="item.to"
-        :class="['nav-item', { active: isActive(item.to) }]"
+        class="nav-item"
+        :class="[{ active: isActive(item.to) }]"
       >
         <div class="nav-icon">
-          <VIcon :icon="item.icon" size="18" />
+          <VIcon
+            :icon="item.icon"
+            size="18"
+          />
         </div>
         <span class="nav-lbl">{{ item.label }}</span>
-        <div v-if="isActive(item.to)" class="nav-active-dot" />
-      </router-link>
+        <div
+          v-if="isActive(item.to)"
+          class="nav-active-dot"
+        />
+      </RouterLink>
     </nav>
 
     <!-- Bottom -->
     <div class="sidebar-bottom">
-      <div class="nav-label">Account</div>
-      <router-link
+      <div class="nav-label">
+        Account
+      </div>
+      <RouterLink
         v-for="item in bottomItems"
         :key="item.label"
         :to="item.to"
-        :class="['nav-item', { active: isActive(item.to) }]"
+        class="nav-item"
+        :class="[{ active: isActive(item.to) }]"
       >
         <div class="nav-icon">
-          <VIcon :icon="item.icon" size="18" />
+          <VIcon
+            :icon="item.icon"
+            size="18"
+          />
         </div>
         <span class="nav-lbl">{{ item.label }}</span>
-      </router-link>
+      </RouterLink>
 
-      <button class="nav-item logout-btn" @click="logout">
+      <button
+        class="nav-item logout-btn"
+        @click="logout"
+      >
         <div class="nav-icon logout-icon">
-          <VIcon icon="tabler-logout" size="18" />
+          <VIcon
+            icon="tabler-logout"
+            size="18"
+          />
         </div>
         <span class="nav-lbl">Sign Out</span>
       </button>

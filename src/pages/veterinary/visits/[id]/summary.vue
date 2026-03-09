@@ -4,6 +4,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useVeterinaryStore } from '@/stores/veterinaryStore'
 import DynamicFormRenderer from '@/components/veterinary/DynamicFormRenderer.vue'
+import EstimateWidget from '@/components/veterinary/dashboard/EstimateWidget.vue'
+import PreVisitWidget from '@/components/veterinary/dashboard/PreVisitWidget.vue'
 
 const route = useRoute()
 const store = useVeterinaryStore()
@@ -31,6 +33,33 @@ const onFormSubmitted = () => {
   showPrescriptionDialog.value = false
   showLabDialog.value = false
   fetchSummary()
+}
+
+const clinicNotes = ref('')
+const aiLoading = ref(false)
+
+const aiFormat = async () => {
+  if (!clinicNotes.value) return
+  aiLoading.value = true
+  try {
+    const formatted = await store.aiFormatNotes(route.params.id, clinicNotes.value)
+
+    clinicNotes.value = formatted
+  } catch (err) {
+    console.error(err)
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+const saveNotes = async () => {
+  // Logic to save notes can be added here, for now it just updates the current notes.
+  // We can use the existing FormSubmission for CLINIC_NOTES if it exists.
+  try {
+    await store.submitForm(route.params.id, 'CLINIC_NOTES', { content: clinicNotes.value })
+  } catch (err) {
+    console.error(err)
+  }
 }
 </script>
 
@@ -95,7 +124,10 @@ const onFormSubmitted = () => {
             </VCardText>
           </VCard>
             
-          <VCard title="Quick Actions">
+          <VCard
+            title="Quick Actions"
+            class="mb-4"
+          >
             <VCardText class="d-flex flex-column gap-2">
               <VBtn
                 prepend-icon="tabler-pill"
@@ -115,6 +147,12 @@ const onFormSubmitted = () => {
               </VBtn>
             </VCardText>
           </VCard>
+
+          <!-- Pre-Visit Check-In -->
+          <PreVisitWidget :visit-id="visit.id" />
+
+          <!-- Treatment Estimates -->
+          <EstimateWidget :visit-id="visit.id" />
         </VCol>
 
         <!-- RIGHT COL: TIMELINE -->
@@ -122,6 +160,41 @@ const onFormSubmitted = () => {
           cols="12"
           md="8"
         >
+          <VCard
+            title="Clinical Notes"
+            class="mb-4"
+          >
+            <VCardText>
+              <VTextarea
+                v-model="clinicNotes"
+                placeholder="Type raw clinical observations, physical exam findings, or treatment thoughts here..."
+                variant="outlined"
+                rows="5"
+                bg-color="grey-lighten-5"
+                class="rounded-lg"
+              />
+              <div class="d-flex justify-end gap-3 mt-4">
+                <VBtn
+                  prepend-icon="tabler-sparkles"
+                  color="secondary"
+                  variant="tonal"
+                  :loading="aiLoading"
+                  @click="aiFormat"
+                >
+                  AI SOAP Format
+                </VBtn>
+                <VBtn
+                  prepend-icon="tabler-device-floppy"
+                  color="primary"
+                  variant="flat"
+                  @click="saveNotes"
+                >
+                  Save Notes
+                </VBtn>
+              </div>
+            </VCardText>
+          </VCard>
+
           <VCard title="Visit Timeline">
             <VTimeline
               side="end"

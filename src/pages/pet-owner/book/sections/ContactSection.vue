@@ -30,15 +30,22 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <section id="contact-section" class="contact-section">
+  <section
+    id="contact-section"
+    class="contact-section"
+  >
     <!-- Background shape -->
     <div class="contact-bg-shape" />
 
     <div class="contact-inner">
       <!-- Left: Contact Info -->
       <div class="contact-info-col">
-        <div class="section-eyebrow">Contact Us</div>
-        <h2 class="contact-title">Let's Talk<br/>Pet Care</h2>
+        <div class="section-eyebrow">
+          Contact Us
+        </div>
+        <h2 class="contact-title">
+          Let's Talk<br>Pet Care
+        </h2>
         <p class="contact-sub">
           Have questions, feedback, or need help? Our team is available 7 days a week to help you and your pet.
         </p>
@@ -47,58 +54,120 @@ const handleSubmit = async () => {
         <div class="contact-details">
           <div class="contact-detail-item">
             <div class="detail-icon-box email">
-              <VIcon icon="tabler-mail" size="20" color="white" />
+              <VIcon
+                icon="tabler-mail"
+                size="20"
+                color="white"
+              />
             </div>
             <div>
-              <div class="detail-label">Email Us</div>
-              <a href="mailto:support@petleo.in" class="detail-value">support@petleo.in</a>
+              <div class="detail-label">
+                Email Us
+              </div>
+              <a
+                href="mailto:support@petleo.in"
+                class="detail-value"
+              >support@petleo.in</a>
             </div>
           </div>
 
           <div class="contact-detail-item">
             <div class="detail-icon-box phone">
-              <VIcon icon="tabler-phone" size="20" color="white" />
+              <VIcon
+                icon="tabler-phone"
+                size="20"
+                color="white"
+              />
             </div>
             <div>
-              <div class="detail-label">Call Us</div>
-              <a href="tel:+918000000000" class="detail-value">+91 80000 00000</a>
+              <div class="detail-label">
+                Call Us
+              </div>
+              <a
+                href="tel:+918000000000"
+                class="detail-value"
+              >+91 80000 00000</a>
             </div>
           </div>
 
           <div class="contact-detail-item">
             <div class="detail-icon-box location">
-              <VIcon icon="tabler-map-pin" size="20" color="white" />
+              <VIcon
+                icon="tabler-map-pin"
+                size="20"
+                color="white"
+              />
             </div>
             <div>
-              <div class="detail-label">Head Office</div>
-              <div class="detail-value">PetLeo Technologies Inc.<br/>Bangalore, Karnataka 560001</div>
+              <div class="detail-label">
+                Head Office
+              </div>
+              <div class="detail-value">
+                PetLeo Technologies Inc.<br>Bangalore, Karnataka 560001
+              </div>
             </div>
           </div>
 
           <div class="contact-detail-item">
             <div class="detail-icon-box hours">
-              <VIcon icon="tabler-clock" size="20" color="white" />
+              <VIcon
+                icon="tabler-clock"
+                size="20"
+                color="white"
+              />
             </div>
             <div>
-              <div class="detail-label">Support Hours</div>
-              <div class="detail-value">Mon – Sun, 8 AM – 10 PM</div>
+              <div class="detail-label">
+                Support Hours
+              </div>
+              <div class="detail-value">
+                Mon – Sun, 8 AM – 10 PM
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Social -->
         <div class="social-row">
-          <a href="#" class="social-btn" title="Instagram">
-            <VIcon icon="tabler-brand-instagram" size="20" />
+          <a
+            href="#"
+            class="social-btn"
+            title="Instagram"
+          >
+            <VIcon
+              icon="tabler-brand-instagram"
+              size="20"
+            />
           </a>
-          <a href="#" class="social-btn" title="Facebook">
-            <VIcon icon="tabler-brand-facebook" size="20" />
+          <a
+            href="#"
+            class="social-btn"
+            title="Facebook"
+          >
+            <VIcon
+              icon="tabler-brand-facebook"
+              size="20"
+            />
           </a>
-          <a href="#" class="social-btn" title="LinkedIn">
-            <VIcon icon="tabler-brand-linkedin" size="20" />
+          <a
+            href="#"
+            class="social-btn"
+            title="LinkedIn"
+          >
+            <VIcon
+              icon="tabler-brand-linkedin"
+              size="20"
+            />
           </a>
-          <a href="#" class="social-btn" title="Twitter">
-            <VIcon icon="tabler-brand-x" size="20" />
+          <a
+            href="#"
+            class="social-btn"
+            title="Twitter"
+          >
+            <VIcon
+              icon="tabler-brand-x"
+              size="20"
+            />
           </a>
         </div>
       </div>
@@ -106,39 +175,84 @@ const handleSubmit = async () => {
       <!-- Right: Contact Form -->
       <div class="contact-form-col">
         <!-- Success state -->
-        <div v-if="submitted" class="form-success">
+        <div
+          v-if="submitted"
+          class="form-success"
+        >
           <div class="success-icon">
-            <VIcon icon="tabler-circle-check-filled" size="48" color="white" />
+            <VIcon
+              icon="tabler-circle-check-filled"
+              size="48"
+              color="white"
+            />
           </div>
-          <h3 class="success-title">Message Sent! 🐾</h3>
-          <p class="success-sub">Our team will get back to you within 24 hours.</p>
-          <button class="reset-btn" @click="submitted = false">Send Another</button>
+          <h3 class="success-title">
+            Message Sent! 🐾
+          </h3>
+          <p class="success-sub">
+            Our team will get back to you within 24 hours.
+          </p>
+          <button
+            class="reset-btn"
+            @click="submitted = false"
+          >
+            Send Another
+          </button>
         </div>
 
         <!-- Form -->
-        <form v-else class="contact-form" @submit.prevent="handleSubmit">
-          <h3 class="form-title">Send us a Message</h3>
-          <p class="form-sub">We'd love to hear from you. Fill out this form and we'll reply soon.</p>
+        <form
+          v-else
+          class="contact-form"
+          @submit.prevent="handleSubmit"
+        >
+          <h3 class="form-title">
+            Send us a Message
+          </h3>
+          <p class="form-sub">
+            We'd love to hear from you. Fill out this form and we'll reply soon.
+          </p>
 
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Your Name *</label>
-              <input v-model="form.name" class="field-input" placeholder="John Doe" required />
+              <input
+                v-model="form.name"
+                class="field-input"
+                placeholder="John Doe"
+                required
+              >
             </div>
             <div class="field-group">
               <label class="field-label">Email Address *</label>
-              <input v-model="form.email" type="email" class="field-input" placeholder="john@example.com" required />
+              <input
+                v-model="form.email"
+                type="email"
+                class="field-input"
+                placeholder="john@example.com"
+                required
+              >
             </div>
           </div>
 
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Phone Number</label>
-              <input v-model="form.phone" type="tel" class="field-input" placeholder="+91 98765 43210" />
+              <input
+                v-model="form.phone"
+                type="tel"
+                class="field-input"
+                placeholder="+91 98765 43210"
+              >
             </div>
             <div class="field-group">
               <label class="field-label">Subject *</label>
-              <input v-model="form.subject" class="field-input" placeholder="e.g. Booking issue" required />
+              <input
+                v-model="form.subject"
+                class="field-input"
+                placeholder="e.g. Booking issue"
+                required
+              >
             </div>
           </div>
 
@@ -153,11 +267,32 @@ const handleSubmit = async () => {
             />
           </div>
 
-          <div v-if="error" class="error-msg">{{ error }}</div>
+          <div
+            v-if="error"
+            class="error-msg"
+          >
+            {{ error }}
+          </div>
 
-          <button type="submit" class="submit-btn" :disabled="submitting">
-            <VIcon v-if="!submitting" icon="tabler-send" size="18" class="mr-2" />
-            <VProgressCircular v-else indeterminate size="18" width="2" color="white" class="mr-2" />
+          <button
+            type="submit"
+            class="submit-btn"
+            :disabled="submitting"
+          >
+            <VIcon
+              v-if="!submitting"
+              icon="tabler-send"
+              size="18"
+              class="mr-2"
+            />
+            <VProgressCircular
+              v-else
+              indeterminate
+              size="18"
+              width="2"
+              color="white"
+              class="mr-2"
+            />
             {{ submitting ? 'Sending…' : 'Send Message' }}
           </button>
         </form>

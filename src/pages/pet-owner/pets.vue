@@ -39,29 +39,35 @@ const filteredPets = computed(() => {
   let list = pets.value
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
+
     list = list.filter(p =>
       p.name?.toLowerCase().includes(q) ||
       p.breed?.toLowerCase().includes(q) ||
-      p.species?.toLowerCase().includes(q)
+      p.species?.toLowerCase().includes(q),
     )
   }
   if (activeFilter.value !== 'all') {
     list = list.filter(p => (p.species || '').toUpperCase() === activeFilter.value)
   }
+  
   return list
 })
 
 const speciesFilters = computed(() => {
   const seen = new Set()
   const filters = [{ key: 'all', label: 'All', emoji: '🐾' }]
+
   pets.value.forEach(p => {
     const s = (p.species || '').toUpperCase()
     if (!seen.has(s) && s) {
       seen.add(s)
+
       const emoji = s === 'DOG' ? '🐕' : s === 'CAT' ? '🐱' : s === 'BIRD' ? '🦜' : '🐾'
+
       filters.push({ key: s, label: s.charAt(0) + s.slice(1).toLowerCase(), emoji })
     }
   })
+  
   return filters
 })
 
@@ -69,6 +75,7 @@ const fetchPets = async () => {
   loading.value = true
   try {
     const res = await customerApi.get('/api/pet-owner/pets/pets/')
+
     pets.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
   } catch (err) {
     console.error('Failed to fetch pets', err)
@@ -78,17 +85,18 @@ const fetchPets = async () => {
 }
 
 const handleAddPet = () => { selectedPet.value = null; showFormDialog.value = true }
-const handleEditPet = (pet) => { selectedPet.value = pet; showFormDialog.value = true }
-const handleOpenMedical = (pet) => { selectedPet.value = pet; showMedicalDialog.value = true }
-const handleFormSaved = (msg) => { 
-  showFormDialog.value = false; 
-  showMedicalDialog.value = false; 
+const handleEditPet = pet => { selectedPet.value = pet; showFormDialog.value = true }
+const handleOpenMedical = pet => { selectedPet.value = pet; showMedicalDialog.value = true }
+
+const handleFormSaved = msg => { 
+  showFormDialog.value = false 
+  showMedicalDialog.value = false 
   selectedPet.value = null
   if (msg) showMessage(msg)
   fetchPets() 
 }
 
-const handleDeletePet = (pet) => {
+const handleDeletePet = pet => {
   petToDelete.value = pet
   showDeleteConfirm.value = true
 }
@@ -111,35 +119,39 @@ const confirmDeletePet = async () => {
   }
 }
 
-const getPhotoUrl = (photo) => {
+const getPhotoUrl = photo => {
   if (!photo) return null
   if (photo.startsWith('http')) return photo
+  
   return `http://localhost:8005${photo}`
 }
 
-const getSpeciesEmoji = (species) => {
+const getSpeciesEmoji = species => {
   const s = (species || '').toUpperCase()
   if (s === 'DOG') return '🐕'
   if (s === 'CAT') return '🐱'
   if (s === 'BIRD') return '🦜'
   if (s === 'RABBIT') return '🐇'
+  
   return '🐾'
 }
 
-const getInitial = (name) => (name || 'P').charAt(0).toUpperCase()
+const getInitial = name => (name || 'P').charAt(0).toUpperCase()
 
-const getNextVaccDate = (pet) => {
+const getNextVaccDate = pet => {
   const d = pet.medical_profile?.next_due_date
   if (!d) return null
   const days = Math.ceil((new Date(d) - new Date()) / 86400000)
+  
   return { label: new Date(d).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }), days }
 }
 
-const vaccColor = (pet) => {
+const vaccColor = pet => {
   const v = getNextVaccDate(pet)
   if (!v) return '#94a3b8'
   if (v.days <= 3) return '#ef4444'
   if (v.days <= 7) return '#f59e0b'
+  
   return '#10b981'
 }
 
@@ -154,7 +166,7 @@ onMounted(fetchPets)
     <!-- Main Content Area -->
     <div class="flex-grow-1 main-content-layer">
       <!-- Global Navbar -->
-      <Navbar />
+      <Navbar hide-brand />
 
       <!-- Feedback Notifications -->
       <VSnackbar
@@ -165,23 +177,56 @@ onMounted(fetchPets)
       >
         {{ snackbarMessage }}
         <template #actions>
-          <VBtn variant="text" size="small" @click="snackbar = false">Dismiss</VBtn>
+          <VBtn
+            variant="text"
+            size="small"
+            @click="snackbar = false"
+          >
+            Dismiss
+          </VBtn>
         </template>
       </VSnackbar>
 
       <!-- Delete Confirmation Dialog -->
-      <VDialog v-model="showDeleteConfirm" max-width="420" persistent>
+      <VDialog
+        v-model="showDeleteConfirm"
+        max-width="420"
+        persistent
+      >
         <VCard class="rounded-3xl pa-8 text-center">
           <div class="delete-icon-bg mb-6 mx-auto">
-            <VIcon icon="tabler-alert-triangle" color="error" size="36" />
+            <VIcon
+              icon="tabler-alert-triangle"
+              color="error"
+              size="36"
+            />
           </div>
-          <h3 class="text-h4 font-weight-black mb-2">Remove {{ petToDelete?.name }}?</h3>
+          <h3 class="text-h4 font-weight-black mb-2">
+            Remove {{ petToDelete?.name }}?
+          </h3>
           <p class="text-body-1 text-slate-500 mb-8 px-4">
             This action is permanent and cannot be undone.
           </p>
           <div class="d-flex gap-4">
-            <VBtn variant="tonal" color="slate" size="large" class="rounded-2xl flex-grow-1" :disabled="deleteLoading" @click="showDeleteConfirm = false">Cancel</VBtn>
-            <VBtn color="error" size="large" class="rounded-2xl flex-grow-1" :loading="deleteLoading" @click="confirmDeletePet">Yes, Remove</VBtn>
+            <VBtn
+              variant="tonal"
+              color="slate"
+              size="large"
+              class="rounded-2xl flex-grow-1"
+              :disabled="deleteLoading"
+              @click="showDeleteConfirm = false"
+            >
+              Cancel
+            </VBtn>
+            <VBtn
+              color="error"
+              size="large"
+              class="rounded-2xl flex-grow-1"
+              :loading="deleteLoading"
+              @click="confirmDeletePet"
+            >
+              Yes, Remove
+            </VBtn>
           </div>
         </VCard>
       </VDialog>
@@ -190,17 +235,32 @@ onMounted(fetchPets)
       <div class="page-hero">
         <VContainer>
           <VRow align="center">
-            <VCol cols="12" md="6">
+            <VCol
+              cols="12"
+              md="6"
+            >
               <div class="d-flex align-center gap-3 mb-4">
                 <div class="hero-icon">
-                  <VIcon icon="tabler-heart" size="20" color="white" />
+                  <VIcon
+                    icon="tabler-heart"
+                    size="20"
+                    color="white"
+                  />
                 </div>
                 <span class="hero-label">My Family</span>
               </div>
-              <h1 class="hero-title">Your Beloved Pets</h1>
-              <p class="hero-sub">Manage profiles, health records & appointments all in one place.</p>
+              <h1 class="hero-title">
+                Your Beloved Pets
+              </h1>
+              <p class="hero-sub">
+                Manage profiles, health records & appointments all in one place.
+              </p>
             </VCol>
-            <VCol cols="12" md="6" class="d-flex justify-md-end mt-4 mt-md-0">
+            <VCol
+              cols="12"
+              md="6"
+              class="d-flex justify-md-end mt-4 mt-md-0"
+            >
               <div class="d-flex align-center gap-4">
                 <div class="summary-pill">
                   <span class="summary-num">{{ pets.length }}</span>
@@ -225,12 +285,16 @@ onMounted(fetchPets)
         <!-- Search + Filter bar -->
         <div class="toolbar mb-8">
           <div class="search-wrap">
-            <VIcon icon="tabler-search" size="18" class="search-icon" />
+            <VIcon
+              icon="tabler-search"
+              size="18"
+              class="search-icon"
+            />
             <input
               v-model="searchQuery"
               class="search-input"
               placeholder="Search by name, breed or species…"
-            />
+            >
           </div>
           <div class="filter-pills">
             <button
@@ -246,31 +310,72 @@ onMounted(fetchPets)
         </div>
 
         <!-- Loading -->
-        <div v-if="loading" class="d-flex flex-column align-center py-20">
-          <VProgressCircular indeterminate color="primary" size="52" width="4" />
-          <p class="mt-5 text-slate-400 font-weight-medium">Gathering your family…</p>
+        <div
+          v-if="loading"
+          class="d-flex flex-column align-center py-20"
+        >
+          <VProgressCircular
+            indeterminate
+            color="primary"
+            size="52"
+            width="4"
+          />
+          <p class="mt-5 text-slate-400 font-weight-medium">
+            Gathering your family…
+          </p>
         </div>
 
         <!-- Empty State -->
-        <div v-else-if="pets.length === 0" class="empty-box">
-          <div class="empty-emoji">🐾</div>
-          <h2 class="empty-title">No Pets Yet</h2>
-          <p class="empty-sub">Add your first pet to start managing their health journey.</p>
-          <VBtn color="primary" height="50" class="px-10 font-weight-black rounded-2xl mt-4" @click="handleAddPet">
+        <div
+          v-else-if="pets.length === 0"
+          class="empty-box"
+        >
+          <div class="empty-emoji">
+            🐾
+          </div>
+          <h2 class="empty-title">
+            No Pets Yet
+          </h2>
+          <p class="empty-sub">
+            Add your first pet to start managing their health journey.
+          </p>
+          <VBtn
+            color="primary"
+            height="50"
+            class="px-10 font-weight-black rounded-2xl mt-4"
+            @click="handleAddPet"
+          >
             Add Your First Pet
           </VBtn>
         </div>
 
         <!-- No Search Results -->
-        <div v-else-if="filteredPets.length === 0" class="empty-box">
-          <div class="empty-emoji">🔍</div>
-          <h2 class="empty-title">No matches found</h2>
-          <p class="empty-sub">Try a different name or reset your filters.</p>
-          <button class="reset-btn" @click="searchQuery = ''; activeFilter = 'all'">Reset Filters</button>
+        <div
+          v-else-if="filteredPets.length === 0"
+          class="empty-box"
+        >
+          <div class="empty-emoji">
+            🔍
+          </div>
+          <h2 class="empty-title">
+            No matches found
+          </h2>
+          <p class="empty-sub">
+            Try a different name or reset your filters.
+          </p>
+          <button
+            class="reset-btn"
+            @click="searchQuery = ''; activeFilter = 'all'"
+          >
+            Reset Filters
+          </button>
         </div>
 
         <!-- Pet Grid -->
-        <div v-else class="pet-grid">
+        <div
+          v-else
+          class="pet-grid"
+        >
           <div
             v-for="(pet, i) in filteredPets"
             :key="pet.id"
@@ -280,9 +385,21 @@ onMounted(fetchPets)
             <!-- Photo / Avatar column -->
             <div class="pet-photo-col">
               <div class="pet-photo-wrap">
-                <img v-if="getPhotoUrl(pet.photo)" :src="getPhotoUrl(pet.photo)" class="pet-photo" :alt="pet.name" />
-                <div v-else class="pet-initials-circle">{{ getInitial(pet.name) }}</div>
-                <div class="pet-species-badge">{{ getSpeciesEmoji(pet.species) }}</div>
+                <img
+                  v-if="getPhotoUrl(pet.photo)"
+                  :src="getPhotoUrl(pet.photo)"
+                  class="pet-photo"
+                  :alt="pet.name"
+                >
+                <div
+                  v-else
+                  class="pet-initials-circle"
+                >
+                  {{ getInitial(pet.name) }}
+                </div>
+                <div class="pet-species-badge">
+                  {{ getSpeciesEmoji(pet.species) }}
+                </div>
               </div>
             </div>
 
@@ -290,8 +407,12 @@ onMounted(fetchPets)
             <div class="pet-info">
               <div class="pet-info-row">
                 <div>
-                  <h3 class="pet-card-name">{{ pet.name }}</h3>
-                  <p class="pet-card-breed">{{ pet.breed || pet.species || 'Pet' }}</p>
+                  <h3 class="pet-card-name">
+                    {{ pet.name }}
+                  </h3>
+                  <p class="pet-card-breed">
+                    {{ pet.breed || pet.species || 'Pet' }}
+                  </p>
                 </div>
                 <div class="d-flex align-center gap-2">
                   <div class="status-dot-pill">
@@ -304,28 +425,56 @@ onMounted(fetchPets)
               <!-- Details row -->
               <div class="pet-details-row">
                 <div class="detail-chip">
-                  <VIcon icon="tabler-clock" size="12" />
+                  <VIcon
+                    icon="tabler-clock"
+                    size="12"
+                  />
                   {{ pet.age_display || 'Unknown' }}
                 </div>
                 <div class="detail-chip">
-                  <VIcon icon="tabler-gender-bigender" size="12" />
+                  <VIcon
+                    icon="tabler-gender-bigender"
+                    size="12"
+                  />
                   {{ pet.gender || '—' }}
                 </div>
-                <div v-if="pet.weight" class="detail-chip">
-                  <VIcon icon="tabler-weight" size="12" />
+                <div
+                  v-if="pet.weight"
+                  class="detail-chip"
+                >
+                  <VIcon
+                    icon="tabler-weight"
+                    size="12"
+                  />
                   {{ pet.weight }} kg
                 </div>
-                <div v-if="pet.color" class="detail-chip">
-                  <VIcon icon="tabler-palette" size="12" />
+                <div
+                  v-if="pet.color"
+                  class="detail-chip"
+                >
+                  <VIcon
+                    icon="tabler-palette"
+                    size="12"
+                  />
                   {{ pet.color }}
                 </div>
               </div>
 
               <!-- Vaccination row -->
-              <div class="vacc-mini" :style="`border-left-color: ${vaccColor(pet)}`">
-                <VIcon icon="tabler-vaccine" size="13" :color="vaccColor(pet)" />
+              <div
+                class="vacc-mini"
+                :style="`border-left-color: ${vaccColor(pet)}`"
+              >
+                <VIcon
+                  icon="tabler-vaccine"
+                  size="13"
+                  :color="vaccColor(pet)"
+                />
                 <span class="vacc-mini-label">Next Vaccine:</span>
-                <span class="vacc-mini-val" :style="`color: ${vaccColor(pet)}`">
+                <span
+                  class="vacc-mini-val"
+                  :style="`color: ${vaccColor(pet)}`"
+                >
                   {{ getNextVaccDate(pet) ? getNextVaccDate(pet).label + ` (${getNextVaccDate(pet).days}d)` : 'Not scheduled' }}
                 </span>
               </div>
@@ -333,15 +482,35 @@ onMounted(fetchPets)
 
             <!-- Actions column -->
             <div class="pet-actions">
-              <button class="action-btn primary" @click="handleOpenMedical(pet)">
-                <VIcon icon="tabler-stethoscope" size="16" />
+              <button
+                class="action-btn primary"
+                @click="handleOpenMedical(pet)"
+              >
+                <VIcon
+                  icon="tabler-stethoscope"
+                  size="16"
+                />
                 Medical
               </button>
-              <button class="action-btn ghost" @click="handleEditPet(pet)" title="Edit">
-                <VIcon icon="tabler-pencil" size="16" />
+              <button
+                class="action-btn ghost"
+                title="Edit"
+                @click="handleEditPet(pet)"
+              >
+                <VIcon
+                  icon="tabler-pencil"
+                  size="16"
+                />
               </button>
-              <button class="action-btn ghost text-error" @click="handleDeletePet(pet)" title="Delete">
-                <VIcon icon="tabler-trash" size="16" />
+              <button
+                class="action-btn ghost text-error"
+                title="Delete"
+                @click="handleDeletePet(pet)"
+              >
+                <VIcon
+                  icon="tabler-trash"
+                  size="16"
+                />
               </button>
             </div>
           </div>

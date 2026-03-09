@@ -18,6 +18,7 @@ const emit = defineEmits(['update:modelValue', 'saved'])
 const loading = ref(false)
 const saving = ref(false)
 const slotDuration = ref(30)
+
 const workingHours = ref([
   { day: 0, name: 'Monday', active: true, start: '09:00', end: '18:00' },
   { day: 1, name: 'Tuesday', active: true, start: '09:00', end: '18:00' },
@@ -34,7 +35,7 @@ const fetchEmployeeHours = async () => {
   loading.value = true
   try {
     const res = await providerApi.get(`/api/provider/availability/employee-hours/`, {
-      params: { employee_id: props.employee.id }
+      params: { employee_id: props.employee.id },
     })
     
     if (res.data && res.data.length > 0) {
@@ -73,9 +74,10 @@ const saveHours = async () => {
         day_of_week: h.day,
         start_time: h.start,
         end_time: h.end,
-        slot_duration_minutes: slotDuration.value
-      }))
+        slot_duration_minutes: slotDuration.value,
+      })),
     }
+
     await providerApi.post('/api/provider/availability/save-employee-hours/', payload)
     emit('saved')
     emit('update:modelValue', false)
@@ -86,7 +88,7 @@ const saveHours = async () => {
   }
 }
 
-watch(() => props.modelValue, (newVal) => {
+watch(() => props.modelValue, newVal => {
   if (newVal) {
     fetchEmployeeHours()
   }
@@ -96,9 +98,9 @@ watch(() => props.modelValue, (newVal) => {
 <template>
   <VDialog
     :model-value="props.modelValue"
-    @update:model-value="val => emit('update:modelValue', val)"
     max-width="800"
     persistent
+    @update:model-value="val => emit('update:modelValue', val)"
   >
     <VCard class="pa-6 rounded-[32px]">
       <VCardItem class="pb-0">
@@ -109,7 +111,10 @@ watch(() => props.modelValue, (newVal) => {
             variant="tonal"
             class="rounded-xl"
           >
-            <VIcon icon="tabler-calendar-time" size="24" />
+            <VIcon
+              icon="tabler-calendar-time"
+              size="24"
+            />
           </VAvatar>
         </template>
         <VCardTitle class="text-h5 font-weight-black text-slate-800">
@@ -130,15 +135,24 @@ watch(() => props.modelValue, (newVal) => {
       </VCardItem>
 
       <VCardText class="pt-8">
-        <div v-if="loading" class="d-flex flex-column align-center py-12">
-          <VProgressCircular indeterminate color="primary" />
+        <div
+          v-if="loading"
+          class="d-flex flex-column align-center py-12"
+        >
+          <VProgressCircular
+            indeterminate
+            color="primary"
+          />
           <span class="text-caption text-slate-400 mt-2">Fetching schedule...</span>
         </div>
 
         <div v-else>
           <!-- Slot Duration -->
           <VRow class="mb-6">
-            <VCol cols="12" md="6">
+            <VCol
+              cols="12"
+              md="6"
+            >
               <label class="label-tiny uppercase mb-2 d-block">Default Slot Duration</label>
               <VSelect
                 v-model="slotDuration"
@@ -164,43 +178,49 @@ watch(() => props.modelValue, (newVal) => {
               class="hour-row d-flex align-center gap-4 py-3 px-6 border-b border-slate-50 transition-colors"
               :class="{ 'bg-slate-50 opacity-60': !hour.active }"
             >
-              <div class="d-flex align-center gap-3" style="width: 150px">
-                  <VSwitch
-                    v-model="hour.active"
-                    color="success"
-                    hide-details
-                    inset
-                    density="compact"
-                  />
-                  <div class="day-label font-weight-bold text-slate-700">
-                    {{ hour.name }}
-                  </div>
+              <div
+                class="d-flex align-center gap-3"
+                style="width: 150px"
+              >
+                <VSwitch
+                  v-model="hour.active"
+                  color="success"
+                  hide-details
+                  inset
+                  density="compact"
+                />
+                <div class="day-label font-weight-bold text-slate-700">
+                  {{ hour.name }}
+                </div>
               </div>
 
               <div class="flex-grow-1 d-flex align-center gap-3">
-                  <template v-if="hour.active">
-                    <VTextField
-                      v-model="hour.start"
-                      type="time"
-                      variant="outlined"
-                      density="compact"
-                      hide-details
-                      class="time-input"
-                      rounded="lg"
-                    />
-                    <span class="text-slate-300 font-weight-bold text-caption">TO</span>
-                    <VTextField
-                      v-model="hour.end"
-                      type="time"
-                      variant="outlined"
-                      density="compact"
-                      hide-details
-                      class="time-input"
-                    />
-                  </template>
-                  <div v-else class="text-caption text-slate-400 font-italic">
-                    Not working / Unavailable
-                  </div>
+                <template v-if="hour.active">
+                  <VTextField
+                    v-model="hour.start"
+                    type="time"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    class="time-input"
+                    rounded="lg"
+                  />
+                  <span class="text-slate-300 font-weight-bold text-caption">TO</span>
+                  <VTextField
+                    v-model="hour.end"
+                    type="time"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    class="time-input"
+                  />
+                </template>
+                <div
+                  v-else
+                  class="text-caption text-slate-400 font-italic"
+                >
+                  Not working / Unavailable
+                </div>
               </div>
             </div>
           </div>

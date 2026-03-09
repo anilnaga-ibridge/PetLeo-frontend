@@ -9,38 +9,38 @@
       <div class="d-flex gap-4 mb-4">
         <!-- Thumbnail Skeleton -->
         <div class="skeleton-thumb">
-          <div class="shimmer"></div>
+          <div class="shimmer" />
         </div>
 
         <div class="flex-grow-1 d-flex flex-column justify-center gap-2">
           <!-- Name Skeleton -->
           <div class="skeleton-line title w-80">
-            <div class="shimmer"></div>
+            <div class="shimmer" />
           </div>
           <!-- Org Skeleton -->
           <div class="skeleton-line subtitle w-60">
-            <div class="shimmer"></div>
+            <div class="shimmer" />
           </div>
         </div>
       </div>
 
       <div class="d-flex flex-column gap-3 mb-6 border-top pt-4">
         <div class="skeleton-line meta w-40">
-          <div class="shimmer"></div>
+          <div class="shimmer" />
         </div>
         <div class="skeleton-line meta w-90">
-          <div class="shimmer"></div>
+          <div class="shimmer" />
         </div>
       </div>
 
       <div class="d-flex align-center justify-space-between mt-auto">
         <div class="d-flex flex-column gap-1 w-30">
           <div class="skeleton-line title">
-            <div class="shimmer"></div>
+            <div class="shimmer" />
           </div>
         </div>
         <div class="skeleton-btn w-30">
-          <div class="shimmer"></div>
+          <div class="shimmer" />
         </div>
       </div>
     </VCardText>

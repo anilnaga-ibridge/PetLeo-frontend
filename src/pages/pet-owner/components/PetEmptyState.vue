@@ -1,18 +1,24 @@
 <script setup>
-import emptyIllustration from '@/assets/images/illustrations/pet-empty-state.png'
+import emptyIllustration from '@images/illustrations/pet-empty-state.png'
 
 defineEmits(['add'])
 </script>
 
 <template>
-  <VCard class="pet-empty-state-premium pa-10 text-center" elevation="0">
+  <VCard
+    class="pet-empty-state-premium pa-10 text-center"
+    elevation="0"
+  >
     <VImg
       :src="emptyIllustration"
       max-width="320"
       class="mx-auto mb-8 animate-bounce-subtle"
     />
     
-    <div class="content-wrapper mx-auto" style="max-width: 480px;">
+    <div
+      class="content-wrapper mx-auto"
+      style="max-width: 480px;"
+    >
       <h3 class="text-h4 font-weight-black text-slate-900 mb-3">
         Where's the family? 🐾
       </h3>

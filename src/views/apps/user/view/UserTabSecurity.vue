@@ -13,11 +13,11 @@ const confirmPinDigits = ref(Array(4).fill(''))
 
 // Fetch user data on mount to get pin_length
 onMounted(() => {
-    const userData = JSON.parse(localStorage.getItem('userData') || '{}')
-    if (userData.pin_length) {
-        currentPinLength.value = userData.pin_length
-        oldPinDigits.value = Array(userData.pin_length).fill('')
-    }
+  const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+  if (userData.pin_length) {
+    currentPinLength.value = userData.pin_length
+    oldPinDigits.value = Array(userData.pin_length).fill('')
+  }
 })
 
 // Visibility toggles
@@ -39,13 +39,13 @@ const smsVerificationNumber = ref('+1(968) 819-2547')
 const isTwoFactorDialogOpen = ref(false)
 
 // Watchers
-watch(newPinLength, (newLen) => {
+watch(newPinLength, newLen => {
   newPinDigits.value = Array(newLen).fill('')
   confirmPinDigits.value = Array(newLen).fill('')
 })
 
-watch(currentPinLength, (newLen) => {
-    oldPinDigits.value = Array(newLen).fill('')
+watch(currentPinLength, newLen => {
+  oldPinDigits.value = Array(newLen).fill('')
 })
 
 
@@ -93,6 +93,7 @@ const handleBackspace = (event, index, type) => {
       const prevInput = document.getElementById(`${type}-pin-${index - 1}`)
       if (prevInput) {
         prevInput.focus()
+
         // Optional: clear previous on move back? Standard is usually yes or just move
       }
     } else {
@@ -104,6 +105,7 @@ const handleBackspace = (event, index, type) => {
 
 const handlePaste = (event, type) => {
   event.preventDefault()
+
   const pasteData = event.clipboardData.getData('text')
   if (!/^\d+$/.test(pasteData)) return // only digits
 
@@ -116,14 +118,14 @@ const handlePaste = (event, type) => {
   const digits = pasteData.slice(0, maxLength).split('')
   
   digits.forEach((digit, i) => {
-     digitsArray.value[i] = digit
+    digitsArray.value[i] = digit
   })
   
   // Focus last filled
   const lastIndex = Math.min(digits.length, maxLength) - 1
   if (lastIndex >= 0) {
-     const lastInput = document.getElementById(`${type}-pin-${lastIndex}`)
-     if (lastInput) lastInput.focus()
+    const lastInput = document.getElementById(`${type}-pin-${lastIndex}`)
+    if (lastInput) lastInput.focus()
   }
 }
 
@@ -136,17 +138,20 @@ const changePin = async () => {
   const confirmPinStr = confirmPinDigits.value.join('')
 
   if (oldPinStr.length !== currentPinLength.value) {
-      errorMessage.value = `Current PIN must be ${currentPinLength.value} digits`
-      return
+    errorMessage.value = `Current PIN must be ${currentPinLength.value} digits`
+    
+    return
   }
 
   if (newPinStr.length !== newPinLength.value || confirmPinStr.length !== newPinLength.value) {
     errorMessage.value = `New PIN must be ${newPinLength.value} digits`
+    
     return
   }
 
   if (newPinStr !== confirmPinStr) {
     errorMessage.value = "New PINs do not match"
+    
     return
   }
 
@@ -162,15 +167,17 @@ const changePin = async () => {
     
     // Update storages with new PIN length
     if (localStorage.getItem('userData')) {
-        const userData = JSON.parse(localStorage.getItem('userData'))
-        userData.pin_length = newPinLength.value
-        localStorage.setItem('userData', JSON.stringify(userData))
+      const userData = JSON.parse(localStorage.getItem('userData'))
+
+      userData.pin_length = newPinLength.value
+      localStorage.setItem('userData', JSON.stringify(userData))
     }
     
     if (sessionStorage.getItem('userData')) {
-        const userData = JSON.parse(sessionStorage.getItem('userData'))
-        userData.pin_length = newPinLength.value
-        sessionStorage.setItem('userData', JSON.stringify(userData))
+      const userData = JSON.parse(sessionStorage.getItem('userData'))
+
+      userData.pin_length = newPinLength.value
+      sessionStorage.setItem('userData', JSON.stringify(userData))
     }
     
     // Also update cookie if used
@@ -204,6 +211,7 @@ const sendResetPinOtp = async () => {
   
   if (!phone) {
     resetError.value = "Phone number not found. Please log in again."
+    
     return
   }
   
@@ -213,7 +221,7 @@ const sendResetPinOtp = async () => {
   
   try {
     const res = await authApi.post('/auth/api/auth/reset-pin/', { 
-      phone_number: phone 
+      phone_number: phone, 
     })
     
     if (res.data.session_id) {
@@ -225,6 +233,7 @@ const sendResetPinOtp = async () => {
     
     setTimeout(() => {
       showForgotPinDialog.value = false
+
       // Redirect to OTP verification page with reset_pin mode
       window.location.href = "/verifyotp?mode=reset_pin"
     }, 1500)
@@ -236,7 +245,7 @@ const sendResetPinOtp = async () => {
 }
 
 const toggleCurrentPinLength = () => {
-    currentPinLength.value = currentPinLength.value === 4 ? 6 : 4
+  currentPinLength.value = currentPinLength.value === 4 ? 6 : 4
 }
 
 
@@ -260,13 +269,21 @@ const recentDevices = [
   <VRow>
     <VCol cols="12">
       <!-- 👉 Change PIN -->
-      <VCard class="security-card overflow-hidden" elevation="4" border="0">
+      <VCard
+        class="security-card overflow-hidden"
+        elevation="4"
+        border="0"
+      >
         <!-- Compact Header -->
         <div class="card-header-gradient px-4 py-3 d-flex align-center justify-space-between">
           <div class="d-flex align-center gap-3">
-             <div class="header-icon-box">
-                <VIcon icon="tabler-shield-lock" size="20" color="primary" />
-             </div>
+            <div class="header-icon-box">
+              <VIcon
+                icon="tabler-shield-lock"
+                size="20"
+                color="primary"
+              />
+            </div>
             <div>
               <h3 class="text-subtitle-1 font-weight-bold text-high-emphasis mb-0 leading-tight">
                 Security PIN
@@ -274,167 +291,200 @@ const recentDevices = [
             </div>
           </div>
           
-           <!-- New PIN Choice Compact -->
+          <!-- New PIN Choice Compact -->
           <div class="d-flex align-center">
-             <span class="text-caption text-medium-emphasis me-2">New PIN:</span>
-             <div class="compact-toggle">
-                <div 
-                    class="toggle-option" 
-                    :class="{ active: newPinLength === 4 }"
-                    @click="newPinLength = 4"
-                >4</div>
-                <div 
-                    class="toggle-option" 
-                    :class="{ active: newPinLength === 6 }"
-                    @click="newPinLength = 6"
-                >6</div>
-             </div>
+            <span class="text-caption text-medium-emphasis me-2">New PIN:</span>
+            <div class="compact-toggle">
+              <div 
+                class="toggle-option" 
+                :class="{ active: newPinLength === 4 }"
+                @click="newPinLength = 4"
+              >
+                4
+              </div>
+              <div 
+                class="toggle-option" 
+                :class="{ active: newPinLength === 6 }"
+                @click="newPinLength = 6"
+              >
+                6
+              </div>
+            </div>
           </div>
         </div>
 
         <VCardText class="pa-4 pt-4">
           <VForm @submit.prevent="changePin">
-            
             <VExpandTransition>
-              <div v-if="successMessage" class="mb-3">
-                <VAlert density="compact" type="success" variant="tonal" closable class="py-2" @click:close="successMessage = ''">
+              <div
+                v-if="successMessage"
+                class="mb-3"
+              >
+                <VAlert
+                  density="compact"
+                  type="success"
+                  variant="tonal"
+                  closable
+                  class="py-2"
+                  @click:close="successMessage = ''"
+                >
                   {{ successMessage }}
                 </VAlert>
               </div>
             </VExpandTransition>
             
             <VExpandTransition>
-              <div v-if="errorMessage" class="mb-3">
-                <VAlert density="compact" type="error" variant="tonal" closable class="py-2" @click:close="errorMessage = ''">
+              <div
+                v-if="errorMessage"
+                class="mb-3"
+              >
+                <VAlert
+                  density="compact"
+                  type="error"
+                  variant="tonal"
+                  closable
+                  class="py-2"
+                  @click:close="errorMessage = ''"
+                >
                   {{ errorMessage }}
                 </VAlert>
               </div>
             </VExpandTransition>
 
             <div class="pin-inputs-container">
-              
               <!-- Current PIN Row -->
-               <div class="pin-row">
-                 <div class="pin-label-col">
-                    <div class="d-flex align-center gap-2">
-                        <span class="text-body-2 font-weight-semibold text-high-emphasis">Current PIN</span>
-                        <VIcon 
-                            :icon="isOldPinVisible ? 'tabler-eye-off' : 'tabler-eye'" 
-                            size="16" 
-                            class="cursor-pointer text-disabled hover-text-primary transition"
-                            @click="isOldPinVisible = !isOldPinVisible"
-                        />
-                    </div>
-                     <span 
-                        class="text-xs text-primary cursor-pointer font-weight-medium select-none mt-1 d-block opacity-70 hover-opacity-100 transition"
-                        @click="toggleCurrentPinLength"
+              <div class="pin-row">
+                <div class="pin-label-col">
+                  <div class="d-flex align-center gap-2">
+                    <span class="text-body-2 font-weight-semibold text-high-emphasis">Current PIN</span>
+                    <VIcon 
+                      :icon="isOldPinVisible ? 'tabler-eye-off' : 'tabler-eye'" 
+                      size="16" 
+                      class="cursor-pointer text-disabled hover-text-primary transition"
+                      @click="isOldPinVisible = !isOldPinVisible"
+                    />
+                  </div>
+                  <span 
+                    class="text-xs text-primary cursor-pointer font-weight-medium select-none mt-1 d-block opacity-70 hover-opacity-100 transition"
+                    @click="toggleCurrentPinLength"
+                  >
+                    {{ currentPinLength === 4 ? 'Switch to 6-digits' : 'Switch to 4-digits' }}
+                  </span>
+                </div>
+                <div class="pin-fields-col">
+                  <div class="d-flex gap-2">
+                    <template
+                      v-for="(digit, index) in oldPinDigits"
+                      :key="'old-'+index"
                     >
-                        {{ currentPinLength === 4 ? 'Switch to 6-digits' : 'Switch to 4-digits' }}
-                    </span>
-                 </div>
-                 <div class="pin-fields-col">
-                    <div class="d-flex gap-2">
-                        <template v-for="(digit, index) in oldPinDigits" :key="'old-'+index">
-                            <input
-                            :id="'old-pin-' + index"
-                            v-model="oldPinDigits[index]"
-                            :type="isOldPinVisible ? 'text' : 'password'"
-                            inputmode="numeric"
-                            maxlength="1"
-                            class="pin-digit-box compact"
-                            :style="{ animationDelay: index * 30 + 'ms' }"
-                            placeholder="·"
-                            @input="focusNext($event, index, 'old')"
-                            @keydown="handleBackspace($event, index, 'old')"
-                            @paste="handlePaste($event, 'old')"
-                            />
-                        </template>
-                    </div>
-                 </div>
-               </div>
+                      <input
+                        :id="'old-pin-' + index"
+                        v-model="oldPinDigits[index]"
+                        :type="isOldPinVisible ? 'text' : 'password'"
+                        inputmode="numeric"
+                        maxlength="1"
+                        class="pin-digit-box compact"
+                        :style="{ animationDelay: index * 30 + 'ms' }"
+                        placeholder="·"
+                        @input="focusNext($event, index, 'old')"
+                        @keydown="handleBackspace($event, index, 'old')"
+                        @paste="handlePaste($event, 'old')"
+                      >
+                    </template>
+                  </div>
+                </div>
+              </div>
 
-               <!-- New PIN Row -->
-               <div class="pin-row mt-3">
-                 <div class="pin-label-col">
-                    <div class="d-flex align-center gap-2">
-                        <span class="text-body-2 font-weight-semibold text-high-emphasis">New PIN</span>
-                        <VIcon 
-                             :icon="isNewPinVisible ? 'tabler-eye-off' : 'tabler-eye'" 
-                            size="16" 
-                            class="cursor-pointer text-disabled hover-text-primary transition"
-                            @click="isNewPinVisible = !isNewPinVisible"
-                        />
-                    </div>
-                 </div>
-                 <div class="pin-fields-col">
-                    <div class="d-flex gap-2">
-                        <template v-for="(digit, index) in newPinDigits" :key="'new-'+index">
-                            <input
-                            :id="'new-pin-' + index"
-                            v-model="newPinDigits[index]"
-                            :type="isNewPinVisible ? 'text' : 'password'"
-                            inputmode="numeric"
-                            maxlength="1"
-                            class="pin-digit-box compact"
-                            :style="{ animationDelay: (index + 4) * 30 + 'ms' }"
-                            @input="focusNext($event, index, 'new')"
-                            @keydown="handleBackspace($event, index, 'new')"
-                            @paste="handlePaste($event, 'new')"
-                            />
-                        </template>
-                    </div>
-                 </div>
-               </div>
+              <!-- New PIN Row -->
+              <div class="pin-row mt-3">
+                <div class="pin-label-col">
+                  <div class="d-flex align-center gap-2">
+                    <span class="text-body-2 font-weight-semibold text-high-emphasis">New PIN</span>
+                    <VIcon 
+                      :icon="isNewPinVisible ? 'tabler-eye-off' : 'tabler-eye'" 
+                      size="16" 
+                      class="cursor-pointer text-disabled hover-text-primary transition"
+                      @click="isNewPinVisible = !isNewPinVisible"
+                    />
+                  </div>
+                </div>
+                <div class="pin-fields-col">
+                  <div class="d-flex gap-2">
+                    <template
+                      v-for="(digit, index) in newPinDigits"
+                      :key="'new-'+index"
+                    >
+                      <input
+                        :id="'new-pin-' + index"
+                        v-model="newPinDigits[index]"
+                        :type="isNewPinVisible ? 'text' : 'password'"
+                        inputmode="numeric"
+                        maxlength="1"
+                        class="pin-digit-box compact"
+                        :style="{ animationDelay: (index + 4) * 30 + 'ms' }"
+                        @input="focusNext($event, index, 'new')"
+                        @keydown="handleBackspace($event, index, 'new')"
+                        @paste="handlePaste($event, 'new')"
+                      >
+                    </template>
+                  </div>
+                </div>
+              </div>
 
-                <!-- Confirm PIN Row -->
-               <div class="pin-row mt-3">
-                 <div class="pin-label-col">
-                    <div class="d-flex align-center gap-2">
-                        <span class="text-body-2 font-weight-semibold text-high-emphasis">Confirm PIN</span>
-                        <VIcon 
-                             :icon="isConfirmPinVisible ? 'tabler-eye-off' : 'tabler-eye'" 
-                            size="16" 
-                            class="cursor-pointer text-disabled hover-text-primary transition"
-                            @click="isConfirmPinVisible = !isConfirmPinVisible"
-                        />
-                    </div>
-                 </div>
-                 <div class="pin-fields-col">
-                    <div class="d-flex gap-2">
-                        <template v-for="(digit, index) in confirmPinDigits" :key="'confirm-'+index">
-                            <input
-                            :id="'confirm-pin-' + index"
-                            v-model="confirmPinDigits[index]"
-                            :type="isConfirmPinVisible ? 'text' : 'password'"
-                            inputmode="numeric"
-                            maxlength="1"
-                            class="pin-digit-box compact"
-                            :style="{ animationDelay: (index + 8) * 30 + 'ms' }"
-                            @input="focusNext($event, index, 'confirm')"
-                            @keydown="handleBackspace($event, index, 'confirm')"
-                            @paste="handlePaste($event, 'confirm')"
-                            />
-                        </template>
-                    </div>
-                 </div>
-               </div>
-
+              <!-- Confirm PIN Row -->
+              <div class="pin-row mt-3">
+                <div class="pin-label-col">
+                  <div class="d-flex align-center gap-2">
+                    <span class="text-body-2 font-weight-semibold text-high-emphasis">Confirm PIN</span>
+                    <VIcon 
+                      :icon="isConfirmPinVisible ? 'tabler-eye-off' : 'tabler-eye'" 
+                      size="16" 
+                      class="cursor-pointer text-disabled hover-text-primary transition"
+                      @click="isConfirmPinVisible = !isConfirmPinVisible"
+                    />
+                  </div>
+                </div>
+                <div class="pin-fields-col">
+                  <div class="d-flex gap-2">
+                    <template
+                      v-for="(digit, index) in confirmPinDigits"
+                      :key="'confirm-'+index"
+                    >
+                      <input
+                        :id="'confirm-pin-' + index"
+                        v-model="confirmPinDigits[index]"
+                        :type="isConfirmPinVisible ? 'text' : 'password'"
+                        inputmode="numeric"
+                        maxlength="1"
+                        class="pin-digit-box compact"
+                        :style="{ animationDelay: (index + 8) * 30 + 'ms' }"
+                        @input="focusNext($event, index, 'confirm')"
+                        @keydown="handleBackspace($event, index, 'confirm')"
+                        @paste="handlePaste($event, 'confirm')"
+                      >
+                    </template>
+                  </div>
+                </div>
+              </div>
             </div>
 
-             <div class="d-flex justify-end mt-4 pt-2 border-top-light">
-                <VBtn
-                  type="submit"
-                  :loading="loading"
-                  color="primary"
-                  size="default"
-                  class="px-6 rounded-pill shadow-primary-sm"
-                  height="36"
-                >
-                  <VIcon icon="tabler-check" size="16" class="me-2" />
-                  Update
-                </VBtn>
+            <div class="d-flex justify-end mt-4 pt-2 border-top-light">
+              <VBtn
+                type="submit"
+                :loading="loading"
+                color="primary"
+                size="default"
+                class="px-6 rounded-pill shadow-primary-sm"
+                height="36"
+              >
+                <VIcon
+                  icon="tabler-check"
+                  size="16"
+                  class="me-2"
+                />
+                Update
+              </VBtn>
             </div>
-
           </VForm>
         </VCardText>
       </VCard>
@@ -442,33 +492,79 @@ const recentDevices = [
 
     <VCol cols="12">
       <!-- 👉 Two step verification (Condensed) -->
-       <VCard border="0" elevation="2" class="mb-6 overflow-hidden">
+      <VCard
+        border="0"
+        elevation="2"
+        class="mb-6 overflow-hidden"
+      >
         <div class="px-4 py-3 bg-var-surface-light border-bottom d-flex align-center">
-             <VIcon icon="tabler-scan" size="20" class="me-3 text-medium-emphasis" />
-             <h3 class="text-subtitle-1 font-weight-bold">Two-step verification</h3>
+          <VIcon
+            icon="tabler-scan"
+            size="20"
+            class="me-3 text-medium-emphasis"
+          />
+          <h3 class="text-subtitle-1 font-weight-bold">
+            Two-step verification
+          </h3>
         </div>
         <VCardText class="pa-4">
           <div class="d-flex align-center justify-space-between">
             <div>
-                 <div class="text-body-2 font-weight-medium mb-1">SMS Verification</div>
-                 <div class="text-caption text-medium-emphasis">Protection with +1(968) 819-2547</div>
+              <div class="text-body-2 font-weight-medium mb-1">
+                SMS Verification
+              </div>
+              <div class="text-caption text-medium-emphasis">
+                Protection with +1(968) 819-2547
+              </div>
             </div>
-             <IconBtn color="primary" variant="tonal" density="comfortable" class="rounded"><VIcon icon="tabler-edit" size="18"/></IconBtn>
+            <IconBtn
+              color="primary"
+              variant="tonal"
+              density="comfortable"
+              class="rounded"
+            >
+              <VIcon
+                icon="tabler-edit"
+                size="18"
+              />
+            </IconBtn>
           </div>
         </VCardText>
       </VCard>
 
       <!-- Recent Devices (Condensed) -->
-      <VCard border="0" elevation="2" class="overflow-hidden">
-         <div class="px-4 py-3 bg-var-surface-light border-bottom d-flex align-center">
-             <VIcon icon="tabler-devices" size="20" class="me-3 text-medium-emphasis" />
-             <h3 class="text-subtitle-1 font-weight-bold">Recent devices</h3>
+      <VCard
+        border="0"
+        elevation="2"
+        class="overflow-hidden"
+      >
+        <div class="px-4 py-3 bg-var-surface-light border-bottom d-flex align-center">
+          <VIcon
+            icon="tabler-devices"
+            size="20"
+            class="me-3 text-medium-emphasis"
+          />
+          <h3 class="text-subtitle-1 font-weight-bold">
+            Recent devices
+          </h3>
         </div>
-        <VDataTable :items="recentDevices" :headers="recentDeviceHeader" hide-default-footer class="text-no-wrap compact-table" density="compact">
+        <VDataTable
+          :items="recentDevices"
+          :headers="recentDeviceHeader"
+          hide-default-footer
+          class="text-no-wrap compact-table"
+          density="compact"
+        >
           <template #item.browser="{ item }">
             <div class="d-flex align-center gap-x-2 py-1">
-              <VIcon :icon="item.icon" :color="item.color" :size="18" />
-              <div class="text-body-2 text-high-emphasis font-weight-medium">{{ item.browser }}</div>
+              <VIcon
+                :icon="item.icon"
+                :color="item.color"
+                :size="18"
+              />
+              <div class="text-body-2 text-high-emphasis font-weight-medium">
+                {{ item.browser }}
+              </div>
             </div>
           </template>
           <template #bottom />
@@ -476,7 +572,7 @@ const recentDevices = [
       </VCard>
     </VCol>
   </VRow>
-    <!-- 👉 Enable One Time Password Dialog -->
+  <!-- 👉 Enable One Time Password Dialog -->
   <TwoFactorAuthDialog
     v-model:is-dialog-visible="isTwoFactorDialogOpen"
     :sms-code="smsVerificationNumber"

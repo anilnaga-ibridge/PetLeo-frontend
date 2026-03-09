@@ -168,7 +168,7 @@ const showLabDialog = ref(false)
 const showPrescriptionDialog = ref(false)
 const submitting = ref(false)
 const selectedLabs = ref([])
-const medicines = ref([{ name: '', dosage: '', frequency: '1-0-1', duration: '' }])
+const medicines = ref([{ name: '', dosage: '', frequency: '1-0-1', duration: '5' }])
 
 const submitLabRequest = async () => {
   if (selectedLabs.value.length === 0) return
@@ -493,10 +493,10 @@ const vitalsSnapshot = computed(() => {
                 <div style="flex: 1">
                   <VTextField
                     v-model="med.duration"
-                    label="Duration"
+                    label="Days"
                     density="compact"
                     hide-details
-                    placeholder="e.g. 5 days"
+                    placeholder="e.g. 5"
                   />
                 </div>
                 <VBtn
@@ -513,7 +513,7 @@ const vitalsSnapshot = computed(() => {
                   prepend-icon="tabler-plus"
                   variant="tonal"
                   size="small"
-                  @click="medicines.push({name: '', dosage: '', frequency: '1-0-1', duration: ''})"
+                  @click="medicines.push({name: '', dosage: '', frequency: '1-0-1', duration: '5'})"
                 >
                   Add Medicine
                 </VBtn>

@@ -33,12 +33,12 @@ const fetchServices = async () => {
       .map(s => ({
         id: s.id,
         name: s.name,
-        icon: iconMap[s.slug] || iconMap[s.name.toLowerCase()] || 'tabler-paw'
+        icon: iconMap[s.slug] || iconMap[s.name.toLowerCase()] || 'tabler-paw',
       }))
 
     categories.value = [
       { id: 'all', name: 'All Services', icon: 'tabler-layout-grid' },
-      ...dynamicCategories
+      ...dynamicCategories,
     ]
   } catch (err) {
     console.error('Failed to fetch services for categories:', err)
@@ -47,7 +47,7 @@ const fetchServices = async () => {
   }
 }
 
-const selectCategory = (cat) => {
+const selectCategory = cat => {
   activeCategory.value = cat.id
   emit('select', cat)
 }
@@ -69,11 +69,18 @@ onMounted(fetchServices)
             size="small"
             @click="selectCategory(cat)"
           >
-            <VIcon :icon="cat.icon" size="18" class="mr-2" />
+            <VIcon
+              :icon="cat.icon"
+              size="18"
+              class="mr-2"
+            />
             {{ cat.name }}
           </VBtn>
           
-          <div v-if="loading" class="d-flex gap-4">
+          <div
+            v-if="loading"
+            class="d-flex gap-4"
+          >
             <VSkeletonLoader
               v-for="i in 3"
               :key="i"
@@ -123,5 +130,25 @@ onMounted(fetchServices)
 .v-btn {
   text-transform: none;
   letter-spacing: 0;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  &:hover {
+    transform: translateY(-3px) scale(1.05);
+  }
+  
+  &:active {
+    transform: translateY(1px) scale(0.95);
+  }
+
+  &.v-btn--flat {
+    animation: float 3s ease-in-out infinite;
+    box-shadow: 0 8px 20px rgba(var(--v-theme-primary), 0.3);
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
 }
 </style>

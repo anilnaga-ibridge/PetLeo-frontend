@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { superAdminApi } from '@/plugins/axios'
+import { superAdminApi, providerApi } from '@/plugins/axios'
 import { veterinaryApi } from '@/api/veterinary'
 
 export const useVeterinaryStore = defineStore('veterinary', {
@@ -13,6 +13,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
     activeClinicId: localStorage.getItem('activeClinicId'), // [NEW] Read from persistence
     dynamicFieldDefinitions: {}, // [NEW] Cache: entity_type -> definitions
     dynamicFieldValues: {}, // [NEW] Cache: entity_id -> values
+    petHistory: {}, // [NEW] Cache: pet_id -> history
     loading: false,
     error: null,
   }),
@@ -36,6 +37,24 @@ export const useVeterinaryStore = defineStore('veterinary', {
       } catch (err) {
         this.error = err.message
         console.error(`Failed to fetch form definition ${code}:`, err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchPetHistory(petId) {
+      if (this.petHistory[petId]) return this.petHistory[petId]
+
+      this.loading = true
+      try {
+        const response = await veterinaryApi.getPetHistory(petId)
+
+        this.petHistory[petId] = response.data
+
+        return response.data
+      } catch (err) {
+        console.error(`Failed to fetch history for pet ${petId}:`, err)
         throw err
       } finally {
         this.loading = false
@@ -100,6 +119,34 @@ export const useVeterinaryStore = defineStore('veterinary', {
       }
     },
 
+    async dispensePrescription(prescriptionId) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.dispenseMedicines(prescriptionId)
+
+        return response.data
+      } catch (err) {
+        console.error(`Failed to dispense prescription ${prescriptionId}:`, err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async checkInAppointment(appointmentId) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.post(`/api/veterinary/appointments/${appointmentId}/check-in/`)
+
+        return response.data
+      } catch (err) {
+        console.error(`Failed to check-in appointment ${appointmentId}:`, err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
     async fetchPendingVisits(role, clinicId) {
       this.loading = true
       try {
@@ -126,10 +173,10 @@ export const useVeterinaryStore = defineStore('veterinary', {
       }
     },
 
-    async fetchPets() {
+    async fetchPets(params = {}) {
       this.loading = true
       try {
-        const response = await veterinaryApi.get('/api/veterinary/pets/')
+        const response = await veterinaryApi.get('/api/veterinary/pets/', { params })
 
         this.pets = response.data.results || response.data
 
@@ -141,6 +188,12 @@ export const useVeterinaryStore = defineStore('veterinary', {
       } finally {
         this.loading = false
       }
+    },
+
+    async searchPets(query, clinicId) {
+      if (!query || query.length < 2) return []
+
+      return this.fetchPets({ q: query, clinic_id: clinicId })
     },
 
     async fetchPetById(petId) {
@@ -198,6 +251,16 @@ export const useVeterinaryStore = defineStore('veterinary', {
       }
     },
 
+    async startWalkInVisit(petId, clinicId) {
+      return this.createVisit({
+        pet_id: petId,
+        clinic: clinicId,
+        status: 'CHECKED_IN',
+        visit_type: 'OFFLINE',
+        reason: 'Walk-in Vitals',
+      })
+    },
+
     async updateVisit(visitId, visitData) {
       this.loading = true
       try {
@@ -240,6 +303,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
         if (!isValid) {
           if (clinics.length > 0) {
             const primary = clinics.find(c => c.is_primary) || clinics[0]
+
             this.setActiveClinic(primary.id)
             selectedClinic = primary
           } else {
@@ -519,6 +583,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
         const params = { clinic_id: clinicId }
         if (date) params.date = date
         const response = await veterinaryApi.get('/api/veterinary/analytics/summary/', { params })
+
         return response.data
       } catch (err) {
         console.error('Failed to fetch live summary:', err)
@@ -707,6 +772,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
       this.loading = true
       try {
         const response = await veterinaryApi.getMedicalAppointments(params)
+
         return response.data.results || response.data
       } catch (err) {
         console.error('Failed to fetch medical appointments:', err)
@@ -720,6 +786,7 @@ export const useVeterinaryStore = defineStore('veterinary', {
       this.loading = true
       try {
         const response = await veterinaryApi.createMedicalAppointment(appointmentData)
+
         return response.data
       } catch (err) {
         console.error('Failed to create medical appointment:', err)
@@ -733,9 +800,200 @@ export const useVeterinaryStore = defineStore('veterinary', {
       this.loading = true
       try {
         const response = await veterinaryApi.getVeterinaryAvailability(clinicId, params)
+
         return response.data.slots
       } catch (err) {
         console.error('Failed to fetch doctor availability:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+    async fetchPreVisitForms(visitId) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.get('/api/veterinary/pre-visit/', {
+          params: { visit: visitId },
+        })
+
+
+        return response.data.results || response.data
+      } catch (err) {
+        console.error('Failed to fetch pre-visit forms:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async createPreVisitForm(visitId) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.post('/api/veterinary/pre-visit/', {
+          visit: visitId,
+        })
+
+
+        return response.data
+      } catch (err) {
+        console.error('Failed to create pre-visit form:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchMedicines(clinicId) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.getMedicines({ clinic_id: clinicId })
+
+        return response.data.results || response.data
+      } catch (err) {
+        console.error('Failed to fetch medicines:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async createMedicine(data) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.createMedicine(data)
+
+        return response.data
+      } catch (err) {
+        console.error('Failed to create medicine:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async updateMedicine(medicineId, data) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.updateMedicine(medicineId, data)
+
+        return response.data
+      } catch (err) {
+        console.error('Failed to update medicine:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async deleteMedicine(medicineId) {
+      this.loading = true
+      try {
+        await veterinaryApi.deleteMedicine(medicineId)
+      } catch (err) {
+        console.error('Failed to delete medicine:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchPublicPreVisitForm(token) {
+      this.loading = true
+      try {
+        // [IMPORTANT] Public endpoint, uses AllowAny on backend
+        const response = await veterinaryApi.get(`/api/veterinary/pre-visit/public/${token}/`)
+
+        return response.data
+      } catch (err) {
+        console.error('Failed to fetch public pre-visit form:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async submitPublicPreVisitForm(token, data) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.post(`/api/veterinary/pre-visit/public/${token}/`, { data })
+
+        return response.data
+      } catch (err) {
+        console.error('Failed to submit pre-visit form:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async aiFormatNotes(visitId, notes) {
+      this.loading = true
+      try {
+        const response = await veterinaryApi.post(`/api/veterinary/visits/${visitId}/ai_format_notes/`, { notes })
+
+        return response.data.formatted_notes
+      } catch (err) {
+        console.error('Failed to AI format notes:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async aiSuggestMedicine(query) {
+      if (!query || query.length < 3) return []
+
+      try {
+        const response = await veterinaryApi.get(`/api/veterinary/visits/ai_suggest_medicine/`, {
+          params: { q: query },
+        })
+
+
+        return response.data || []
+      } catch (err) {
+        console.error('Failed to fetch AI medicine suggestions:', err)
+
+        return []
+      }
+    },
+
+    async fetchClinicConsultants(clinicId) {
+      if (!clinicId) return []
+      this.loading = true
+      try {
+        const [empRes, assignmentsRes] = await Promise.all([
+          providerApi.get('/api/provider/employees/'),
+          veterinaryApi.get('/api/veterinary/assignments/'),
+        ])
+
+        const assignments = assignmentsRes.data?.results || assignmentsRes.data || []
+        const employees = empRes.data || []
+
+        const clinicAssignments = assignments.filter(a => a.clinic_id === clinicId || a.clinic === clinicId)
+        const consultantAuthIds = new Set(clinicAssignments.map(a => a.staff_auth_id || a.staff))
+
+        return employees.filter(emp => {
+          const empAuthId = emp.auth_user_id || emp.id
+          const isAssigned = consultantAuthIds.has(empAuthId)
+
+          const roleStr = String(emp.provider_role_name || emp.role || '').toLowerCase()
+
+          const isMedicalRole = roleStr.includes('doctor') ||
+            roleStr.includes('vet') ||
+            roleStr.includes('surgeon') ||
+            roleStr.includes('consultant') ||
+            (emp.specialization && emp.specialization.length > 0)
+
+          return isAssigned && isMedicalRole
+        }).map(emp => ({
+          id: emp.id,
+          auth_user_id: emp.auth_user_id,
+          name: emp.full_name,
+          specialization: emp.specialization,
+          role: emp.provider_role_name || emp.role,
+        }))
+      } catch (err) {
+        console.error('Failed to fetch clinic consultants:', err)
         throw err
       } finally {
         this.loading = false

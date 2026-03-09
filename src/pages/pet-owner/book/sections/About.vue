@@ -1,15 +1,21 @@
 <script setup>
+
 // About Us Section — PetLeo brand story with scroll target ID
 </script>
 
 <template>
-  <section id="about-section" class="about-us-section">
+  <section
+    id="about-section"
+    class="about-us-section"
+  >
     <!-- Header -->
     <div class="about-header">
       <div class="about-header-inner">
-        <div class="section-eyebrow">About PetLeo</div>
+        <div class="section-eyebrow">
+          About PetLeo
+        </div>
         <h2 class="about-title">
-          Built for Every Pet Parent.<br />
+          Built for Every Pet Parent.<br>
           Powered by Expert Care.
         </h2>
         <p class="about-subtitle">
@@ -28,7 +34,7 @@
             src="https://images.unsplash.com/photo-1601758174114-e711c0cbaa69?w=600&q=80&fit=crop"
             alt="Vet with dog"
             class="story-img"
-          />
+          >
           <div class="img-badge">
             <span class="badge-num">50k+</span>
             <span class="badge-lbl">Happy Pets</span>
@@ -39,19 +45,23 @@
             src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&q=80&fit=crop"
             alt="Dog grooming"
             class="story-img-sm"
-          />
+          >
           <img
             src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&q=80&fit=crop"
             alt="Cats playing"
             class="story-img-sm"
-          />
+          >
         </div>
       </div>
 
       <!-- Right: Story content -->
       <div class="story-content">
-        <div class="story-tag">Our Mission</div>
-        <h3 class="story-heading">We believe every pet deserves world-class care.</h3>
+        <div class="story-tag">
+          Our Mission
+        </div>
+        <h3 class="story-heading">
+          We believe every pet deserves world-class care.
+        </h3>
         <p class="story-para">
           Founded in 2024, PetLeo was born out of a simple frustration: finding trustworthy, 
           affordable pet care was unnecessarily hard. We built a platform where every vet, 
@@ -65,18 +75,30 @@
         <!-- Stats -->
         <div class="story-stats">
           <div class="story-stat">
-            <div class="stat-n">500+</div>
-            <div class="stat-l">Verified Providers</div>
+            <div class="stat-n">
+              500+
+            </div>
+            <div class="stat-l">
+              Verified Providers
+            </div>
           </div>
           <div class="stat-sep" />
           <div class="story-stat">
-            <div class="stat-n">50k+</div>
-            <div class="stat-l">Happy Pet Parents</div>
+            <div class="stat-n">
+              50k+
+            </div>
+            <div class="stat-l">
+              Happy Pet Parents
+            </div>
           </div>
           <div class="stat-sep" />
           <div class="story-stat">
-            <div class="stat-n">20+</div>
-            <div class="stat-l">Cities Covered</div>
+            <div class="stat-n">
+              20+
+            </div>
+            <div class="stat-l">
+              Cities Covered
+            </div>
           </div>
         </div>
       </div>
@@ -84,12 +106,26 @@
 
     <!-- Value Props Row -->
     <div class="value-props">
-      <div class="value-card" v-for="v in values" :key="v.title">
-        <div class="value-icon" :style="`background: ${v.bg}; color: ${v.color}`">
-          <VIcon :icon="v.icon" size="24" />
+      <div
+        v-for="v in values"
+        :key="v.title"
+        class="value-card"
+      >
+        <div
+          class="value-icon"
+          :style="`background: ${v.bg}; color: ${v.color}`"
+        >
+          <VIcon
+            :icon="v.icon"
+            size="24"
+          />
         </div>
-        <h4 class="value-title">{{ v.title }}</h4>
-        <p class="value-desc">{{ v.desc }}</p>
+        <h4 class="value-title">
+          {{ v.title }}
+        </h4>
+        <p class="value-desc">
+          {{ v.desc }}
+        </p>
       </div>
     </div>
   </section>
@@ -101,27 +137,28 @@ const values = [
     icon: 'tabler-shield-check',
     title: 'Verified Experts',
     desc: 'Every professional is credential-checked, background-verified, and rated by real pet parents.',
-    bg: '#eef2ff', color: '#6366f1'
+    bg: '#eef2ff', color: '#6366f1',
   },
   {
     icon: 'tabler-currency-rupee',
     title: 'Transparent Pricing',
     desc: 'Compare services and costs upfront. No hidden charges, ever.',
-    bg: '#f0fdf4', color: '#10b981'
+    bg: '#f0fdf4', color: '#10b981',
   },
   {
     icon: 'tabler-clock',
     title: 'Instant Booking',
     desc: 'Schedule and confirm appointments in under 60 seconds.',
-    bg: '#fffbeb', color: '#f59e0b'
+    bg: '#fffbeb', color: '#f59e0b',
   },
   {
     icon: 'tabler-heart-handshake',
     title: 'Care Continuity',
     desc: 'Pet medical history, prescriptions, and records stored safely and accessible anytime.',
-    bg: '#eff6ff', color: '#3b82f6'
-  }
+    bg: '#eff6ff', color: '#3b82f6',
+  },
 ]
+
 export default { setup() { return { values } } }
 </script>
 

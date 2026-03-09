@@ -61,6 +61,11 @@ export default [
                 title: 'Plan Capabilities',
                 to: 'superadmin-plans-plan-capabilities',
               },
+              {
+                title: 'Capability Registry',
+                to: 'superadmin-capabilities',
+                icon: { icon: 'tabler-key' },
+              },
             ],
           },
         ],

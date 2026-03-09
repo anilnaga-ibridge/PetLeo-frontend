@@ -51,7 +51,7 @@ const fetchPinLength = async () => {
   if (phone) {
     try {
       const res = await axios.get(`${API_BASE}/auth/api/auth/check-pin-length/`, {
-        params: { phone_number: phone }
+        params: { phone_number: phone },
       })
       
       if (res.data?.pin_length) {
@@ -61,14 +61,16 @@ const fetchPinLength = async () => {
           
           // Update BOTH storages to be safe
           if (localStorage.getItem('userData')) {
-             const localData = JSON.parse(localStorage.getItem('userData') || '{}')
-             localData.pin_length = length
-             localStorage.setItem('userData', JSON.stringify(localData))
+            const localData = JSON.parse(localStorage.getItem('userData') || '{}')
+
+            localData.pin_length = length
+            localStorage.setItem('userData', JSON.stringify(localData))
           }
           if (sessionStorage.getItem('userData')) {
-             const sessionData = JSON.parse(sessionStorage.getItem('userData') || '{}')
-             sessionData.pin_length = length
-             sessionStorage.setItem('userData', JSON.stringify(sessionData))
+            const sessionData = JSON.parse(sessionStorage.getItem('userData') || '{}')
+
+            sessionData.pin_length = length
+            sessionStorage.setItem('userData', JSON.stringify(sessionData))
           }
         }
       }
@@ -94,11 +96,11 @@ watch([isLocked, user], async ([newLocked, newUser], [oldLocked, oldUser]) => {
   
   // If user changed (login/logout/switch), refresh PIN length
   if (JSON.stringify(newUser) !== JSON.stringify(oldUser)) {
-     if (!newUser) {
-       pinLength.value = 4 // Reset to default on logout
-     } else {
-       await fetchPinLength() // Fetch for new user
-     }
+    if (!newUser) {
+      pinLength.value = 4 // Reset to default on logout
+    } else {
+      await fetchPinLength() // Fetch for new user
+    }
   }
 })
 
@@ -278,6 +280,7 @@ const logout = async () => {
     await authStore.logout()
   } catch (err) {
     console.error("Logout failed:", err)
+
     // Fallback if store fails
     window.location.href = '/login'
   } finally {
@@ -297,9 +300,7 @@ const logout = async () => {
       class="particle-canvas"
     />
 
-    <div
-      class="lock-content"
-    >
+    <div class="lock-content">
       <div class="text-center mb-8">
         <VBadge
           location="bottom right"

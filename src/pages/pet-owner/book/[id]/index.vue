@@ -8,33 +8,45 @@ const petImages = [
   {
     src: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80&fit=crop',
     alt: 'Happy dogs playing',
-    caption: 'Happy & Healthy Pets'
+    caption: 'Happy & Healthy Pets',
   },
   {
     src: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&q=80&fit=crop',
     alt: 'Dog grooming session',
-    caption: 'Professional Grooming'
+    caption: 'Professional Grooming',
   },
   {
     src: 'https://images.unsplash.com/photo-1601758174114-e711c0cbaa69?w=600&q=80&fit=crop',
     alt: 'Vet with dog',
-    caption: 'Expert Veterinary Care'
+    caption: 'Expert Veterinary Care',
   },
 ]
 </script>
 
 <template>
-  <div v-if="provider" class="about-page">
-
+  <div
+    v-if="provider"
+    class="about-page"
+  >
     <!-- ── About Section ── -->
     <div class="about-block">
-      <div class="section-eyebrow">About Us</div>
+      <div class="section-eyebrow">
+        About Us
+      </div>
       <h2 class="about-title">
-        <VIcon icon="tabler-heart" color="#6366f1" size="26" class="mr-2" />
+        <VIcon
+          icon="tabler-heart"
+          color="#6366f1"
+          size="26"
+          class="mr-2"
+        />
         Meet {{ provider.full_name }}
       </h2>
 
-      <div v-if="provider.detailed_profile?.clinic_name" class="clinic-chip">
+      <div
+        v-if="provider.detailed_profile?.clinic_name"
+        class="clinic-chip"
+      >
         🏥 {{ provider.detailed_profile.clinic_name }}
       </div>
 
@@ -43,24 +55,32 @@ const petImages = [
       </p>
 
       <!-- Stats row -->
-      <div v-if="provider.detailed_profile?.years_of_experience > 0" class="stats-row">
+      <div
+        v-if="provider.detailed_profile?.years_of_experience > 0"
+        class="stats-row"
+      >
         <div class="stat-card">
           <span class="stat-num">{{ provider.detailed_profile.years_of_experience }}+</span>
-          <span class="stat-lbl">Years<br />Experience</span>
+          <span class="stat-lbl">Years<br>Experience</span>
         </div>
         <div class="stat-card">
           <span class="stat-num">{{ provider.reviewCount || 0 }}+</span>
-          <span class="stat-lbl">Happy<br />Clients</span>
+          <span class="stat-lbl">Happy<br>Clients</span>
         </div>
         <div class="stat-card">
-          <span class="stat-num">{{ provider.rating || '5.0' }}</span>
-          <span class="stat-lbl">Average<br />Rating</span>
+          <span class="stat-num">{{ provider.reviewCount > 0 ? (provider.rating || 0).toFixed(1) : '0.0' }}</span>
+          <span class="stat-lbl">Average<br>Rating</span>
         </div>
       </div>
 
       <!-- Specialisations -->
-      <div v-if="provider.detailed_profile?.specializations" class="spec-wrap">
-        <div class="spec-label">Specialisations</div>
+      <div
+        v-if="provider.detailed_profile?.specializations"
+        class="spec-wrap"
+      >
+        <div class="spec-label">
+          Specialisations
+        </div>
         <div class="spec-chips">
           <span
             v-for="spec in provider.detailed_profile.specializations.split(',')"
@@ -75,7 +95,9 @@ const petImages = [
 
     <!-- ── Pet Images Gallery ── -->
     <div class="gallery-block">
-      <div class="gallery-label">Our Clinic in Action</div>
+      <div class="gallery-label">
+        Our Clinic in Action
+      </div>
       <div class="pet-gallery">
         <div
           v-for="(img, i) in petImages"
@@ -83,9 +105,17 @@ const petImages = [
           class="gallery-item"
           :style="`animation-delay: ${i * 0.1}s`"
         >
-          <img :src="img.src" :alt="img.alt" class="gallery-img" />
+          <img
+            :src="img.src"
+            :alt="img.alt"
+            class="gallery-img"
+          >
           <div class="gallery-caption">
-            <VIcon icon="tabler-camera" size="12" class="mr-1" />
+            <VIcon
+              icon="tabler-camera"
+              size="12"
+              class="mr-1"
+            />
             {{ img.caption }}
           </div>
         </div>
@@ -94,18 +124,31 @@ const petImages = [
 
     <!-- ── Why Choose Us ── -->
     <div class="why-block">
-      <div class="section-eyebrow">Why Choose Us</div>
+      <div class="section-eyebrow">
+        Why Choose Us
+      </div>
       <div class="why-grid">
-        <div class="why-card" v-for="w in whys" :key="w.title">
+        <div
+          v-for="w in whys"
+          :key="w.title"
+          class="why-card"
+        >
           <div class="why-icon">
-            <VIcon :icon="w.icon" size="22" color="#6366f1" />
+            <VIcon
+              :icon="w.icon"
+              size="22"
+              color="#6366f1"
+            />
           </div>
-          <h4 class="why-title">{{ w.title }}</h4>
-          <p class="why-desc">{{ w.desc }}</p>
+          <h4 class="why-title">
+            {{ w.title }}
+          </h4>
+          <p class="why-desc">
+            {{ w.desc }}
+          </p>
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -114,24 +157,25 @@ const whys = [
   {
     icon: 'tabler-shield-check',
     title: 'Certified & Verified',
-    desc: 'All credentials are checked and verified by the PetLeo platform.'
+    desc: 'All credentials are checked and verified by the PetLeo platform.',
   },
   {
     icon: 'tabler-heart-handshake',
     title: 'Compassionate Care',
-    desc: 'We treat every pet with the same love and attention as our own.'
+    desc: 'We treat every pet with the same love and attention as our own.',
   },
   {
     icon: 'tabler-clock',
     title: 'Flexible Schedules',
-    desc: 'Appointments available 7 days a week to fit your busy life.'
+    desc: 'Appointments available 7 days a week to fit your busy life.',
   },
   {
     icon: 'tabler-currency-rupee',
     title: 'Transparent Pricing',
-    desc: 'No hidden fees. All costs are clearly shown before you book.'
-  }
+    desc: 'No hidden fees. All costs are clearly shown before you book.',
+  },
 ]
+
 export default { setup() { return { whys } } }
 </script>
 

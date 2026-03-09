@@ -4,8 +4,8 @@ defineProps({
   label: String,
   color: {
     type: String,
-    default: 'primary'
-  }
+    default: 'primary',
+  },
 })
 </script>
 
@@ -20,7 +20,11 @@ defineProps({
       class="icon-box mx-auto mb-3 d-flex align-center justify-center rounded-xl"
       :class="`bg-${color}-lighten-5`"
     >
-      <VIcon :icon="icon" :color="color" size="28" />
+      <VIcon
+        :icon="icon"
+        :color="color"
+        size="28"
+      />
     </div>
     <div class="text-caption font-weight-bold text-slate-700 text-uppercase tracking-wider">
       {{ label }}

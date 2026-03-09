@@ -23,16 +23,16 @@ console.log('UserBioPanel provider_type:', props.userData.provider_type)
 
 const extendedFields = computed(() => {
   const ignoredFields = [
-    'first_name', 'last_name', 'email', 'phone_number', 'country', 'language', 'profile_image'
+    'first_name', 'last_name', 'email', 'phone_number', 'country', 'language', 'profile_image',
   ]
   
   return props.providerProfile.filter(
     f => !ignoredFields.includes(f.name) && 
          !['file', 'section'].includes(f.field_type) &&
-         f.value
+         f.value,
   ).map(f => ({
     label: f.label,
-    value: f.value
+    value: f.value,
   }))
 })
 
@@ -45,36 +45,37 @@ const user = computed(() => {
   // Determine display role
   let displayRole = rawRole
   if (roleName === 'provider') {
-     if (providerType) {
-        displayRole = providerType // e.g. 'organization' or 'individual'
-     } else {
-        displayRole = 'Provider'
-     }
+    if (providerType) {
+      displayRole = providerType // e.g. 'organization' or 'individual'
+    } else {
+      displayRole = 'Provider'
+    }
   }
 
   return {
-  id: props.userData.id || props.userData.auth_user_id,
-  fullName: props.userData.fullName || props.userData.full_name || '',
-  email: props.userData.email || '',
-  avatar: props.userData.avatar || null,
-  role: displayRole,
-  status: props.userData.status || 'active',
-  taxId: props.userData.taxId || props.userData.tax_id || 'N/A',
-  contact: props.userData.contact || props.userData.phone || props.userData.phoneNumber || '',
-  language: props.userData.language || 'English',
-  country: props.userData.country || '',
-  taskDone: props.userData.taskDone || props.userData.task_done || 0,
-  projectDone: props.userData.projectDone || props.userData.project_done || 0,
-}})
+    id: props.userData.id || props.userData.auth_user_id,
+    fullName: props.userData.fullName || props.userData.full_name || '',
+    email: props.userData.email || '',
+    avatar: props.userData.avatar || null,
+    role: displayRole,
+    status: props.userData.status || 'active',
+    taxId: props.userData.taxId || props.userData.tax_id || 'N/A',
+    contact: props.userData.contact || props.userData.phone || props.userData.phoneNumber || '',
+    language: props.userData.language || 'English',
+    country: props.userData.country || '',
+    taskDone: props.userData.taskDone || props.userData.task_done || 0,
+    projectDone: props.userData.projectDone || props.userData.project_done || 0,
+  }})
 
 const isUserInfoEditDialogVisible = ref(false)
 const isUpgradePlanDialogVisible = ref(false)
 
-const updateUser = async (updatedData) => {
+const updateUser = async updatedData => {
   try {
     const payload = {
       full_name: updatedData.fullName,
       email: updatedData.email,
+
       // Add other fields as supported by UserUpdateSerializer
     }
     
@@ -86,15 +87,15 @@ const updateUser = async (updatedData) => {
       const fd = new FormData()
       
       const fieldsPayload = updatedData.dynamicFields.map(f => ({
-          field_id: f.id,
-          value: f.value
+        field_id: f.id,
+        value: f.value,
       }))
       
       fd.append('fields', JSON.stringify(fieldsPayload))
       
       // Ensure we treat this as the specific user's update
       if (user.value.id) {
-         fd.append('auth_user_id', user.value.id)
+        fd.append('auth_user_id', user.value.id)
       }
 
       await providerApi.post('/api/provider/profile/', fd)
@@ -102,6 +103,7 @@ const updateUser = async (updatedData) => {
 
     // Update local state
     const userDataCookie = useCookie('userData')
+
     // We need to merge updated dynamic fields back into providerProfile prop?
     // Props are read-only. The parent component should ideally re-fetch.
     // But we can update local storage/store if needed.

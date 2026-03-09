@@ -20,6 +20,7 @@ const fetchPets = async () => {
   loading.value = true
   try {
     const res = await customerApi.get('/api/pet-owner/pets/pets/')
+
     pets.value = res.data.results || res.data
     generateReminders()
   } catch (err) {
@@ -46,7 +47,7 @@ const generateReminders = () => {
           type: diffDays <= 7 ? 'warning' : 'info',
           icon: 'tabler-vaccine',
           petName: pet.name,
-          date: dueDate
+          date: dueDate,
         })
       }
     }
@@ -60,7 +61,7 @@ const generateReminders = () => {
         type: 'info',
         icon: 'tabler-scissors',
         petName: pet.name,
-        date: new Date()
+        date: new Date(),
       })
     }
   })
@@ -69,7 +70,7 @@ const generateReminders = () => {
   reminders.value = newReminders
 }
 
-const handleDismissReminder = (id) => {
+const handleDismissReminder = id => {
   reminders.value = reminders.value.filter(r => r.id !== id)
 }
 
@@ -87,7 +88,7 @@ onMounted(fetchPets)
     <!-- Main Content Area -->
     <div class="flex-grow-1 main-content-layer">
       <!-- Global Navbar -->
-      <Navbar />
+      <Navbar hide-brand />
 
       <!-- Page Hero -->
       <div class="page-hero">
@@ -96,11 +97,19 @@ onMounted(fetchPets)
             <div>
               <div class="d-flex align-center gap-3 mb-3">
                 <div class="hero-icon-box orange">
-                  <VIcon icon="tabler-bell-ringing" size="26" color="white" />
+                  <VIcon
+                    icon="tabler-bell-ringing"
+                    size="26"
+                    color="white"
+                  />
                 </div>
-                <div class="text-caption font-weight-black text-primary uppercase tracking-widest">Alerts Hub</div>
+                <div class="text-caption font-weight-black text-primary uppercase tracking-widest">
+                  Alerts Hub
+                </div>
               </div>
-              <h1 class="page-title mb-2">My Reminders</h1>
+              <h1 class="page-title mb-2">
+                My Reminders
+              </h1>
               <p class="text-body-1 text-slate-500 font-weight-medium">
                 Stay updated on your pets' health schedules, grooming sessions, and important dates.
               </p>
@@ -110,26 +119,61 @@ onMounted(fetchPets)
       </div>
 
       <VContainer class="py-10">
-        <div v-if="loading" class="d-flex justify-center py-20">
-          <VProgressCircular indeterminate color="primary" size="64" />
+        <div
+          v-if="loading"
+          class="d-flex justify-center py-20"
+        >
+          <VProgressCircular
+            indeterminate
+            color="primary"
+            size="64"
+          />
         </div>
 
-        <div v-else-if="reminders.length === 0" class="text-center py-20 bg-white rounded-[40px] border-2 border-dashed">
-          <VIcon icon="tabler-bell-off" size="64" color="slate-200" class="mb-4" />
-          <h3 class="text-h5 font-weight-bold text-slate-700">All Caught Up!</h3>
-          <p class="text-slate-500">You have no pending reminders for your pets.</p>
+        <div
+          v-else-if="reminders.length === 0"
+          class="text-center py-20 bg-white rounded-[40px] border-2 border-dashed"
+        >
+          <VIcon
+            icon="tabler-bell-off"
+            size="64"
+            color="slate-200"
+            class="mb-4"
+          />
+          <h3 class="text-h5 font-weight-bold text-slate-700">
+            All Caught Up!
+          </h3>
+          <p class="text-slate-500">
+            You have no pending reminders for your pets.
+          </p>
         </div>
 
-        <div v-else class="reminders-content">
+        <div
+          v-else
+          class="reminders-content"
+        >
           <!-- Urgent Section -->
-          <section v-if="urgentReminders.length > 0" class="mb-12">
+          <section
+            v-if="urgentReminders.length > 0"
+            class="mb-12"
+          >
             <div class="d-flex align-center mb-6">
-              <div class="urgent-dot mr-3"></div>
-              <h2 class="text-h5 font-weight-black text-slate-800">Urgent Notifications</h2>
+              <div class="urgent-dot mr-3" />
+              <h2 class="text-h5 font-weight-black text-slate-800">
+                Urgent Notifications
+              </h2>
             </div>
             <VRow>
-              <VCol v-for="reminder in urgentReminders" :key="reminder.id" cols="12" md="6">
-                <ReminderCard v-bind="reminder" @dismiss="handleDismissReminder(reminder.id)" />
+              <VCol
+                v-for="reminder in urgentReminders"
+                :key="reminder.id"
+                cols="12"
+                md="6"
+              >
+                <ReminderCard
+                  v-bind="reminder"
+                  @dismiss="handleDismissReminder(reminder.id)"
+                />
               </VCol>
             </VRow>
           </section>
@@ -137,12 +181,22 @@ onMounted(fetchPets)
           <!-- Regular Reminders -->
           <section>
             <div class="d-flex align-center mb-6">
-              <div class="info-dot mr-3"></div>
-              <h2 class="text-h5 font-weight-black text-slate-800">Upcoming Schedule</h2>
+              <div class="info-dot mr-3" />
+              <h2 class="text-h5 font-weight-black text-slate-800">
+                Upcoming Schedule
+              </h2>
             </div>
             <VRow>
-              <VCol v-for="reminder in regularReminders" :key="reminder.id" cols="12" md="6">
-                <ReminderCard v-bind="reminder" @dismiss="handleDismissReminder(reminder.id)" />
+              <VCol
+                v-for="reminder in regularReminders"
+                :key="reminder.id"
+                cols="12"
+                md="6"
+              >
+                <ReminderCard
+                  v-bind="reminder"
+                  @dismiss="handleDismissReminder(reminder.id)"
+                />
               </VCol>
             </VRow>
           </section>

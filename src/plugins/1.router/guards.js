@@ -83,17 +83,23 @@ export const setupGuards = router => {
     // =======================================================
     if (isLoggedIn && user) {
       const role = (user.role?.name || user.role || '').toLowerCase()
-      const isSuperAdmin = role === 'superadmin' || role === 'admin'
+
+      // Match all known super admin role string variants:
+      // 'superadmin', 'super admin' (from 'Super Admin'), 'super_admin'
+      const isSuperAdmin = ['superadmin', 'super admin', 'super_admin', 'admin'].includes(role)
 
       if (!isSuperAdmin && (!permissionStore.isPermissionsLoaded || !permissionStore.isDynamicAccessLoaded)) {
         console.log(`🛡️ [${new Date().toISOString()}] Router Guard: Full access data missing/stale. Fetching fresh data...`)
         try {
           const startTime = performance.now()
+
           await Promise.all([
             permissionStore.fetchPermissions(),
-            permissionStore.fetchDynamicAccess()
+            permissionStore.fetchDynamicAccess(),
           ])
+
           const endTime = performance.now()
+
           console.log(`🛡️ [${new Date().toISOString()}] Router Guard: Fetching complete in ${(endTime - startTime).toFixed(2)}ms`)
         } catch (e) {
           console.error('🛡️ Router Guard: Failed to fetch permissions', e)
@@ -121,12 +127,14 @@ export const setupGuards = router => {
       // 3. Protect Provider Routes (Tenant Admin Area)
       if (to.path.startsWith('/provider/')) {
         const roleUpper = (user.role?.name || user.role || '').toUpperCase()
+
         const isProviderAdmin = ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER'].includes(roleUpper)
           || !!user.provider_type
 
         // Specific redirect for Profile
         if (to.path === '/provider/profile' && !isProviderAdmin) {
           console.warn('⛔ Employee attempted to access Provider Profile -> Redirecting to Employee Profile')
+
           return '/employee/profile'
         }
 
@@ -134,6 +142,7 @@ export const setupGuards = router => {
         // Employees are redirected to their restricted dashboard
         if ((to.path.startsWith('/provider/dashboard') || to.path.startsWith('/provider/providerhome')) && !isProviderAdmin) {
           console.warn('⛔ Employee attempted to access Admin Dashboard -> Redirecting to Employee Dashboard')
+
           return '/employee/dashboard'
         }
       }
@@ -141,16 +150,19 @@ export const setupGuards = router => {
       // 4. Protect Pet Owner Routes
       if (to.path.startsWith('/pet-owner')) {
         const roleUpper = (user.role?.name || user.role || '').toUpperCase()
+
         // Allow if role is explicitly PET_OWNER or similar
         // We assume the role for pet owners is 'PET_OWNER', 'PET OWNER', 'PETOWNER', or 'CUSTOMER'
         const isPetOwner = ['PET_OWNER', 'PET OWNER', 'PETOWNER', 'CUSTOMER'].includes(roleUpper)
 
         if (!isPetOwner) {
           console.warn('⛔ Non-Pet Owner attempted to access Pet Dashboard -> Redirecting to Home')
+
           // If they are a provider, send them to provider home
           if (['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER'].includes(roleUpper)) {
             return '/provider/providerhome'
           }
+
           // Otherwise generic home or login
           return '/'
         }

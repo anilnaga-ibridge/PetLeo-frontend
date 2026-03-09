@@ -6,6 +6,7 @@ import { useCookie } from '@/@core/composable/useCookie'
 import MultiBoxPinInput from '@/components/MultiBoxPinInput.vue'
 import { useGenerateImageVariant } from '@core/composable/useGenerateImageVariant'
 import { usePermissionStore } from '@/stores/permissionStore'
+import { getPostLoginRoute } from '@/utils/routeHelpers'
 
 definePage({
   meta: { 
@@ -42,7 +43,17 @@ let timerId = null
 
 const skipPin = () => {
   if (timerId) clearInterval(timerId)
-  router.replace('/')
+
+
+  // Route to the correct dashboard for this user's role
+  const userData = useCookie('userData').value ||
+    JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || 'null')
+
+  if (userData) {
+    router.replace(getPostLoginRoute(userData))
+  } else {
+    router.replace('/login')
+  }
 }
 
 onMounted(() => {
@@ -57,6 +68,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (timerId) clearInterval(timerId)
 })
+
 // Images
 import authV2TwoStepIllustrationLight from '@images/pages/auth-v2-two-step-illustration-light.png'
 import authV2TwoStepIllustrationDark from '@images/pages/auth-v2-two-step-illustration-dark.png'
@@ -112,15 +124,17 @@ const submitPin = async () => {
     
     // Update storage with new PIN length (check both local and session)
     if (localStorage.getItem('userData')) {
-        const userData = JSON.parse(localStorage.getItem('userData'))
-        userData.pin_length = pinLength.value
-        localStorage.setItem('userData', JSON.stringify(userData))
+      const userData = JSON.parse(localStorage.getItem('userData'))
+
+      userData.pin_length = pinLength.value
+      localStorage.setItem('userData', JSON.stringify(userData))
     }
     
     if (sessionStorage.getItem('userData')) {
-        const userData = JSON.parse(sessionStorage.getItem('userData'))
-        userData.pin_length = pinLength.value
-        sessionStorage.setItem('userData', JSON.stringify(userData))
+      const userData = JSON.parse(sessionStorage.getItem('userData'))
+
+      userData.pin_length = pinLength.value
+      sessionStorage.setItem('userData', JSON.stringify(userData))
     }
     
     // Also update cookie if used
@@ -134,11 +148,19 @@ const submitPin = async () => {
     // 🚀 [FIX] Fetch fresh permissions/profile info BEFORE redirecting
     // This ensures avatar, role, and name are correctly loaded on the dashboard
     const permissionStore = usePermissionStore()
+
     await permissionStore.fetchPermissions()
 
     setTimeout(() => {
-      if (authToken) router.replace('/')
-      else router.replace('/login')
+      if (authToken) {
+        // Use role-based routing so super admin goes to the right dashboard
+        const userData = useCookie('userData').value ||
+          JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || 'null')
+
+        router.replace(userData ? getPostLoginRoute(userData) : '/')
+      } else {
+        router.replace('/login')
+      }
     }, 800)
 
   } catch (err) {

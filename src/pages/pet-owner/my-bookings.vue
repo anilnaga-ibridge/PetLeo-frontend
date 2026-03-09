@@ -22,7 +22,7 @@ const showReviewDialog = ref(false)
 const selectedVisitForReview = ref(null)
 const selectedProviderForReview = ref(null)
 
-const openReviewDialog = (visit) => {
+const openReviewDialog = visit => {
   selectedVisitForReview.value = {
     ...visit,
     service_name: visit.display_type,
@@ -41,7 +41,7 @@ const fetchVisits = async () => {
   try {
     const [visitsRes, bookingsRes] = await Promise.all([
       veterinaryApi.get('/api/veterinary/pet-owner/visits/'),
-      customerApi.get('/api/pet-owner/bookings/bookings/')
+      customerApi.get('/api/pet-owner/bookings/bookings/'),
     ])
     
     // Standardize Veterinary Visits
@@ -69,12 +69,12 @@ const fetchVisits = async () => {
       created_at: b.created_at,
       display_type: b.service_name || 'Service Appointment',
       source: 'booking',
-      original: b
+      original: b,
     }))
 
     // Merge and sort by date descending
     visits.value = [...veterinaryVisits, ...bookingVisits].sort((a, b) => 
-      new Date(b.created_at) - new Date(a.created_at)
+      new Date(b.created_at) - new Date(a.created_at),
     )
   } catch (err) {
     console.error('Failed to fetch visits', err)
@@ -83,7 +83,7 @@ const fetchVisits = async () => {
   }
 }
 
-const payInvoice = async (invoiceId) => {
+const payInvoice = async invoiceId => {
   payingId.value = invoiceId
   try {
     await veterinaryApi.post(`/api/veterinary/pet-owner/pay/${invoiceId}/`)
@@ -99,7 +99,7 @@ const payInvoice = async (invoiceId) => {
 
 onMounted(fetchVisits)
 
-const formatDate = (dateString) => {
+const formatDate = dateString => {
   return new Date(dateString).toLocaleDateString('en-IN', {
     month: 'short',
     day: 'numeric',
@@ -107,28 +107,30 @@ const formatDate = (dateString) => {
   })
 }
 
-const formatTime = (dateString) => {
+const formatTime = dateString => {
   return new Date(dateString).toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
   })
 }
 
-const getStatusColor = (status) => {
+const getStatusColor = status => {
   const s = (status || '').toUpperCase()
   if (s === 'COMPLETED' || s === 'CLOSED') return 'success'
   if (s === 'IN_PROGRESS') return 'primary'
   if (s === 'DRAFT' || s === 'PENDING') return 'warning'
   if (s === 'CANCELLED') return 'error'
+  
   return 'secondary'
 }
 
-const getStatusLabel = (status) => {
+const getStatusLabel = status => {
   const s = (status || '').toUpperCase()
   if (s === 'CLOSED' || s === 'COMPLETED') return 'Completed'
   if (s === 'IN_PROGRESS') return 'In Progress'
   if (s === 'DRAFT' || s === 'PENDING') return 'Pending'
   if (s === 'CONFIRMED') return 'Confirmed'
+  
   return status
 }
 
@@ -136,6 +138,7 @@ const filteredVisits = computed(() => {
   if (activeTab.value === 'all') return visits.value
   const completedStatuses = ['COMPLETED', 'CLOSED', 'CANCELLED']
   if (activeTab.value === 'past') return visits.value.filter(v => completedStatuses.includes((v.status || '').toUpperCase()))
+  
   return visits.value.filter(v => !completedStatuses.includes((v.status || '').toUpperCase()))
 })
 
@@ -154,294 +157,431 @@ const tabs = [
     <!-- Main Content Area -->
     <div class="flex-grow-1 main-content-layer">
       <!-- Global Navbar -->
-      <Navbar />
+      <Navbar hide-brand />
 
       <!-- Page Hero -->
       <div class="page-hero">
         <VContainer>
-        <div class="d-flex align-center justify-space-between flex-wrap gap-4">
-          <div>
-            <div class="d-flex align-center gap-3 mb-3">
-              <div class="hero-icon-box">
-                <VIcon icon="tabler-clipboard-heart" size="26" color="white" />
+          <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+            <div>
+              <div class="d-flex align-center gap-3 mb-3">
+                <div class="hero-icon-box">
+                  <VIcon
+                    icon="tabler-clipboard-heart"
+                    size="26"
+                    color="white"
+                  />
+                </div>
+                <div class="text-caption font-weight-black text-primary uppercase tracking-widest">
+                  Medical Hub
+                </div>
               </div>
-              <div class="text-caption font-weight-black text-primary uppercase tracking-widest">Medical Hub</div>
+              <h1 class="page-title mb-2">
+                Care History
+              </h1>
+              <p class="text-body-1 text-slate-500 font-weight-medium">
+                Your complete record of medical visits and wellness sessions.
+              </p>
             </div>
-            <h1 class="page-title mb-2">Care History</h1>
-            <p class="text-body-1 text-slate-500 font-weight-medium">
-              Your complete record of medical visits and wellness sessions.
-            </p>
+            <div class="d-flex align-center gap-3">
+              <div class="stat-pill">
+                <span class="stat-num">{{ visits.length }}</span>
+                <span class="stat-label">Total Visits</span>
+              </div>
+              <div class="stat-pill success">
+                <span class="stat-num">{{ visits.filter(v => ['COMPLETED','CLOSED'].includes((v.status||'').toUpperCase())).length }}</span>
+                <span class="stat-label">Completed</span>
+              </div>
+            </div>
           </div>
-          <div class="d-flex align-center gap-3">
-            <div class="stat-pill">
-              <span class="stat-num">{{ visits.length }}</span>
-              <span class="stat-label">Total Visits</span>
-            </div>
-            <div class="stat-pill success">
-              <span class="stat-num">{{ visits.filter(v => ['COMPLETED','CLOSED'].includes((v.status||'').toUpperCase())).length }}</span>
-              <span class="stat-label">Completed</span>
-            </div>
+
+          <!-- Tab Bar -->
+          <div class="tab-bar mt-8">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="tab-btn"
+              :class="{ 'tab-active': activeTab === tab.key }"
+              @click="activeTab = tab.key"
+            >
+              <VIcon
+                :icon="tab.icon"
+                size="16"
+                class="mr-2"
+              />
+              {{ tab.label }}
+              <span class="tab-count">
+                {{ tab.key === 'all' ? visits.length : tab.key === 'past'
+                  ? visits.filter(v => ['COMPLETED','CLOSED','CANCELLED'].includes((v.status||'').toUpperCase())).length
+                  : visits.filter(v => !['COMPLETED','CLOSED','CANCELLED'].includes((v.status||'').toUpperCase())).length
+                }}
+              </span>
+            </button>
           </div>
-        </div>
-
-        <!-- Tab Bar -->
-        <div class="tab-bar mt-8">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            class="tab-btn"
-            :class="{ 'tab-active': activeTab === tab.key }"
-            @click="activeTab = tab.key"
-          >
-            <VIcon :icon="tab.icon" size="16" class="mr-2" />
-            {{ tab.label }}
-            <span class="tab-count">
-              {{ tab.key === 'all' ? visits.length : tab.key === 'past'
-                ? visits.filter(v => ['COMPLETED','CLOSED','CANCELLED'].includes((v.status||'').toUpperCase())).length
-                : visits.filter(v => !['COMPLETED','CLOSED','CANCELLED'].includes((v.status||'').toUpperCase())).length
-              }}
-            </span>
-          </button>
-        </div>
-      </VContainer>
-    </div>
-
-    <!-- Snackbar -->
-    <VSnackbar v-model="successMessage" color="success" location="top" timeout="4000">
-      <div class="d-flex align-center gap-3">
-        <VIcon icon="tabler-circle-check-filled" size="22" />
-        <span class="font-weight-bold">{{ successMessage }}</span>
-      </div>
-    </VSnackbar>
-
-    <!-- Main Content -->
-    <VContainer class="py-10">
-      <!-- Loading -->
-      <div v-if="loading" class="d-flex flex-column align-center py-24">
-        <VProgressCircular indeterminate color="primary" size="56" width="4" />
-        <p class="mt-6 text-body-1 text-slate-400 font-weight-medium">Fetching your records...</p>
+        </VContainer>
       </div>
 
-      <!-- Empty State -->
-      <div v-else-if="filteredVisits.length === 0" class="empty-state">
-        <div class="empty-icon-box">
-          <VIcon icon="tabler-clipboard-x" size="48" color="slate-300" />
+      <!-- Snackbar -->
+      <VSnackbar
+        v-model="successMessage"
+        color="success"
+        location="top"
+        timeout="4000"
+      >
+        <div class="d-flex align-center gap-3">
+          <VIcon
+            icon="tabler-circle-check-filled"
+            size="22"
+          />
+          <span class="font-weight-bold">{{ successMessage }}</span>
         </div>
-        <h2 class="text-h4 font-weight-black text-slate-900 mb-3">No Records Found</h2>
-        <p class="text-body-1 text-slate-400 font-weight-medium">
-          {{ activeTab === 'upcoming' ? "You don't have any active visits right now." : "No completed visits on record yet." }}
-        </p>
-      </div>
+      </VSnackbar>
 
-      <!-- Visit Cards -->
-      <div v-else class="visit-list">
+      <!-- Main Content -->
+      <VContainer class="py-10">
+        <!-- Loading -->
         <div
-          v-for="(visit, index) in filteredVisits"
-          :key="visit.id"
-          class="visit-card"
-          :style="{ animationDelay: `${index * 0.07}s` }"
+          v-if="loading"
+          class="d-flex flex-column align-center py-24"
         >
-          <!-- Card Header -->
-          <div class="visit-card-header">
-            <div class="status-stripe" :class="getStatusColor(visit.status)" />
-            <div class="flex-grow-1">
-              <div class="d-flex align-center justify-space-between flex-wrap gap-4">
-                <div>
-                  <div class="d-flex align-center gap-3 mb-2">
-                    <div class="pet-icon-box">
-                      <VIcon icon="tabler-paw" size="18" color="primary" />
-                    </div>
-                    <div>
-                      <h3 class="visit-pet-name">{{ visit.pet_name }}</h3>
-                      <div class="text-caption font-weight-bold text-primary">{{ visit.display_type }}</div>
-                    </div>
-                  </div>
-                  <div class="d-flex align-center gap-4 flex-wrap">
-                    <div class="d-flex align-center gap-1 text-slate-500 text-caption font-weight-bold">
-                      <VIcon icon="tabler-building-hospital" size="14" />
-                      {{ visit.clinic_name || 'PetLeo Clinic' }}
-                    </div>
-                    <div class="d-flex align-center gap-1 text-slate-400 text-caption font-weight-bold">
-                      <VIcon icon="tabler-calendar" size="14" />
-                      {{ formatDate(visit.created_at) }}
-                    </div>
-                    <div class="d-flex align-center gap-1 text-slate-400 text-caption font-weight-bold">
-                      <VIcon icon="tabler-clock" size="14" />
-                      {{ formatTime(visit.created_at) }}
-                    </div>
-                  </div>
-                </div>
+          <VProgressCircular
+            indeterminate
+            color="primary"
+            size="56"
+            width="4"
+          />
+          <p class="mt-6 text-body-1 text-slate-400 font-weight-medium">
+            Fetching your records...
+          </p>
+        </div>
 
-                <div class="d-flex align-center gap-3">
-                  <!-- Invoice amount -->
-                  <div v-if="visit.invoice" class="invoice-pill">
-                    <div class="invoice-amount">₹{{ visit.invoice.total }}</div>
-                    <VChip
-                      :color="visit.invoice.status === 'PAID' ? 'success' : 'warning'"
-                      size="x-small"
-                      variant="flat"
-                      class="font-weight-black invoice-status-chip"
-                    >
-                      {{ visit.invoice.status }}
-                    </VChip>
-                  </div>
-
-                  <!-- Status Badge -->
-                  <VChip
-                    :color="getStatusColor(visit.status)"
-                    variant="tonal"
-                    size="small"
-                    class="font-weight-black status-chip"
-                  >
-                    <div class="status-dot" :class="getStatusColor(visit.status)" />
-                    {{ getStatusLabel(visit.status) }}
-                  </VChip>
-
-                  <!-- Review Button -->
-                  <VBtn
-                    v-if="['CLOSED', 'COMPLETED'].includes((visit.status || '').toUpperCase())"
-                    variant="tonal"
-                    color="amber-darken-2"
-                    size="small"
-                    class="rounded-xl font-weight-bold"
-                    prepend-icon="tabler-star"
-                    @click="openReviewDialog(visit)"
-                  >
-                    Review
-                  </VBtn>
-                </div>
-              </div>
-            </div>
+        <!-- Empty State -->
+        <div
+          v-else-if="filteredVisits.length === 0"
+          class="empty-state"
+        >
+          <div class="empty-icon-box">
+            <VIcon
+              icon="tabler-clipboard-x"
+              size="48"
+              color="slate-300"
+            />
           </div>
+          <h2 class="text-h4 font-weight-black text-slate-900 mb-3">
+            No Records Found
+          </h2>
+          <p class="text-body-1 text-slate-400 font-weight-medium">
+            {{ activeTab === 'upcoming' ? "You don't have any active visits right now." : "No completed visits on record yet." }}
+          </p>
+        </div>
 
-          <!-- Expandable Details (using VExpansionPanels) -->
-          <VExpansionPanels variant="accordion" flat>
-            <VExpansionPanel class="expansion-panel">
-              <VExpansionPanelTitle class="detail-toggle-btn">
-                <VIcon icon="tabler-chevron-down" size="16" class="mr-2" />
-                {{ visit.source === 'booking' ? 'View Booking Details' : 'View Clinical Details' }}
-              </VExpansionPanelTitle>
-
-              <VExpansionPanelText class="pa-0">
-                <div class="detail-body">
-                  <!-- Booking specific info -->
-                  <div v-if="visit.source === 'booking'" class="detail-section">
-                    <div class="detail-section-title">
-                      <VIcon icon="tabler-info-circle" size="16" class="mr-2" color="primary" />
-                      Booking Information
+        <!-- Visit Cards -->
+        <div
+          v-else
+          class="visit-list"
+        >
+          <div
+            v-for="(visit, index) in filteredVisits"
+            :key="visit.id"
+            class="visit-card"
+            :style="{ animationDelay: `${index * 0.07}s` }"
+          >
+            <!-- Card Header -->
+            <div class="visit-card-header">
+              <div
+                class="status-stripe"
+                :class="getStatusColor(visit.status)"
+              />
+              <div class="flex-grow-1">
+                <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+                  <div>
+                    <div class="d-flex align-center gap-3 mb-2">
+                      <div class="pet-icon-box">
+                        <VIcon
+                          icon="tabler-paw"
+                          size="18"
+                          color="primary"
+                        />
+                      </div>
+                      <div>
+                        <h3 class="visit-pet-name">
+                          {{ visit.pet_name }}
+                        </h3>
+                        <div class="text-caption font-weight-bold text-primary">
+                          {{ visit.display_type }}
+                        </div>
+                      </div>
                     </div>
-                    <div class="d-flex flex-column gap-2 text-body-2 text-slate-600">
-                      <div class="d-flex justify-space-between">
-                        <span class="font-weight-bold">Service:</span>
-                        <span>{{ visit.original?.service_snapshot?.service_name || visit.original?.service_name || visit.display_type }}</span>
+                    <div class="d-flex align-center gap-4 flex-wrap">
+                      <div class="d-flex align-center gap-1 text-slate-500 text-caption font-weight-bold">
+                        <VIcon
+                          icon="tabler-building-hospital"
+                          size="14"
+                        />
+                        {{ visit.clinic_name || 'PetLeo Clinic' }}
                       </div>
-                      <div class="d-flex justify-space-between">
-                        <span class="font-weight-bold">Category:</span>
-                        <span>{{ visit.original?.service_snapshot?.category_name || visit.original?.category_name }}</span>
+                      <div class="d-flex align-center gap-1 text-slate-400 text-caption font-weight-bold">
+                        <VIcon
+                          icon="tabler-calendar"
+                          size="14"
+                        />
+                        {{ formatDate(visit.created_at) }}
                       </div>
-                      <div class="d-flex justify-space-between">
-                        <span class="font-weight-bold">Facility:</span>
-                        <span>{{ visit.original?.service_snapshot?.facility_name || visit.original?.facility_name }}</span>
-                      </div>
-                      <div v-if="visit.original?.notes" class="mt-2">
-                        <div class="font-weight-bold mb-1">Notes:</div>
-                        <div class="bg-slate-50 pa-3 rounded-lg border italic">{{ visit.original.notes }}</div>
+                      <div class="d-flex align-center gap-1 text-slate-400 text-caption font-weight-bold">
+                        <VIcon
+                          icon="tabler-clock"
+                          size="14"
+                        />
+                        {{ formatTime(visit.created_at) }}
                       </div>
                     </div>
                   </div>
 
-                  <!-- Vitals -->
-                  <div v-if="visit.vitals" class="detail-section">
-                    <div class="detail-section-title">
-                      <VIcon icon="tabler-activity" size="16" class="mr-2" color="primary" />
-                      Patient Vitals
-                    </div>
-                    <div class="vitals-grid">
-                      <div v-for="(val, key) in visit.vitals" :key="key" class="vital-card">
-                        <div class="vital-val">{{ val }}</div>
-                        <div class="vital-key">{{ key }}</div>
+                  <div class="d-flex align-center gap-3">
+                    <!-- Invoice amount -->
+                    <div
+                      v-if="visit.invoice"
+                      class="invoice-pill"
+                    >
+                      <div class="invoice-amount">
+                        ₹{{ visit.invoice.total }}
                       </div>
-                    </div>
-                  </div>
-
-                  <!-- Prescriptions -->
-                  <div v-if="visit.prescriptions && visit.prescriptions.length > 0" class="detail-section">
-                    <div class="detail-section-title">
-                      <VIcon icon="tabler-pill" size="16" class="mr-2" color="success" />
-                      Prescriptions
-                    </div>
-                    <div class="d-flex flex-wrap gap-2">
                       <VChip
-                        v-for="p in visit.prescriptions"
-                        :key="p.id"
-                        color="primary"
-                        variant="tonal"
-                        size="small"
-                        prepend-icon="tabler-pill"
-                        class="rounded-xl font-weight-bold"
+                        :color="visit.invoice.status === 'PAID' ? 'success' : 'warning'"
+                        size="x-small"
+                        variant="flat"
+                        class="font-weight-black invoice-status-chip"
                       >
-                        {{ p.medicine_name }}
+                        {{ visit.invoice.status }}
                       </VChip>
                     </div>
-                  </div>
 
-                  <!-- Billing -->
-                  <div v-if="visit.invoice" class="detail-section">
-                    <div class="detail-section-title">
-                      <VIcon icon="tabler-receipt" size="16" class="mr-2" color="warning" />
-                      Billing Summary
-                    </div>
-                    <div class="billing-table">
+                    <!-- Status Badge -->
+                    <VChip
+                      :color="getStatusColor(visit.status)"
+                      variant="tonal"
+                      size="small"
+                      class="font-weight-black status-chip"
+                    >
                       <div
-                        v-for="charge in visit.invoice.charges"
-                        :key="charge.id"
-                        class="billing-row"
-                      >
-                        <span class="billing-desc">{{ charge.description || charge.charge_type }}</span>
-                        <span class="billing-amount">₹{{ charge.amount }}</span>
-                      </div>
-                      <div class="billing-total-row">
-                        <span>Grand Total</span>
-                        <span class="billing-total-amount">₹{{ visit.invoice.total }}</span>
-                      </div>
-                    </div>
+                        class="status-dot"
+                        :class="getStatusColor(visit.status)"
+                      />
+                      {{ getStatusLabel(visit.status) }}
+                    </VChip>
 
-                    <!-- Pay CTA -->
-                    <div v-if="visit.invoice.status === 'DRAFT' || visit.invoice.status === 'UNPAID'" class="pay-cta">
-                      <VBtn
-                        block
-                        color="primary"
-                        height="52"
-                        class="font-weight-black rounded-2xl"
-                        prepend-icon="tabler-credit-card"
-                        :loading="payingId === visit.invoice.id"
-                        @click="payInvoice(visit.invoice.id)"
-                      >
-                        Proceed to Payment
-                      </VBtn>
-                      <div class="pay-caption">🔒 Secured by PetLeo Payment Gateway</div>
-                    </div>
-                    <div v-else class="paid-badge">
-                      <VIcon icon="tabler-circle-check-filled" color="success" size="20" class="mr-2" />
-                      Payment Completed
-                    </div>
+                    <!-- Review Button -->
+                    <VBtn
+                      v-if="['CLOSED', 'COMPLETED'].includes((visit.status || '').toUpperCase())"
+                      variant="tonal"
+                      color="amber-darken-2"
+                      size="small"
+                      class="rounded-xl font-weight-bold"
+                      prepend-icon="tabler-star"
+                      @click="openReviewDialog(visit)"
+                    >
+                      Review
+                    </VBtn>
                   </div>
                 </div>
-              </VExpansionPanelText>
-            </VExpansionPanel>
-          </VExpansionPanels>
-        </div>
-      </div>
-    </VContainer>
+              </div>
+            </div>
 
-    <!-- Review Dialog -->
-    <ReviewDialog
-      v-if="selectedProviderForReview"
-      v-model="showReviewDialog"
-      :booking-item="selectedVisitForReview"
-      :provider="selectedProviderForReview"
-      @saved="fetchVisits"
-    />
+            <!-- Expandable Details (using VExpansionPanels) -->
+            <VExpansionPanels
+              variant="accordion"
+              flat
+            >
+              <VExpansionPanel class="expansion-panel">
+                <VExpansionPanelTitle class="detail-toggle-btn">
+                  <VIcon
+                    icon="tabler-chevron-down"
+                    size="16"
+                    class="mr-2"
+                  />
+                  {{ visit.source === 'booking' ? 'View Booking Details' : 'View Clinical Details' }}
+                </VExpansionPanelTitle>
+
+                <VExpansionPanelText class="pa-0">
+                  <div class="detail-body">
+                    <!-- Booking specific info -->
+                    <div
+                      v-if="visit.source === 'booking'"
+                      class="detail-section"
+                    >
+                      <div class="detail-section-title">
+                        <VIcon
+                          icon="tabler-info-circle"
+                          size="16"
+                          class="mr-2"
+                          color="primary"
+                        />
+                        Booking Information
+                      </div>
+                      <div class="d-flex flex-column gap-2 text-body-2 text-slate-600">
+                        <div class="d-flex justify-space-between">
+                          <span class="font-weight-bold">Service:</span>
+                          <span>{{ visit.original?.service_snapshot?.service_name || visit.original?.service_name || visit.display_type }}</span>
+                        </div>
+                        <div class="d-flex justify-space-between">
+                          <span class="font-weight-bold">Category:</span>
+                          <span>{{ visit.original?.service_snapshot?.category_name || visit.original?.category_name }}</span>
+                        </div>
+                        <div class="d-flex justify-space-between">
+                          <span class="font-weight-bold">Facility:</span>
+                          <span>{{ visit.original?.service_snapshot?.facility_name || visit.original?.facility_name }}</span>
+                        </div>
+                        <div
+                          v-if="visit.original?.notes"
+                          class="mt-2"
+                        >
+                          <div class="font-weight-bold mb-1">
+                            Notes:
+                          </div>
+                          <div class="bg-slate-50 pa-3 rounded-lg border italic">
+                            {{ visit.original.notes }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Vitals -->
+                    <div
+                      v-if="visit.vitals"
+                      class="detail-section"
+                    >
+                      <div class="detail-section-title">
+                        <VIcon
+                          icon="tabler-activity"
+                          size="16"
+                          class="mr-2"
+                          color="primary"
+                        />
+                        Patient Vitals
+                      </div>
+                      <div class="vitals-grid">
+                        <div
+                          v-for="(val, key) in visit.vitals"
+                          :key="key"
+                          class="vital-card"
+                        >
+                          <div class="vital-val">
+                            {{ val }}
+                          </div>
+                          <div class="vital-key">
+                            {{ key }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Prescriptions -->
+                    <div
+                      v-if="visit.prescriptions && visit.prescriptions.length > 0"
+                      class="detail-section"
+                    >
+                      <div class="detail-section-title">
+                        <VIcon
+                          icon="tabler-pill"
+                          size="16"
+                          class="mr-2"
+                          color="success"
+                        />
+                        Prescriptions
+                      </div>
+                      <div class="d-flex flex-wrap gap-2">
+                        <VChip
+                          v-for="p in visit.prescriptions"
+                          :key="p.id"
+                          color="primary"
+                          variant="tonal"
+                          size="small"
+                          prepend-icon="tabler-pill"
+                          class="rounded-xl font-weight-bold"
+                        >
+                          {{ p.medicine_name }}
+                        </VChip>
+                      </div>
+                    </div>
+
+                    <!-- Billing -->
+                    <div
+                      v-if="visit.invoice"
+                      class="detail-section"
+                    >
+                      <div class="detail-section-title">
+                        <VIcon
+                          icon="tabler-receipt"
+                          size="16"
+                          class="mr-2"
+                          color="warning"
+                        />
+                        Billing Summary
+                      </div>
+                      <div class="billing-table">
+                        <div
+                          v-for="charge in visit.invoice.charges"
+                          :key="charge.id"
+                          class="billing-row"
+                        >
+                          <span class="billing-desc">{{ charge.description || charge.charge_type }}</span>
+                          <span class="billing-amount">₹{{ charge.amount }}</span>
+                        </div>
+                        <div class="billing-total-row">
+                          <span>Grand Total</span>
+                          <span class="billing-total-amount">₹{{ visit.invoice.total }}</span>
+                        </div>
+                      </div>
+
+                      <!-- Pay CTA -->
+                      <div
+                        v-if="visit.invoice.status === 'DRAFT' || visit.invoice.status === 'UNPAID'"
+                        class="pay-cta"
+                      >
+                        <VBtn
+                          block
+                          color="primary"
+                          height="52"
+                          class="font-weight-black rounded-2xl"
+                          prepend-icon="tabler-credit-card"
+                          :loading="payingId === visit.invoice.id"
+                          @click="payInvoice(visit.invoice.id)"
+                        >
+                          Proceed to Payment
+                        </VBtn>
+                        <div class="pay-caption">
+                          🔒 Secured by PetLeo Payment Gateway
+                        </div>
+                      </div>
+                      <div
+                        v-else
+                        class="paid-badge"
+                      >
+                        <VIcon
+                          icon="tabler-circle-check-filled"
+                          color="success"
+                          size="20"
+                          class="mr-2"
+                        />
+                        Payment Completed
+                      </div>
+                    </div>
+                  </div>
+                </VExpansionPanelText>
+              </VExpansionPanel>
+            </VExpansionPanels>
+          </div>
+        </div>
+      </VContainer>
+
+      <!-- Review Dialog -->
+      <ReviewDialog
+        v-if="selectedProviderForReview"
+        v-model="showReviewDialog"
+        :booking-item="selectedVisitForReview"
+        :provider="selectedProviderForReview"
+        @saved="fetchVisits"
+      />
     </div>
   </div>
 </template>

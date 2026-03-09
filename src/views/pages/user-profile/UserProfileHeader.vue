@@ -14,6 +14,7 @@ const uploadAvatar = async e => {
   if (!file) return
 
   loading.value = true
+
   const fd = new FormData()
 
   fd.append('avatar', file)

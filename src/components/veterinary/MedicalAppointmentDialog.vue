@@ -8,8 +8,8 @@ const props = defineProps({
   modelValue: Boolean,
   clinicId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'success'])
@@ -30,7 +30,7 @@ const form = ref({
   doctor_auth_id: '',
   appointment_date: new Date().toISOString().split('T')[0],
   start_time: '',
-  notes: ''
+  notes: '',
 })
 
 const availableSlots = ref([])
@@ -41,16 +41,17 @@ const fetchInitialData = async () => {
     const [petsRes, docsRes, typesRes] = await Promise.all([
       vetStore.fetchPets(),
       veterinaryApi.get('/api/veterinary/assignments/', {
-        params: { clinic: props.clinicId, role: 'DOCTOR' }
+        params: { clinic: props.clinicId, role: 'DOCTOR' },
       }),
-      providerApi.get('/api/provider/consultation-types/')
+      providerApi.get('/api/provider/consultation-types/'),
     ])
+
     pets.value = petsRes
     doctors.value = docsRes.data.results || docsRes.data
     consultationTypes.value = typesRes.data.results || typesRes.data
     
     if (doctors.value.length > 0) {
-        form.value.doctor_auth_id = doctors.value[0].staff_auth_id
+      form.value.doctor_auth_id = doctors.value[0].staff_auth_id
     }
     
     if (consultationTypes.value.length > 0) {
@@ -69,13 +70,14 @@ const fetchSlots = async () => {
       service_id: 'consultation', // Base service type
       consultation_type_id: form.value.consultation_type_id,
       date: form.value.appointment_date,
-      doctor_auth_id: form.value.doctor_auth_id
+      doctor_auth_id: form.value.doctor_auth_id,
     })
+
     availableSlots.value = slots
     if (availableSlots.value.length > 0) {
       form.value.start_time = availableSlots.value[0]
     } else {
-        form.value.start_time = ''
+      form.value.start_time = ''
     }
   } catch (err) {
     console.error('Failed to fetch slots:', err)
@@ -86,8 +88,9 @@ const fetchSlots = async () => {
 
 const submit = async () => {
   if (!form.value.pet_id || !form.value.start_time) {
-      alert('Please select a pet and a time slot.')
-      return
+    alert('Please select a pet and a time slot.')
+    
+    return
   }
   
   loading.value = true
@@ -98,7 +101,7 @@ const submit = async () => {
       consultation_type: selectedType.value?.name || '',
       consultation_fee: selectedType.value?.consultation_fee || 0.00,
       clinic_id: props.clinicId,
-      created_by: 'RECEPTIONIST'
+      created_by: 'RECEPTIONIST',
     })
     emit('success', 'Appointment scheduled successfully!')
     emit('update:modelValue', false)
@@ -109,7 +112,7 @@ const submit = async () => {
   }
 }
 
-watch(() => props.modelValue, (val) => {
+watch(() => props.modelValue, val => {
   if (val) {
     fetchInitialData()
     fetchSlots()
@@ -140,7 +143,10 @@ watch(() => [form.value.appointment_date, form.value.doctor_auth_id, form.value.
             />
           </VCol>
 
-          <VCol cols="12" md="6">
+          <VCol
+            cols="12"
+            md="6"
+          >
             <AppSelect
               v-model="form.doctor_auth_id"
               :items="doctors"
@@ -151,7 +157,10 @@ watch(() => [form.value.appointment_date, form.value.doctor_auth_id, form.value.
             />
           </VCol>
 
-          <VCol cols="12" md="6">
+          <VCol
+            cols="12"
+            md="6"
+          >
             <AppSelect
               v-model="form.consultation_type_id"
               :items="consultationTypes"
@@ -170,7 +179,10 @@ watch(() => [form.value.appointment_date, form.value.doctor_auth_id, form.value.
             </AppSelect>
           </VCol>
 
-          <VCol cols="12" md="6">
+          <VCol
+            cols="12"
+            md="6"
+          >
             <AppTextField
               v-model="form.appointment_date"
               type="date"
@@ -178,7 +190,10 @@ watch(() => [form.value.appointment_date, form.value.doctor_auth_id, form.value.
             />
           </VCol>
 
-          <VCol cols="12" md="6">
+          <VCol
+            cols="12"
+            md="6"
+          >
             <AppSelect
               v-model="form.start_time"
               :items="availableSlots"

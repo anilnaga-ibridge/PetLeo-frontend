@@ -183,7 +183,10 @@ const deleteInvoice = async id => {
 </script>
 
 <template>
-  <section v-if="invoices" class="pa-4">
+  <section
+    v-if="invoices"
+    class="pa-4"
+  >
     <!-- 👉 Invoice Widgets -->
     <VCard class="mb-6">
       <VCardText class="px-3">

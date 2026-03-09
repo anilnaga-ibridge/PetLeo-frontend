@@ -81,6 +81,26 @@ const checkInVisit = async visit => {
     checkingIn.value = null
   }
 }
+
+const getPriorityColor = priority => {
+  const map = {
+    'P1': 'error',
+    'P2': 'warning',
+    'P3': 'success',
+  }
+  
+  return map[priority] || 'secondary'
+}
+
+const getPriorityLabel = priority => {
+  const map = {
+    'P1': 'CRITICAL',
+    'P2': 'URGENT',
+    'P3': 'ROUTINE',
+  }
+  
+  return map[priority] || priority
+}
 </script>
 
 <template>
@@ -152,6 +172,7 @@ const checkInVisit = async visit => {
           v-else
           :items="waitingVisits"
           :headers="[
+            { title: 'Priority', key: 'priority', width: '120px' },
             { title: 'Pet', key: 'pet.name' },
             { title: 'Owner', key: 'pet.owner.name' },
             { title: 'Wait Time', key: 'created_at' },
@@ -160,6 +181,16 @@ const checkInVisit = async visit => {
           ]"
           :loading="loading"
         >
+          <template #item.priority="{ item }">
+            <VChip
+              :color="getPriorityColor(item.priority)"
+              size="small"
+              variant="flat"
+              class="font-weight-bold"
+            >
+              {{ getPriorityLabel(item.priority) }}
+            </VChip>
+          </template>
           <template #item.created_at="{ item }">
             <VChip
               :color="getSlaColor(getWaitTime(item.created_at))"

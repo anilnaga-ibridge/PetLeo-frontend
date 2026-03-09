@@ -8,26 +8,70 @@ const showRatingDialog = inject('showRatingDialog')
 </script>
 
 <template>
-  <div v-if="provider" class="reviews-page">
-    <div id="reviews-section" class="mb-12">
+  <div
+    v-if="provider"
+    class="reviews-page"
+  >
+    <div
+      id="reviews-section"
+      class="mb-12"
+    >
       <div class="section-title-bar d-flex align-center justify-space-between mb-8 pa-6 rounded-xl bg-gradient-amber">
         <div>
-          <h2 class="text-h4 font-weight-black text-white mb-1">Customer Experience</h2>
-          <p class="text-body-2 text-white opacity-90 mb-0">What pet owners are saying about {{ provider.full_name }}</p>
+          <h2 class="text-h4 font-weight-black text-white mb-1">
+            Customer Experience
+          </h2>
+          <p class="text-body-2 text-white opacity-90 mb-0">
+            What pet owners are saying about {{ provider.full_name }}
+          </p>
         </div>
-        <VIcon icon="tabler-message-star" size="48" color="white" class="opacity-20" />
+        <VIcon
+          icon="tabler-message-star"
+          size="48"
+          color="white"
+          class="opacity-20"
+        />
       </div>
 
-      <VCard flat border class="rounded-xl pa-8">
-        <div v-if="reviewsLoading" class="text-center py-12">
-          <VProgressCircular indeterminate color="primary" />
+      <VCard
+        flat
+        border
+        class="rounded-xl pa-8"
+      >
+        <div
+          v-if="reviewsLoading"
+          class="text-center py-12"
+        >
+          <VProgressCircular
+            indeterminate
+            color="primary"
+          />
         </div>
-        <div v-else-if="reviews.length === 0" class="text-center py-12">
-          <VIcon icon="tabler-message-off" size="56" color="slate-200" class="mb-3" />
-          <p class="text-h6 text-slate-400">No reviews yet</p>
-          <VBtn variant="text" color="primary" @click="showRatingDialog = true">Be the first to rate!</VBtn>
+        <div
+          v-else-if="reviews.length === 0"
+          class="text-center py-12"
+        >
+          <VIcon
+            icon="tabler-message-off"
+            size="56"
+            color="slate-200"
+            class="mb-3"
+          />
+          <p class="text-h6 text-slate-400">
+            No reviews yet
+          </p>
+          <VBtn
+            variant="text"
+            color="primary"
+            @click="showRatingDialog = true"
+          >
+            Be the first to rate!
+          </VBtn>
         </div>
-        <div v-else class="reviews-list-neat">
+        <div
+          v-else
+          class="reviews-list-neat"
+        >
           <div 
             v-for="(review, index) in reviews" 
             :key="review.id"
@@ -36,12 +80,20 @@ const showRatingDialog = inject('showRatingDialog')
           >
             <div class="d-flex justify-space-between align-start mb-4">
               <div class="d-flex align-center gap-3">
-                <VAvatar color="primary" variant="tonal" size="40">
+                <VAvatar
+                  color="primary"
+                  variant="tonal"
+                  size="40"
+                >
                   {{ review.customer_name?.charAt(0) || 'P' }}
                 </VAvatar>
                 <div>
-                  <div class="text-subtitle-1 font-weight-bold text-slate-900">{{ review.customer_name }}</div>
-                  <div class="text-caption text-slate-400">{{ new Date(review.created_at).toLocaleDateString() }}</div>
+                  <div class="text-subtitle-1 font-weight-bold text-slate-900">
+                    {{ review.customer_name }}
+                  </div>
+                  <div class="text-caption text-slate-400">
+                    {{ new Date(review.created_at).toLocaleDateString() }}
+                  </div>
                 </div>
               </div>
               <VRating
@@ -54,15 +106,26 @@ const showRatingDialog = inject('showRatingDialog')
                 size="20"
               />
             </div>
-            <p class="text-body-1 text-slate-600 mb-4 px-2">{{ review.review || 'No written feedback provided.' }}</p>
+            <p class="text-body-1 text-slate-600 mb-4 px-2">
+              {{ review.review || 'No written feedback provided.' }}
+            </p>
 
             <!-- Provider Response -->
-            <div v-if="review.provider_response" class="provider-reply-box ml-10 pa-5 bg-slate-50 rounded-lg border-s-4 border-primary">
+            <div
+              v-if="review.provider_response"
+              class="provider-reply-box ml-10 pa-5 bg-slate-50 rounded-lg border-s-4 border-primary"
+            >
               <div class="d-flex align-center gap-2 mb-2">
-                <VIcon icon="tabler-corner-down-right" size="18" color="primary" />
+                <VIcon
+                  icon="tabler-corner-down-right"
+                  size="18"
+                  color="primary"
+                />
                 <span class="text-subtitle-2 font-weight-bold text-primary">Response from Provider</span>
               </div>
-              <p class="text-body-2 text-slate-700 mb-0 italic">"{{ review.provider_response }}"</p>
+              <p class="text-body-2 text-slate-700 mb-0 italic">
+                "{{ review.provider_response }}"
+              </p>
             </div>
           </div>
         </div>

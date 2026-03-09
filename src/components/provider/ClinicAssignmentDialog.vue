@@ -216,9 +216,14 @@ const getClinicName = id => clinics.value.find(c => c.id === id)?.name || id
               </div>
             </div>
 
-            <div v-if="newAssignment.role === 'Doctor'" class="d-flex gap-4 align-end">
+            <div
+              v-if="newAssignment.role === 'Doctor'"
+              class="d-flex gap-4 align-end"
+            >
               <div style="flex: 2">
-                <VLabel class="mb-1 text-caption">Specialization</VLabel>
+                <VLabel class="mb-1 text-caption">
+                  Specialization
+                </VLabel>
                 <VTextField 
                   v-model="newAssignment.specialization" 
                   placeholder="e.g. Surgeon" 
@@ -227,7 +232,9 @@ const getClinicName = id => clinics.value.find(c => c.id === id)?.name || id
                 />
               </div>
               <div style="flex: 2">
-                <VLabel class="mb-1 text-caption">Consultation Fee (₹)</VLabel>
+                <VLabel class="mb-1 text-caption">
+                  Consultation Fee (₹)
+                </VLabel>
                 <VTextField 
                   v-model.number="newAssignment.consultation_fee" 
                   type="number"

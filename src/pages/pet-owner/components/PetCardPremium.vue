@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  pet: { type: Object, required: true }
+  pet: { type: Object, required: true },
 })
 
 const emit = defineEmits(['view', 'medical', 'edit', 'delete'])
@@ -13,20 +13,24 @@ const nextVaccination = computed(() => {
   const d = props.pet.medical_profile?.next_due_date
   if (!d) return null
   const days = Math.ceil((new Date(d) - new Date()) / 86400000)
+  
   return { date: new Date(d).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }), days }
 })
 
 const vaccDays = computed(() => nextVaccination.value?.days ?? null)
+
 const vaccColor = computed(() => {
   if (vaccDays.value === null) return '#94a3b8'
   if (vaccDays.value <= 3) return '#ef4444'
   if (vaccDays.value <= 7) return '#f59e0b'
+  
   return '#10b981'
 })
 
 const photoUrl = computed(() => {
   if (!props.pet.photo) return null
   if (props.pet.photo.startsWith('http')) return props.pet.photo
+  
   return `http://localhost:8005${props.pet.photo}`
 })
 
@@ -40,6 +44,7 @@ const speciesIcon = computed(() => {
   if (s.includes('RABBIT')) return 'tabler-rabbit'
   if (s.includes('FISH')) return 'tabler-fish'
   if (s.includes('REPTILE') || s.includes('SNAKE') || s.includes('LIZARD')) return 'tabler-stretching'
+  
   return 'tabler-paw'
 })
 
@@ -51,6 +56,7 @@ const speciesEmoji = computed(() => {
   if (s.includes('RABBIT')) return '🐇'
   if (s.includes('FISH')) return '🐠'
   if (s.includes('REPTILE') || s.includes('SNAKE') || s.includes('LIZARD')) return '🦎'
+  
   return '🐾'
 })
 
@@ -58,6 +64,7 @@ const ringColor = computed(() => {
   if (vaccDays.value === null) return '#e2e8f0'
   if (vaccDays.value <= 3) return '#ef4444'
   if (vaccDays.value <= 7) return '#f59e0b'
+  
   return '#10b981'
 })
 
@@ -67,8 +74,11 @@ const healthArc = computed(() => {
   if (vaccDays.value === null) return 80
   if (vaccDays.value <= 3) return 30
   if (vaccDays.value <= 7) return 60
+  
   return 90
 })
+
+
 // SVG arc: circumference = 2π × 42 ≈ 264
 const arcOffset = computed(() => 264 - (healthArc.value / 100) * 264)
 </script>
@@ -79,24 +89,69 @@ const arcOffset = computed(() => 264 - (healthArc.value / 100) * 264)
     <div class="card-top-strip">
       <span class="species-emoji">{{ speciesEmoji }}</span>
       <div class="card-menu">
-        <VMenu location="bottom end" transition="slide-y-transition" offset="4">
+        <VMenu
+          location="bottom end"
+          transition="slide-y-transition"
+          offset="4"
+        >
           <template #activator="{ props: mp }">
-            <button v-bind="mp" class="menu-trigger">
-              <VIcon icon="tabler-dots-vertical" size="14" />
+            <button
+              v-bind="mp"
+              class="menu-trigger"
+            >
+              <VIcon
+                icon="tabler-dots-vertical"
+                size="14"
+              />
             </button>
           </template>
-          <VList class="menu-list py-1" width="170" elevation="16" rounded="xl">
-            <VListItem density="compact" class="menu-item" @click="emit('edit', pet)">
-              <template #prepend><VIcon icon="tabler-pencil" size="15" class="mr-2 text-slate-500" /></template>
+          <VList
+            class="menu-list py-1"
+            width="170"
+            elevation="16"
+            rounded="xl"
+          >
+            <VListItem
+              density="compact"
+              class="menu-item"
+              @click="emit('edit', pet)"
+            >
+              <template #prepend>
+                <VIcon
+                  icon="tabler-pencil"
+                  size="15"
+                  class="mr-2 text-slate-500"
+                />
+              </template>
               <span class="text-sm font-weight-bold">Edit</span>
             </VListItem>
-            <VListItem density="compact" class="menu-item" @click="emit('medical', pet)">
-              <template #prepend><VIcon icon="tabler-stethoscope" size="15" class="mr-2 text-slate-500" /></template>
+            <VListItem
+              density="compact"
+              class="menu-item"
+              @click="emit('medical', pet)"
+            >
+              <template #prepend>
+                <VIcon
+                  icon="tabler-stethoscope"
+                  size="15"
+                  class="mr-2 text-slate-500"
+                />
+              </template>
               <span class="text-sm font-weight-bold">Medical</span>
             </VListItem>
             <VDivider class="my-1 opacity-50" />
-            <VListItem density="compact" class="menu-item danger" @click="emit('delete', pet)">
-              <template #prepend><VIcon icon="tabler-trash" size="15" class="mr-2 text-error" /></template>
+            <VListItem
+              density="compact"
+              class="menu-item danger"
+              @click="emit('delete', pet)"
+            >
+              <template #prepend>
+                <VIcon
+                  icon="tabler-trash"
+                  size="15"
+                  class="mr-2 text-error"
+                />
+              </template>
               <span class="text-sm font-weight-bold text-error">Delete</span>
             </VListItem>
           </VList>
@@ -106,12 +161,24 @@ const arcOffset = computed(() => 264 - (healthArc.value / 100) * 264)
 
     <!-- Avatar with SVG ring -->
     <div class="avatar-zone">
-      <svg class="health-ring" viewBox="0 0 100 100" fill="none">
+      <svg
+        class="health-ring"
+        viewBox="0 0 100 100"
+        fill="none"
+      >
         <!-- Track -->
-        <circle cx="50" cy="50" r="42" stroke="#f1f5f9" stroke-width="5" />
+        <circle
+          cx="50"
+          cy="50"
+          r="42"
+          stroke="#f1f5f9"
+          stroke-width="5"
+        />
         <!-- Arc -->
         <circle
-          cx="50" cy="50" r="42"
+          cx="50"
+          cy="50"
+          r="42"
           :stroke="vaccColor"
           stroke-width="5"
           stroke-linecap="round"
@@ -124,65 +191,133 @@ const arcOffset = computed(() => 264 - (healthArc.value / 100) * 264)
 
       <!-- Photo or Static Icon -->
       <div class="avatar-inner">
-        <img v-if="photoUrl" :src="photoUrl" class="avatar-img" :alt="pet.name" />
-        <div v-else class="avatar-static-icon">
-          <VIcon :icon="speciesIcon" size="48" color="primary" />
+        <img
+          v-if="photoUrl"
+          :src="photoUrl"
+          class="avatar-img"
+          :alt="pet.name"
+        >
+        <div
+          v-else
+          class="avatar-static-icon"
+        >
+          <VIcon
+            :icon="speciesIcon"
+            size="48"
+            color="primary"
+          />
         </div>
       </div>
 
       <!-- Health % badge -->
-      <div class="health-badge" :style="`background: ${vaccColor}`">
+      <div
+        class="health-badge"
+        :style="`background: ${vaccColor}`"
+      >
         {{ healthArc }}%
       </div>
     </div>
 
     <!-- Name & Breed -->
     <div class="pet-name-row">
-      <h3 class="pet-name-text">{{ pet.name }}</h3>
-      <p class="pet-breed-text">{{ pet.breed || pet.species }}</p>
+      <h3 class="pet-name-text">
+        {{ pet.name }}
+      </h3>
+      <p class="pet-breed-text">
+        {{ pet.breed || pet.species }}
+      </p>
     </div>
 
     <!-- Stats chips row -->
     <div class="stats-row">
       <div class="stat-chip">
-        <VIcon icon="tabler-clock" size="11" />
+        <VIcon
+          icon="tabler-clock"
+          size="11"
+        />
         {{ petAge }}
       </div>
       <div class="stat-chip">
-        <VIcon icon="tabler-gender-bigender" size="11" />
+        <VIcon
+          icon="tabler-gender-bigender"
+          size="11"
+        />
         {{ pet.gender || '—' }}
       </div>
-      <div v-if="pet.weight" class="stat-chip">
-        <VIcon icon="tabler-weight" size="11" />
+      <div
+        v-if="pet.weight"
+        class="stat-chip"
+      >
+        <VIcon
+          icon="tabler-weight"
+          size="11"
+        />
         {{ pet.weight }}kg
       </div>
     </div>
 
     <!-- Vaccination pill -->
-    <div class="vacc-row" :style="`border-color: ${vaccColor}30; background: ${vaccColor}08`">
-      <VIcon icon="tabler-vaccine" size="14" :color="vaccColor" />
+    <div
+      class="vacc-row"
+      :style="`border-color: ${vaccColor}30; background: ${vaccColor}08`"
+    >
+      <VIcon
+        icon="tabler-vaccine"
+        size="14"
+        :color="vaccColor"
+      />
       <div class="vacc-text">
         <span class="vacc-title">Next Vaccine</span>
-        <span class="vacc-date" :style="`color: ${vaccColor}`">
+        <span
+          class="vacc-date"
+          :style="`color: ${vaccColor}`"
+        >
           {{ nextVaccination ? nextVaccination.date : 'Not scheduled' }}
         </span>
       </div>
-      <div v-if="nextVaccination" class="vacc-days" :style="`background: ${vaccColor}; color: white`">
+      <div
+        v-if="nextVaccination"
+        class="vacc-days"
+        :style="`background: ${vaccColor}; color: white`"
+      >
         {{ vaccDays }}d
       </div>
     </div>
 
     <!-- Action Row -->
     <div class="action-row">
-      <button class="action-main" @click="emit('view', pet)">
-        <VIcon icon="tabler-file-text" size="16" class="mr-2" />
+      <button
+        class="action-main"
+        @click="emit('view', pet)"
+      >
+        <VIcon
+          icon="tabler-file-text"
+          size="16"
+          class="mr-2"
+        />
         Records
       </button>
-      <button class="action-icon" @click="emit('medical', pet)" title="Medical">
-        <VIcon icon="tabler-first-aid-kit" size="18" color="#6366f1" />
+      <button
+        class="action-icon"
+        title="Medical"
+        @click="emit('medical', pet)"
+      >
+        <VIcon
+          icon="tabler-first-aid-kit"
+          size="18"
+          color="#6366f1"
+        />
       </button>
-      <button class="action-icon" @click="emit('view', pet)" title="Profile">
-        <VIcon icon="tabler-arrow-right" size="18" color="#6366f1" />
+      <button
+        class="action-icon"
+        title="Profile"
+        @click="emit('view', pet)"
+      >
+        <VIcon
+          icon="tabler-arrow-right"
+          size="18"
+          color="#6366f1"
+        />
       </button>
     </div>
   </div>

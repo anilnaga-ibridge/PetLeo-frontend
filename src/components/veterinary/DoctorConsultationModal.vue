@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useVeterinaryStore } from '@/stores/veterinaryStore'
 import { veterinaryApi } from '@/api/veterinary'
+import AIMedicineAutocomplete from '@/components/veterinary/AIMedicineAutocomplete.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -23,6 +24,21 @@ const medicines = ref([{ name: '', dosage: '', frequency: '1-0-1', duration: '' 
 // Lab State
 const selectedLabs = ref([])
 const labTests = ['Blood Test', 'Urine Analysis', 'X-Ray', 'Ultrasound', 'Biopsy', 'Skin Scraping']
+
+const handleAiSuggestion = (suggestion, medIndex) => {
+  if (!suggestion || medIndex === undefined) return
+  
+  const med = medicines.value[medIndex]
+
+  med.name = suggestion.medicine_name
+  med.dosage = suggestion.dosage
+  
+  // Map frequency to 1-0-1 format if possible
+  const freqStr = (suggestion.frequency || '').toLowerCase()
+  if (freqStr.includes('bid') || freqStr.includes('twice')) med.frequency = '1-0-1'
+  else if (freqStr.includes('tid') || freqStr.includes('thrice')) med.frequency = '1-1-1'
+  else if (freqStr.includes('od') || freqStr.includes('daily')) med.frequency = '1-0-0'
+}
 
 // Helpers
 const vitalsSnapshot = computed(() => {
@@ -336,14 +352,10 @@ const submitConsultation = async () => {
                 class="d-flex gap-3 mb-4 align-end bg-grey-50 pa-3 rounded border border-dashed"
               >
                 <div style="flex: 3">
-                  <VTextField
+                  <AIMedicineAutocomplete
                     v-model="med.name"
                     label="Medicine"
-                    density="compact"
-                    bg-color="surface"
-                    hide-details
-                    placeholder="Name"
-                    variant="outlined"
+                    @suggestion-selected="(s) => handleAiSuggestion(s, idx)"
                   />
                 </div>
                 <div style="flex: 2">

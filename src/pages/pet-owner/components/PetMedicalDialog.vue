@@ -6,8 +6,8 @@ const props = defineProps({
   modelValue: Boolean,
   pet: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'saved', 'close'])
@@ -28,8 +28,8 @@ const form = ref({
     insurance_provider: '',
     insurance_policy_number: '',
     neutered: false,
-    special_notes: ''
-  }
+    special_notes: '',
+  },
 })
 
 const medications = ref([])
@@ -42,14 +42,14 @@ const medicationForm = ref({
   frequency: '',
   reason: '',
   start_date: new Date().toISOString().substr(0, 10),
-  is_active: true
+  is_active: true,
 })
 
 const vaccinationForm = ref({
   vaccine_name: '',
   date_administered: new Date().toISOString().substr(0, 10),
   next_due_date: '',
-  notes: ''
+  notes: '',
 })
 
 const showMedicationAdd = ref(false)
@@ -63,10 +63,11 @@ const fetchData = async () => {
       customerApi.get(`/api/pet-owner/pets/pets/${props.pet.id}/`),
       customerApi.get(`/api/pet-owner/pets/medications/?pet=${props.pet.id}`),
       customerApi.get(`/api/pet-owner/pets/vaccinations/?pet=${props.pet.id}`),
-      customerApi.get(`/api/pet-owner/pets/documents/?pet=${props.pet.id}`)
+      customerApi.get(`/api/pet-owner/pets/documents/?pet=${props.pet.id}`),
     ])
     
     const petData = petRes.data
+
     form.value = {
       weight_kg: petData.weight_kg || '',
       height_cm: petData.height_cm || '',
@@ -80,8 +81,8 @@ const fetchData = async () => {
         insurance_provider: petData.medical_profile?.insurance_provider || '',
         insurance_policy_number: petData.medical_profile?.insurance_policy_number || '',
         neutered: !!petData.medical_profile?.neutered,
-        special_notes: petData.medical_profile?.special_notes || ''
-      }
+        special_notes: petData.medical_profile?.special_notes || '',
+      },
     }
     
     medications.value = medRes.data
@@ -95,7 +96,7 @@ const fetchData = async () => {
   }
 }
 
-watch(() => props.modelValue, (val) => {
+watch(() => props.modelValue, val => {
   if (val && props.pet) {
     fetchData()
   } else {
@@ -120,12 +121,12 @@ const handleAddMedication = async () => {
   try {
     await customerApi.post('/api/pet-owner/pets/medications/', {
       ...medicationForm.value,
-      pet: props.pet.id
+      pet: props.pet.id,
     })
     showMedicationAdd.value = false
     medicationForm.value = {
       name: '', dosage: '', frequency: '', reason: '', 
-      start_date: new Date().toISOString().substr(0, 10), is_active: true
+      start_date: new Date().toISOString().substr(0, 10), is_active: true,
     }
     fetchData()
   } catch (err) {
@@ -140,12 +141,12 @@ const handleAddVaccination = async () => {
   try {
     await customerApi.post('/api/pet-owner/pets/vaccinations/', {
       ...vaccinationForm.value,
-      pet: props.pet.id
+      pet: props.pet.id,
     })
     showVaccinationAdd.value = false
     vaccinationForm.value = {
       vaccine_name: '', date_administered: new Date().toISOString().substr(0, 10), 
-      next_due_date: '', notes: ''
+      next_due_date: '', notes: '',
     }
     fetchData()
   } catch (err) {
@@ -167,8 +168,8 @@ const handleClose = () => {
     max-width="850"
     max-height="90vh"
     persistent
-    @update:model-value="val => emit('update:modelValue', val)"
     class="premium-medical-dialog"
+    @update:model-value="val => emit('update:modelValue', val)"
   >
     <VCard class="rounded-[40px] overflow-hidden elevation-24 border-0">
       <!-- HEADER -->
@@ -176,14 +177,28 @@ const handleClose = () => {
         <div class="d-flex align-center justify-space-between mb-8">
           <div class="d-flex align-center">
             <div class="luxury-icon-box shadow-primary me-6">
-              <VIcon icon="tabler-heart-rate-monitor" color="primary" size="32" />
+              <VIcon
+                icon="tabler-heart-rate-monitor"
+                color="primary"
+                size="32"
+              />
             </div>
             <div>
-              <h2 class="text-h3 font-weight-black text-slate-900 tracking-tighter">{{ pet?.name }}'s Wellness</h2>
-              <p class="text-h6 text-slate-500 mb-0 opacity-70">Curating health, happiness, and longevity.</p>
+              <h2 class="text-h3 font-weight-black text-slate-900 tracking-tighter">
+                {{ pet?.name }}'s Wellness
+              </h2>
+              <p class="text-h6 text-slate-500 mb-0 opacity-70">
+                Curating health, happiness, and longevity.
+              </p>
             </div>
           </div>
-          <VBtn icon="tabler-x" variant="tonal" color="slate-400" @click="handleClose" class="rounded-xl" />
+          <VBtn
+            icon="tabler-x"
+            variant="tonal"
+            color="slate-400"
+            class="rounded-xl"
+            @click="handleClose"
+          />
         </div>
 
         <VTabs
@@ -192,11 +207,36 @@ const handleClose = () => {
           align-tabs="start"
           class="luxury-tabs mb-2"
         >
-          <VTab value="general" class="text-none">Physical Stats</VTab>
-          <VTab value="medications" class="text-none">Medications</VTab>
-          <VTab value="vaccinations" class="text-none">Vaccinations</VTab>
-          <VTab value="diagnostics" class="text-none">Diagnostics</VTab>
-          <VTab value="insurance" class="text-none">Care & Protection</VTab>
+          <VTab
+            value="general"
+            class="text-none"
+          >
+            Physical Stats
+          </VTab>
+          <VTab
+            value="medications"
+            class="text-none"
+          >
+            Medications
+          </VTab>
+          <VTab
+            value="vaccinations"
+            class="text-none"
+          >
+            Vaccinations
+          </VTab>
+          <VTab
+            value="diagnostics"
+            class="text-none"
+          >
+            Diagnostics
+          </VTab>
+          <VTab
+            value="insurance"
+            class="text-none"
+          >
+            Care & Protection
+          </VTab>
         </VTabs>
       </div>
 
@@ -205,33 +245,72 @@ const handleClose = () => {
           <!-- GENERAL HEALTH TAB -->
           <VWindowItem value="general">
             <VRow>
-              <VCol cols="12" md="4">
+              <VCol
+                cols="12"
+                md="4"
+              >
                 <div class="stat-card luxury-glass pa-6">
-                  <div class="label-tiny">WEIGHT (KG)</div>
-                  <VTextField v-model="form.weight_kg" variant="plain" type="number" class="huge-input" hide-details />
+                  <div class="label-tiny">
+                    WEIGHT (KG)
+                  </div>
+                  <VTextField
+                    v-model="form.weight_kg"
+                    variant="plain"
+                    type="number"
+                    class="huge-input"
+                    hide-details
+                  />
                 </div>
               </VCol>
-              <VCol cols="12" md="4">
+              <VCol
+                cols="12"
+                md="4"
+              >
                 <div class="stat-card luxury-glass pa-6">
-                  <div class="label-tiny">HEIGHT (CM)</div>
-                  <VTextField v-model="form.height_cm" variant="plain" type="number" class="huge-input" hide-details />
+                  <div class="label-tiny">
+                    HEIGHT (CM)
+                  </div>
+                  <VTextField
+                    v-model="form.height_cm"
+                    variant="plain"
+                    type="number"
+                    class="huge-input"
+                    hide-details
+                  />
                 </div>
               </VCol>
-              <VCol cols="12" md="4">
+              <VCol
+                cols="12"
+                md="4"
+              >
                 <div class="stat-card luxury-glass pa-6">
-                  <div class="label-tiny">BLOOD GROUP</div>
-                  <VTextField v-model="form.blood_group" variant="plain" class="huge-input" hide-details placeholder="DEA 1.1" />
+                  <div class="label-tiny">
+                    BLOOD GROUP
+                  </div>
+                  <VTextField
+                    v-model="form.blood_group"
+                    variant="plain"
+                    class="huge-input"
+                    hide-details
+                    placeholder="DEA 1.1"
+                  />
                 </div>
               </VCol>
               
               <VCol cols="12">
-                <VCard variant="flat" class="pa-8 rounded-[32px] bg-slate-50 border-0">
+                <VCard
+                  variant="flat"
+                  class="pa-8 rounded-[32px] bg-slate-50 border-0"
+                >
                   <div class="d-flex align-center mb-6">
-                    <div class="dot-indicator me-3"></div>
+                    <div class="dot-indicator me-3" />
                     <span class="text-h6 font-weight-black text-slate-800 tracking-tight">Health Directives & Notes</span>
                   </div>
                   <VRow>
-                    <VCol cols="12" md="8">
+                    <VCol
+                      cols="12"
+                      md="8"
+                    >
                       <VTextarea
                         v-model="form.medical_profile.special_notes"
                         placeholder="Any specialized care instructions, dietary requirements, or behavioral notes..."
@@ -241,19 +320,39 @@ const handleClose = () => {
                         hide-details
                       />
                     </VCol>
-                    <VCol cols="12" md="4">
+                    <VCol
+                      cols="12"
+                      md="4"
+                    >
                       <div class="d-flex flex-column gap-6 h-100 justify-center pa-4 bg-white rounded-2xl border">
                         <div class="d-flex align-center justify-space-between">
                           <div>
-                            <div class="text-subtitle-1 font-weight-bold text-slate-800">Neutered</div>
-                            <div class="text-caption text-slate-400">Reproductive status</div>
+                            <div class="text-subtitle-1 font-weight-bold text-slate-800">
+                              Neutered
+                            </div>
+                            <div class="text-caption text-slate-400">
+                              Reproductive status
+                            </div>
                           </div>
-                          <VSwitch v-model="form.medical_profile.neutered" color="primary" inset hide-details />
+                          <VSwitch
+                            v-model="form.medical_profile.neutered"
+                            color="primary"
+                            inset
+                            hide-details
+                          />
                         </div>
                         <VDivider class="opacity-10" />
                         <div>
-                          <div class="label-tiny mb-2">MICROCHIP ID</div>
-                          <VTextField v-model="form.microchip_id" variant="plain" class="text-h6 font-weight-black" hide-details placeholder="Not microchipped" />
+                          <div class="label-tiny mb-2">
+                            MICROCHIP ID
+                          </div>
+                          <VTextField
+                            v-model="form.microchip_id"
+                            variant="plain"
+                            class="text-h6 font-weight-black"
+                            hide-details
+                            placeholder="Not microchipped"
+                          />
                         </div>
                       </div>
                     </VCol>
@@ -277,7 +376,9 @@ const handleClose = () => {
           <!-- MEDICATIONS TAB -->
           <VWindowItem value="medications">
             <div class="d-flex justify-space-between align-center mb-10">
-              <h3 class="text-h4 font-weight-black text-slate-900 tracking-tighter">Current Prescriptions</h3>
+              <h3 class="text-h4 font-weight-black text-slate-900 tracking-tighter">
+                Current Prescriptions
+              </h3>
               <VBtn 
                 prepend-icon="tabler-plus" 
                 color="primary" 
@@ -290,63 +391,158 @@ const handleClose = () => {
             </div>
 
             <VRow v-if="medications.length">
-              <VCol v-for="med in medications" :key="med.id" cols="12">
-                <VCard variant="flat" class="pa-6 rounded-[28px] border bg-white hover-shadow transition-all">
+              <VCol
+                v-for="med in medications"
+                :key="med.id"
+                cols="12"
+              >
+                <VCard
+                  variant="flat"
+                  class="pa-6 rounded-[28px] border bg-white hover-shadow transition-all"
+                >
                   <div class="d-flex align-center justify-space-between">
                     <div class="d-flex align-center">
                       <div class="medicine-icon me-5">
-                        <VIcon icon="tabler-pill" color="primary" />
+                        <VIcon
+                          icon="tabler-pill"
+                          color="primary"
+                        />
                       </div>
                       <div>
-                        <h4 class="text-h5 font-weight-black text-slate-900">{{ med.name }}</h4>
+                        <h4 class="text-h5 font-weight-black text-slate-900">
+                          {{ med.name }}
+                        </h4>
                         <p class="text-subtitle-2 text-slate-500 mb-0 font-weight-bold opacity-70">
                           {{ med.dosage }} • {{ med.frequency }}
                         </p>
                       </div>
                     </div>
                     <div class="text-right">
-                      <VChip v-if="med.is_active" color="success" size="small" variant="flat" class="font-weight-black">ACTIVE</VChip>
-                      <VChip v-else color="slate-200" size="small" variant="flat" class="font-weight-black">COMPLETED</VChip>
+                      <VChip
+                        v-if="med.is_active"
+                        color="success"
+                        size="small"
+                        variant="flat"
+                        class="font-weight-black"
+                      >
+                        ACTIVE
+                      </VChip>
+                      <VChip
+                        v-else
+                        color="slate-200"
+                        size="small"
+                        variant="flat"
+                        class="font-weight-black"
+                      >
+                        COMPLETED
+                      </VChip>
                     </div>
                   </div>
                 </VCard>
               </VCol>
             </VRow>
-            <div v-else class="text-center py-16 px-10 rounded-[32px] bg-slate-50 border-2 border-dashed">
-              <VIcon icon="tabler-pill-off" size="64" color="slate-200" class="mb-4" />
-              <p class="text-h6 text-slate-400 font-weight-bold">No active medications recorded.</p>
+            <div
+              v-else
+              class="text-center py-16 px-10 rounded-[32px] bg-slate-50 border-2 border-dashed"
+            >
+              <VIcon
+                icon="tabler-pill-off"
+                size="64"
+                color="slate-200"
+                class="mb-4"
+              />
+              <p class="text-h6 text-slate-400 font-weight-bold">
+                No active medications recorded.
+              </p>
             </div>
 
             <!-- ADD MEDICATION FORM -->
             <VExpandTransition>
-              <VCard v-if="showMedicationAdd" class="mt-8 pa-8 rounded-[32px] border-2 border-primary elevation-12">
-                <h4 class="text-h5 font-weight-black mb-6">Register New Medication</h4>
+              <VCard
+                v-if="showMedicationAdd"
+                class="mt-8 pa-8 rounded-[32px] border-2 border-primary elevation-12"
+              >
+                <h4 class="text-h5 font-weight-black mb-6">
+                  Register New Medication
+                </h4>
                 <VRow>
-                  <VCol cols="12" md="6">
-                    <VTextField v-model="medicationForm.name" label="Medication Name" variant="outlined" class="luxury-input-field" />
+                  <VCol
+                    cols="12"
+                    md="6"
+                  >
+                    <VTextField
+                      v-model="medicationForm.name"
+                      label="Medication Name"
+                      variant="outlined"
+                      class="luxury-input-field"
+                    />
                   </VCol>
-                  <VCol cols="12" md="3">
-                    <VTextField v-model="medicationForm.dosage" label="Dosage (e.g. 5mg)" variant="outlined" class="luxury-input-field" />
+                  <VCol
+                    cols="12"
+                    md="3"
+                  >
+                    <VTextField
+                      v-model="medicationForm.dosage"
+                      label="Dosage (e.g. 5mg)"
+                      variant="outlined"
+                      class="luxury-input-field"
+                    />
                   </VCol>
-                  <VCol cols="12" md="3">
-                    <VTextField v-model="medicationForm.frequency" label="Frequency" variant="outlined" class="luxury-input-field" />
+                  <VCol
+                    cols="12"
+                    md="3"
+                  >
+                    <VTextField
+                      v-model="medicationForm.frequency"
+                      label="Frequency"
+                      variant="outlined"
+                      class="luxury-input-field"
+                    />
                   </VCol>
                   <VCol cols="12">
-                    <VTextField v-model="medicationForm.reason" label="Reason / Condition" variant="outlined" class="luxury-input-field" />
+                    <VTextField
+                      v-model="medicationForm.reason"
+                      label="Reason / Condition"
+                      variant="outlined"
+                      class="luxury-input-field"
+                    />
                   </VCol>
                   <VCol cols="12">
-                     <div class="d-flex align-center justify-space-between pa-4 bg-slate-50 rounded-2xl border">
-                        <div>
-                          <div class="text-subtitle-2 font-weight-black text-slate-800">Enable Reminders</div>
-                          <div class="text-caption text-slate-400 font-weight-bold">Receive notifications for this medication</div>
+                    <div class="d-flex align-center justify-space-between pa-4 bg-slate-50 rounded-2xl border">
+                      <div>
+                        <div class="text-subtitle-2 font-weight-black text-slate-800">
+                          Enable Reminders
                         </div>
-                        <VSwitch v-model="medicationForm.reminder_enabled" color="primary" inset hide-details />
+                        <div class="text-caption text-slate-400 font-weight-bold">
+                          Receive notifications for this medication
+                        </div>
                       </div>
+                      <VSwitch
+                        v-model="medicationForm.reminder_enabled"
+                        color="primary"
+                        inset
+                        hide-details
+                      />
+                    </div>
                   </VCol>
                 </VRow>
                 <div class="d-flex justify-end gap-4 mt-6">
-                  <VBtn variant="text" color="slate-400" @click="showMedicationAdd = false" class="rounded-xl">Cancel</VBtn>
-                  <VBtn color="primary" class="rounded-xl px-8 shadow-primary" @click="handleAddMedication" :loading="submitting">Add to Records</VBtn>
+                  <VBtn
+                    variant="text"
+                    color="slate-400"
+                    class="rounded-xl"
+                    @click="showMedicationAdd = false"
+                  >
+                    Cancel
+                  </VBtn>
+                  <VBtn
+                    color="primary"
+                    class="rounded-xl px-8 shadow-primary"
+                    :loading="submitting"
+                    @click="handleAddMedication"
+                  >
+                    Add to Records
+                  </VBtn>
                 </div>
               </VCard>
             </VExpandTransition>
@@ -355,7 +551,9 @@ const handleClose = () => {
           <!-- VACCINATIONS TAB -->
           <VWindowItem value="vaccinations">
             <div class="d-flex justify-space-between align-center mb-10">
-              <h3 class="text-h4 font-weight-black text-slate-900 tracking-tighter">Vaccination History</h3>
+              <h3 class="text-h4 font-weight-black text-slate-900 tracking-tighter">
+                Vaccination History
+              </h3>
               <VBtn 
                 prepend-icon="tabler-vaccine" 
                 color="secondary" 
@@ -368,53 +566,131 @@ const handleClose = () => {
             </div>
 
             <VRow v-if="vaccinations.length">
-              <VCol v-for="vac in vaccinations" :key="vac.id" cols="12">
-                <VCard variant="flat" class="pa-8 rounded-[28px] border-l-[6px] border-secondary bg-white shadow-sm overflow-hidden">
+              <VCol
+                v-for="vac in vaccinations"
+                :key="vac.id"
+                cols="12"
+              >
+                <VCard
+                  variant="flat"
+                  class="pa-8 rounded-[28px] border-l-[6px] border-secondary bg-white shadow-sm overflow-hidden"
+                >
                   <div class="d-flex justify-space-between align-start">
                     <div>
-                      <h4 class="text-h5 font-weight-black text-slate-900 mb-1">{{ vac.vaccine_name }}</h4>
+                      <h4 class="text-h5 font-weight-black text-slate-900 mb-1">
+                        {{ vac.vaccine_name }}
+                      </h4>
                       <p class="text-subtitle-1 text-slate-500 font-weight-bold opacity-70 mb-4">
                         Administered: {{ vac.date_administered }}
                       </p>
                       <div class="d-flex align-center bg-secondary-lighten-5 pa-2 px-4 rounded-xl border border-secondary-lighten-4">
-                        <VIcon icon="tabler-clock" color="secondary" size="18" class="me-2" />
+                        <VIcon
+                          icon="tabler-clock"
+                          color="secondary"
+                          size="18"
+                          class="me-2"
+                        />
                         <span class="text-subtitle-2 font-weight-black text-secondary uppercase tracking-wider">Next Due: {{ vac.next_due_date }}</span>
                       </div>
                     </div>
                     <div class="text-right d-none d-md-block">
-                      <div class="text-caption text-slate-400 font-weight-bold uppercase mb-1">Clinic / Dr.</div>
-                      <div class="text-subtitle-1 font-weight-black text-slate-700">{{ vac.administered_by || 'Verified Hub' }}</div>
+                      <div class="text-caption text-slate-400 font-weight-bold uppercase mb-1">
+                        Clinic / Dr.
+                      </div>
+                      <div class="text-subtitle-1 font-weight-black text-slate-700">
+                        {{ vac.administered_by || 'Verified Hub' }}
+                      </div>
                     </div>
                   </div>
                 </VCard>
               </VCol>
             </VRow>
-            <div v-else class="text-center py-16 px-10 rounded-[32px] bg-slate-50 border-2 border-dashed">
-              <VIcon icon="tabler-vaccine-off" size="64" color="slate-200" class="mb-4" />
-              <p class="text-h6 text-slate-400 font-weight-bold">No vaccination history recorded yet.</p>
+            <div
+              v-else
+              class="text-center py-16 px-10 rounded-[32px] bg-slate-50 border-2 border-dashed"
+            >
+              <VIcon
+                icon="tabler-vaccine-off"
+                size="64"
+                color="slate-200"
+                class="mb-4"
+              />
+              <p class="text-h6 text-slate-400 font-weight-bold">
+                No vaccination history recorded yet.
+              </p>
             </div>
 
             <!-- ADD VACCINATION FORM -->
             <VExpandTransition>
-              <VCard v-if="showVaccinationAdd" class="mt-8 pa-8 rounded-[32px] border-2 border-secondary elevation-12">
-                <h4 class="text-h5 font-weight-black mb-6">Log New Vaccination</h4>
+              <VCard
+                v-if="showVaccinationAdd"
+                class="mt-8 pa-8 rounded-[32px] border-2 border-secondary elevation-12"
+              >
+                <h4 class="text-h5 font-weight-black mb-6">
+                  Log New Vaccination
+                </h4>
                 <VRow>
-                  <VCol cols="12" md="6">
-                    <VTextField v-model="vaccinationForm.vaccine_name" label="Vaccine Name" variant="outlined" class="luxury-input-field" />
+                  <VCol
+                    cols="12"
+                    md="6"
+                  >
+                    <VTextField
+                      v-model="vaccinationForm.vaccine_name"
+                      label="Vaccine Name"
+                      variant="outlined"
+                      class="luxury-input-field"
+                    />
                   </VCol>
-                  <VCol cols="12" md="3">
-                    <VTextField v-model="vaccinationForm.date_administered" type="date" label="Administered Date" variant="outlined" class="luxury-input-field" />
+                  <VCol
+                    cols="12"
+                    md="3"
+                  >
+                    <VTextField
+                      v-model="vaccinationForm.date_administered"
+                      type="date"
+                      label="Administered Date"
+                      variant="outlined"
+                      class="luxury-input-field"
+                    />
                   </VCol>
-                  <VCol cols="12" md="3">
-                    <VTextField v-model="vaccinationForm.next_due_date" type="date" label="Next Due Date" variant="outlined" class="luxury-input-field" />
+                  <VCol
+                    cols="12"
+                    md="3"
+                  >
+                    <VTextField
+                      v-model="vaccinationForm.next_due_date"
+                      type="date"
+                      label="Next Due Date"
+                      variant="outlined"
+                      class="luxury-input-field"
+                    />
                   </VCol>
                   <VCol cols="12">
-                    <VTextField v-model="vaccinationForm.notes" label="Notes / Batch Number" variant="outlined" class="luxury-input-field" />
+                    <VTextField
+                      v-model="vaccinationForm.notes"
+                      label="Notes / Batch Number"
+                      variant="outlined"
+                      class="luxury-input-field"
+                    />
                   </VCol>
                 </VRow>
                 <div class="d-flex justify-end gap-4 mt-6">
-                  <VBtn variant="text" color="slate-400" @click="showVaccinationAdd = false" class="rounded-xl">Cancel</VBtn>
-                  <VBtn color="secondary" class="rounded-xl px-8 shadow-primary" @click="handleAddVaccination" :loading="submitting">Log Vaccination</VBtn>
+                  <VBtn
+                    variant="text"
+                    color="slate-400"
+                    class="rounded-xl"
+                    @click="showVaccinationAdd = false"
+                  >
+                    Cancel
+                  </VBtn>
+                  <VBtn
+                    color="secondary"
+                    class="rounded-xl px-8 shadow-primary"
+                    :loading="submitting"
+                    @click="handleAddVaccination"
+                  >
+                    Log Vaccination
+                  </VBtn>
                 </div>
               </VCard>
             </VExpandTransition>
@@ -423,7 +699,9 @@ const handleClose = () => {
           <!-- DIAGNOSTICS TAB -->
           <VWindowItem value="diagnostics">
             <div class="d-flex justify-space-between align-center mb-10">
-              <h3 class="text-h4 font-weight-black text-slate-900 tracking-tighter">Diagnostic Reports</h3>
+              <h3 class="text-h4 font-weight-black text-slate-900 tracking-tighter">
+                Diagnostic Reports
+              </h3>
               <VBtn 
                 prepend-icon="tabler-file-upload" 
                 color="info" 
@@ -435,32 +713,69 @@ const handleClose = () => {
             </div>
 
             <VRow v-if="documents.length">
-              <VCol v-for="doc in documents" :key="doc.id" cols="12" md="6">
-                <VCard variant="flat" class="pa-6 rounded-[28px] border bg-white d-flex align-center justify-space-between h-100">
+              <VCol
+                v-for="doc in documents"
+                :key="doc.id"
+                cols="12"
+                md="6"
+              >
+                <VCard
+                  variant="flat"
+                  class="pa-6 rounded-[28px] border bg-white d-flex align-center justify-space-between h-100"
+                >
                   <div class="d-flex align-center">
                     <div class="doc-icon me-4 bg-info-lighten-5 rounded-2xl pa-3">
-                      <VIcon icon="tabler-report-medical" color="info" />
+                      <VIcon
+                        icon="tabler-report-medical"
+                        color="info"
+                      />
                     </div>
                     <div>
-                      <h4 class="text-subtitle-1 font-weight-black text-slate-900 text-truncate max-width-150">{{ doc.document_name }}</h4>
-                      <p class="text-caption text-slate-400 mb-0 font-weight-bold">{{ doc.uploaded_at.split('T')[0] }}</p>
+                      <h4 class="text-subtitle-1 font-weight-black text-slate-900 text-truncate max-width-150">
+                        {{ doc.document_name }}
+                      </h4>
+                      <p class="text-caption text-slate-400 mb-0 font-weight-bold">
+                        {{ doc.uploaded_at.split('T')[0] }}
+                      </p>
                     </div>
                   </div>
-                  <VBtn icon="tabler-download" variant="text" color="slate-400" size="small" />
+                  <VBtn
+                    icon="tabler-download"
+                    variant="text"
+                    color="slate-400"
+                    size="small"
+                  />
                 </VCard>
               </VCol>
             </VRow>
-            <div v-else class="text-center py-16 px-10 rounded-[32px] bg-slate-50 border-2 border-dashed">
-              <VIcon icon="tabler-file-off" size="64" color="slate-200" class="mb-4" />
-              <p class="text-h6 text-slate-400 font-weight-bold">No diagnostic reports uploaded.</p>
+            <div
+              v-else
+              class="text-center py-16 px-10 rounded-[32px] bg-slate-50 border-2 border-dashed"
+            >
+              <VIcon
+                icon="tabler-file-off"
+                size="64"
+                color="slate-200"
+                class="mb-4"
+              />
+              <p class="text-h6 text-slate-400 font-weight-bold">
+                No diagnostic reports uploaded.
+              </p>
             </div>
           </VWindowItem>
 
           <!-- INSURANCE TAB -->
           <VWindowItem value="insurance">
-            <VCard variant="flat" class="pa-10 rounded-[40px] border bg-white mb-8">
+            <VCard
+              variant="flat"
+              class="pa-10 rounded-[40px] border bg-white mb-8"
+            >
               <h4 class="text-h4 font-weight-black text-slate-900 mb-8 tracking-tighter d-flex align-center">
-                <VIcon icon="tabler-shield-check" color="primary" class="me-4" />
+                <VIcon
+                  icon="tabler-shield-check"
+                  color="primary"
+                  class="me-4"
+                />
                 Coverage & Care
               </h4>
               <VRow>
@@ -473,7 +788,10 @@ const handleClose = () => {
                     prepend-inner-icon="tabler-stethoscope"
                   />
                 </VCol>
-                <VCol cols="12" md="6">
+                <VCol
+                  cols="12"
+                  md="6"
+                >
                   <VTextField
                     v-model="form.medical_profile.insurance_provider"
                     label="Insurance Provider"
@@ -482,7 +800,10 @@ const handleClose = () => {
                     prepend-inner-icon="tabler-shield"
                   />
                 </VCol>
-                <VCol cols="12" md="6">
+                <VCol
+                  cols="12"
+                  md="6"
+                >
                   <VTextField
                     v-model="form.medical_profile.insurance_policy_number"
                     label="Policy Number"

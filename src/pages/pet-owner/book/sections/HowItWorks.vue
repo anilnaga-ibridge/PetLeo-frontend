@@ -1,13 +1,21 @@
 <script setup>
+
 // Premium How It Works section with dummy step content and id for scroll navigation
 </script>
 
 <template>
-  <section id="how-it-works-section" class="hiw-section">
+  <section
+    id="how-it-works-section"
+    class="hiw-section"
+  >
     <!-- Header -->
     <div class="hiw-header">
-      <div class="section-eyebrow">How It Works</div>
-      <h2 class="hiw-title">Pet Care Made Simple</h2>
+      <div class="section-eyebrow">
+        How It Works
+      </div>
+      <h2 class="hiw-title">
+        Pet Care Made Simple
+      </h2>
       <p class="hiw-sub">
         From first search to first appointment — PetLeo makes the entire journey effortless for you and your pet.
       </p>
@@ -27,24 +35,45 @@
         <!-- Number bubble -->
         <div class="step-number-wrap">
           <div class="step-ring" />
-          <div class="step-bubble" :style="`background: ${step.gradient}`">
+          <div
+            class="step-bubble"
+            :style="`background: ${step.gradient}`"
+          >
             <span class="step-num">{{ step.id }}</span>
           </div>
         </div>
 
         <!-- Icon card -->
-        <div class="step-icon-card" :style="`background: ${step.gradient}`">
-          <VIcon :icon="step.icon" size="40" color="white" />
+        <div
+          class="step-icon-card"
+          :style="`background: ${step.gradient}`"
+        >
+          <VIcon
+            :icon="step.icon"
+            size="40"
+            color="white"
+          />
         </div>
 
         <!-- Content -->
-        <h3 class="step-title">{{ step.title }}</h3>
-        <p class="step-desc">{{ step.desc }}</p>
+        <h3 class="step-title">
+          {{ step.title }}
+        </h3>
+        <p class="step-desc">
+          {{ step.desc }}
+        </p>
 
         <!-- Mini check list -->
         <ul class="step-points">
-          <li v-for="p in step.points" :key="p">
-            <VIcon icon="tabler-check" size="13" :color="step.color" />
+          <li
+            v-for="p in step.points"
+            :key="p"
+          >
+            <VIcon
+              icon="tabler-check"
+              size="13"
+              :color="step.color"
+            />
             {{ p }}
           </li>
         </ul>
@@ -54,10 +83,16 @@
     <!-- Bottom CTA strip -->
     <div class="hiw-cta-strip">
       <div class="cta-strip-inner">
-        <div class="cta-paw">🐾</div>
+        <div class="cta-paw">
+          🐾
+        </div>
         <div>
-          <h3 class="cta-title">Ready to give your pet the best care?</h3>
-          <p class="cta-sub">Join 50,000+ pet parents already using PetLeo.</p>
+          <h3 class="cta-title">
+            Ready to give your pet the best care?
+          </h3>
+          <p class="cta-sub">
+            Join 50,000+ pet parents already using PetLeo.
+          </p>
         </div>
         <div class="cta-actions">
           <VBtn
@@ -84,7 +119,7 @@ const steps = [
     desc: 'Browse hundreds of verified vets, groomers, trainers, and care providers near you using smart filters.',
     gradient: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
     color: '#6366f1',
-    points: ['Search by location', 'Filter by service type', 'View availability in real-time']
+    points: ['Search by location', 'Filter by service type', 'View availability in real-time'],
   },
   {
     id: 2,
@@ -93,7 +128,7 @@ const steps = [
     desc: 'Read verified reviews, check credentials, and compare prices — all before you decide.',
     gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)',
     color: '#3b82f6',
-    points: ['Verified credentials', 'Real parent reviews', 'Transparent pricing']
+    points: ['Verified credentials', 'Real parent reviews', 'Transparent pricing'],
   },
   {
     id: 3,
@@ -102,7 +137,7 @@ const steps = [
     desc: 'Select a slot, confirm your booking in seconds, and receive a calendar invite — no phone calls.',
     gradient: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
     color: '#06b6d4',
-    points: ['Real-time slot selection', 'Instant confirmation', 'Calendar reminders']
+    points: ['Real-time slot selection', 'Instant confirmation', 'Calendar reminders'],
   },
   {
     id: 4,
@@ -111,15 +146,16 @@ const steps = [
     desc: 'Access your pet\'s medical history, upcoming appointments, prescriptions, and vaccination records anytime.',
     gradient: 'linear-gradient(135deg, #10b981, #059669)',
     color: '#10b981',
-    points: ['Digital health records', 'Vaccination reminders', 'Prescription history']
-  }
+    points: ['Digital health records', 'Vaccination reminders', 'Prescription history'],
+  },
 ]
+
 export default { setup() { return { steps } } }
 </script>
 
 <style scoped>
 .hiw-section {
-  background: #0f172a;
+  background: #f8fafc;
   padding: 100px 0 0;
   position: relative;
   overflow: hidden;
@@ -132,7 +168,7 @@ export default { setup() { return { steps } } }
   top: -100px; left: 50%;
   transform: translateX(-50%);
   width: 800px; height: 400px;
-  background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(99,102,241,0.04) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -146,8 +182,8 @@ export default { setup() { return { steps } } }
 
 .section-eyebrow {
   display: inline-block;
-  background: rgba(99,102,241,0.15);
-  color: #a5b4fc;
+  background: #eef2ff;
+  color: #6366f1;
   font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
@@ -155,13 +191,13 @@ export default { setup() { return { steps } } }
   padding: 6px 16px;
   border-radius: 100px;
   margin-bottom: 16px;
-  border: 1px solid rgba(99,102,241,0.2);
+  border: 1px solid #e0e7ff;
 }
 
 .hiw-title {
   font-size: 48px;
   font-weight: 900;
-  color: #ffffff;
+  color: #0f172a;
   letter-spacing: -2.5px;
   line-height: 1.1;
   margin: 0 0 16px;
@@ -170,7 +206,7 @@ export default { setup() { return { steps } } }
 .hiw-sub {
   font-size: 17px;
   font-weight: 500;
-  color: #94a3b8;
+  color: #64748b;
   line-height: 1.6;
   margin: 0;
 }
@@ -193,8 +229,8 @@ export default { setup() { return { steps } } }
   top: 68px;
   left: calc(40px + 12.5%);
   right: calc(40px + 12.5%);
-  height: 1px;
-  background: linear-gradient(90deg, rgba(99,102,241,0.5), rgba(59,130,246,0.5), rgba(6,182,212,0.5), rgba(16,185,129,0.5));
+  height: 2px;
+  background: linear-gradient(90deg, #e0e7ff, #dcfce7, #ecfeff, #f1f5f9);
   z-index: 0;
 }
 
@@ -227,8 +263,8 @@ export default { setup() { return { steps } } }
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   animation: ringPulse 3s ease-in-out infinite;
 }
 
@@ -244,8 +280,8 @@ export default { setup() { return { steps } } }
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-  border: 3px solid rgba(255,255,255,0.15);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+  border: 3px solid white;
 }
 
 .step-num {
@@ -264,19 +300,21 @@ export default { setup() { return { steps } } }
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.25);
-  transition: transform 0.3s ease;
+  box-shadow: 0 16px 40px rgba(99, 102, 241, 0.15);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-style: preserve-3d;
 }
 
 .step-item:hover .step-icon-card {
-  transform: translateY(-6px) scale(1.04);
+  transform: perspective(1000px) translateZ(40px) rotateY(15deg) rotateX(10deg);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.4);
 }
 
 /* Title & Desc */
 .step-title {
   font-size: 20px;
   font-weight: 900;
-  color: #ffffff;
+  color: #0f172a;
   letter-spacing: -0.5px;
   margin: 0 0 10px;
 }
@@ -307,11 +345,12 @@ export default { setup() { return { steps } } }
   font-size: 13px;
   font-weight: 600;
   color: #475569;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: white;
+  border: 1px solid #f1f5f9;
   border-radius: 10px;
   padding: 6px 12px;
   width: 100%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 /* CTA Strip */

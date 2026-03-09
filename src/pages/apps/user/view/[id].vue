@@ -54,16 +54,18 @@ try {
   const res = await providerApi.get(`/api/provider/profile/`, {
     params: { 
       user: route.params.id,
-      target: target
-    }
+      target: target,
+    },
   })
   
   if (res.data && res.data.fields) {
     const fields = res.data.fields
+
     providerProfileFields.value = fields
     
-    const getFieldValue = (name) => {
+    const getFieldValue = name => {
       const field = fields.find(f => f.name === name)
+      
       return field ? field.value : null
     }
     

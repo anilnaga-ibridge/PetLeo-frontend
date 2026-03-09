@@ -53,6 +53,7 @@ const fetchPets = async () => {
   loading.value = true
   try {
     const res = await customerApi.get('/api/pet-owner/pets/pets/')
+
     pets.value = res.data.results || res.data
     generateReminders()
   } catch (err) {
@@ -80,7 +81,7 @@ const generateReminders = () => {
           title: 'Vaccination Due',
           message: `${pet.name} is due for a checkup in ${diffDays} days.`,
           type: 'warning',
-          icon: 'tabler-vaccine'
+          icon: 'tabler-vaccine',
         })
       }
     }
@@ -92,7 +93,7 @@ const generateReminders = () => {
         title: 'Grooming Time?',
         message: `It's been a month since ${pet.name}'s last grooming. Time for a spa day?`,
         type: 'info',
-        icon: 'tabler-scissors'
+        icon: 'tabler-scissors',
       })
     }
   })
@@ -104,7 +105,7 @@ const generateReminders = () => {
       title: 'Welcome to PetLeo!',
       message: 'Start by adding your pets and their medical records to stay on top of their health.',
       type: 'info',
-      icon: 'tabler-confetti'
+      icon: 'tabler-confetti',
     })
   }
   
@@ -122,19 +123,29 @@ const fetchBookings = async () => {
     const allBookings = res.data.results || res.data
     
     // Split into upcoming and past
-    upcomingBookings.value = allBookings.filter(b => 
-      !['CANCELLED', 'REJECTED', 'COMPLETED'].includes(b.status?.toUpperCase())
-    )
+    const now = new Date()
+
+    now.setHours(0, 0, 0, 0) // Compare dates only at midnight for simplicity, or keep full time
+
+    upcomingBookings.value = allBookings.filter(b => {
+      const isFinalStatus = ['CANCELLED', 'REJECTED', 'COMPLETED'].includes(b.status?.toUpperCase())
+      const bookingDate = new Date(b.selected_time || b.appointment_date)
+      
+      return !isFinalStatus && bookingDate >= now
+    })
     
-    pastBookings.value = allBookings.filter(b => 
-      ['CANCELLED', 'REJECTED', 'COMPLETED'].includes(b.status?.toUpperCase())
-    )
+    pastBookings.value = allBookings.filter(b => {
+      const isFinalStatus = ['CANCELLED', 'REJECTED', 'COMPLETED'].includes(b.status?.toUpperCase())
+      const bookingDate = new Date(b.selected_time || b.appointment_date)
+      
+      return isFinalStatus || bookingDate < now
+    })
   } catch (err) {
     console.error('Failed to fetch bookings:', err)
   }
 }
 
-const handleDismissReminder = (id) => {
+const handleDismissReminder = id => {
   reminders.value = reminders.value.filter(r => r.id !== id)
 }
 
@@ -143,31 +154,31 @@ const handleAddPet = () => {
   showFormDialog.value = true
 }
 
-const handleViewPet = (pet) => {
+const handleViewPet = pet => {
   router.push(`/pet-owner/pets/${pet.id}`)
 }
 
-const handleOpenMedical = (pet) => {
+const handleOpenMedical = pet => {
   selectedPet.value = pet
   showMedicalDialog.value = true
 }
 
-const handleEditPet = (pet) => {
+const handleEditPet = pet => {
   selectedPet.value = pet
   showFormDialog.value = true
 }
 
-const handleManageBooking = (booking) => {
+const handleManageBooking = booking => {
   selectedBooking.value = booking
   showManageDialog.value = true
 }
 
-const handleBookingAction = (message) => {
+const handleBookingAction = message => {
   showMessage(message)
   fetchBookings()
 }
 
-const handleDeletePet = (pet) => {
+const handleDeletePet = pet => {
   petToDelete.value = pet
   showDeleteConfirm.value = true
 }
@@ -212,306 +223,486 @@ onMounted(() => {
     <!-- Main Content Area -->
     <div class="flex-grow-1 main-content-layer">
       <!-- Global Navbar -->
-      <Navbar />
+      <Navbar hide-brand />
 
-    <!-- Feedback Notifications -->
-    <VSnackbar
-      v-model="snackbar"
-      :color="snackbarColor"
-      location="top end"
-      :timeout="4000"
-    >
-      {{ snackbarMessage }}
-      <template #actions>
-        <VBtn variant="text" size="small" @click="snackbar = false">Dismiss</VBtn>
-      </template>
-    </VSnackbar>
+      <!-- Feedback Notifications -->
+      <VSnackbar
+        v-model="snackbar"
+        :color="snackbarColor"
+        location="top end"
+        :timeout="4000"
+      >
+        {{ snackbarMessage }}
+        <template #actions>
+          <VBtn
+            variant="text"
+            size="small"
+            @click="snackbar = false"
+          >
+            Dismiss
+          </VBtn>
+        </template>
+      </VSnackbar>
 
-    <!-- Delete Confirmation Dialog -->
-    <VDialog v-model="showDeleteConfirm" max-width="420" persistent>
-      <VCard class="rounded-3xl pa-8 text-center">
-        <div class="delete-icon-bg mb-6 mx-auto">
-          <VIcon icon="tabler-alert-triangle" color="error" size="36" />
-        </div>
-        <h3 class="text-h4 font-weight-black mb-2">Remove {{ petToDelete?.name }}?</h3>
-        <p class="text-body-1 text-slate-500 mb-8 px-4">
-          This action is permanent and cannot be undone.
-        </p>
-        <div class="d-flex gap-4">
-          <VBtn variant="tonal" color="slate" size="large" class="rounded-2xl flex-grow-1" :disabled="deleteLoading" @click="showDeleteConfirm = false">Cancel</VBtn>
-          <VBtn color="error" size="large" class="rounded-2xl flex-grow-1" :loading="deleteLoading" @click="confirmDeletePet">Yes, Remove</VBtn>
-        </div>
-      </VCard>
-    </VDialog>
-
-    <!-- HERO BANNER -->
-    <div class="dashboard-hero">
-      <VContainer>
-        <VRow align="center">
-          <VCol cols="12" md="7">
-            <div class="d-flex align-center gap-3 mb-4">
-              <div class="greeting-icon">
-                <VIcon icon="tabler-sparkles" size="22" color="white" />
-              </div>
-              <span class="text-caption font-weight-black text-primary uppercase tracking-widest">Dashboard</span>
-            </div>
-            <h1 class="hero-headline mb-3">Welcome back, {{ userName }}! 🐾</h1>
-            <p class="text-h6 text-slate-500 font-weight-medium mb-10">
-              Your pets and bookings are all set. Explore what's new.
-            </p>
-            <div class="d-flex flex-wrap gap-4">
-              <VBtn
-                color="primary"
-                height="54"
-                class="px-10 font-weight-black rounded-2xl"
-                prepend-icon="tabler-calendar-plus"
-                @click="router.push('/pet-owner/book')"
-              >
-                Book a Service
-              </VBtn>
-              <VBtn
-                variant="tonal"
-                color="primary"
-                height="54"
-                class="px-8 font-weight-bold rounded-2xl"
-                prepend-icon="tabler-stethoscope"
-                @click="router.push('/pet-owner/book')"
-              >
-                Find a Vet
-              </VBtn>
-            </div>
-          </VCol>
-          <!-- Stats Cards on the right -->
-          <VCol cols="12" md="5" class="d-none d-md-block">
-            <div class="d-flex flex-column gap-4">
-              <div class="hero-stat-card">
-                <div class="stat-icon-box primary">
-                  <VIcon icon="tabler-paw" size="22" color="white" />
-                </div>
-                <div>
-                  <div class="stat-card-num">{{ pets.length }}</div>
-                  <div class="stat-card-label">Registered Pets</div>
-                </div>
-              </div>
-              <div class="hero-stat-card">
-                <div class="stat-icon-box success">
-                  <VIcon icon="tabler-calendar-check" size="22" color="white" />
-                </div>
-                <div>
-                  <div class="stat-card-num">{{ upcomingBookings.length }}</div>
-                  <div class="stat-card-label">Active Bookings</div>
-                </div>
-              </div>
-              <div class="hero-stat-card">
-                <div class="stat-icon-box warning">
-                  <VIcon icon="tabler-bell" size="22" color="white" />
-                </div>
-                <div>
-                  <div class="stat-card-num">{{ reminders.length }}</div>
-                  <div class="stat-card-label">Reminders</div>
-                </div>
-              </div>
-            </div>
-          </VCol>
-        </VRow>
-      </VContainer>
-    </div>
-
-    <div class="dashboard-wrapper">
-
-      <VContainer>
-        <!-- MY PETS SECTION: LUXURY FAMILY GALLERY -->
-        <section class="section-spacer mb-20 relative overflow-hidden">
-          <!-- Background Halo -->
-          <div class="family-halo"></div>
-
-          <div class="family-section-header mb-10">
-            <div class="family-header-left">
-              <div class="d-flex align-center gap-3 mb-2">
-                <div class="family-section-icon">
-                  <VIcon icon="tabler-heart" size="20" color="white" />
-                </div>
-                <div class="text-caption font-weight-black text-primary uppercase" style="letter-spacing: 1.5px">My Family</div>
-              </div>
-              <h2 class="family-section-title">Your Beloved Companions</h2>
-              <p class="family-section-sub">Manage health, records & appointments for each pet.</p>
-            </div>
-            <div class="d-flex align-center gap-3">
-              <div class="pet-count-badge">
-                <span class="pet-count-num">{{ pets.length }}</span>
-                <span class="pet-count-label">Pets</span>
-              </div>
-              <VBtn
-                color="primary"
-                class="rounded-2xl font-weight-black px-6"
-                height="48"
-                prepend-icon="tabler-plus"
-                @click="handleAddPet"
-              >
-                Add Pet
-              </VBtn>
-            </div>
+      <!-- Delete Confirmation Dialog -->
+      <VDialog
+        v-model="showDeleteConfirm"
+        max-width="420"
+        persistent
+      >
+        <VCard class="rounded-3xl pa-8 text-center">
+          <div class="delete-icon-bg mb-6 mx-auto">
+            <VIcon
+              icon="tabler-alert-triangle"
+              color="error"
+              size="36"
+            />
           </div>
-
-          <div v-if="loading" class="d-flex py-20 justify-center">
-            <VProgressCircular indeterminate color="primary" size="64" width="6" />
+          <h3 class="text-h4 font-weight-black mb-2">
+            Remove {{ petToDelete?.name }}?
+          </h3>
+          <p class="text-body-1 text-slate-500 mb-8 px-4">
+            This action is permanent and cannot be undone.
+          </p>
+          <div class="d-flex gap-4">
+            <VBtn
+              variant="tonal"
+              color="slate"
+              size="large"
+              class="rounded-2xl flex-grow-1"
+              :disabled="deleteLoading"
+              @click="showDeleteConfirm = false"
+            >
+              Cancel
+            </VBtn>
+            <VBtn
+              color="error"
+              size="large"
+              class="rounded-2xl flex-grow-1"
+              :loading="deleteLoading"
+              @click="confirmDeletePet"
+            >
+              Yes, Remove
+            </VBtn>
           </div>
+        </VCard>
+      </VDialog>
 
-          <PetEmptyState
-            v-else-if="pets.length === 0"
-            @add="handleAddPet"
-          />
-
-          <!-- Luxury Scroll Experience -->
-          <div v-else class="luxury-scroll-wrapper">
-            <!-- Scroll Fade Mask -->
-            <div class="scroll-edge-fade left"></div>
-            <div class="scroll-edge-fade right"></div>
-
-            <div class="d-flex pb-12 pt-4 px-4 overflow-x-auto hide-scrollbar horizontal-scroll-luxury">
-              <PetCardPremium
-                v-for="(pet, index) in pets"
-                :key="pet.id"
-                :pet="pet"
-                :class="`luxury-stagger delay-${(index % 5) + 1}`"
-                @view="handleViewPet"
-                @medical="handleOpenMedical"
-                @edit="handleEditPet"
-                @delete="handleDeletePet"
-              />
-              
-              <!-- Luxury Add Card Explorer -->
-              <div 
-                class="luxury-add-explorer d-flex align-center justify-center cursor-pointer luxury-stagger delay-5"
-                @click="handleAddPet"
-              >
-                <div class="text-center content-animate">
-                  <div class="explorer-icon-glow mb-4">
-                    <VIcon icon="tabler-plus" size="32" color="primary" />
+      <!-- HERO BANNER -->
+      <div class="dashboard-hero">
+        <VContainer>
+          <VRow align="center">
+            <VCol
+              cols="12"
+              md="7"
+            >
+              <div class="d-flex align-center gap-3 mb-4">
+                <div class="greeting-icon">
+                  <VIcon
+                    icon="tabler-sparkles"
+                    size="22"
+                    color="white"
+                  />
+                </div>
+                <span class="text-caption font-weight-black text-primary uppercase tracking-widest">Dashboard</span>
+              </div>
+              <h1 class="hero-headline mb-3">
+                Welcome back, {{ userName }}! 🐾
+              </h1>
+              <p class="text-h6 text-slate-500 font-weight-medium mb-10">
+                Your pets and bookings are all set. Explore what's new.
+              </p>
+              <div class="d-flex flex-wrap gap-4">
+                <VBtn
+                  color="primary"
+                  height="54"
+                  class="px-10 font-weight-black rounded-2xl"
+                  prepend-icon="tabler-calendar-plus"
+                  @click="router.push('/pet-owner/book')"
+                >
+                  Book a Service
+                </VBtn>
+                <VBtn
+                  variant="tonal"
+                  color="primary"
+                  height="54"
+                  class="px-8 font-weight-bold rounded-2xl"
+                  prepend-icon="tabler-stethoscope"
+                  @click="router.push('/pet-owner/book')"
+                >
+                  Find a Vet
+                </VBtn>
+              </div>
+            </VCol>
+            <!-- Stats Cards on the right -->
+            <VCol
+              cols="12"
+              md="5"
+              class="d-none d-md-block"
+            >
+              <div class="d-flex flex-column gap-4">
+                <div class="hero-stat-card">
+                  <div class="stat-icon-box primary">
+                    <VIcon
+                      icon="tabler-paw"
+                      size="22"
+                      color="white"
+                    />
                   </div>
-                  <div class="text-h6 font-weight-black text-slate-700">Add Another</div>
-                  <div class="text-caption font-weight-bold text-slate-400 opacity-80">Expand your family</div>
+                  <div>
+                    <div class="stat-card-num">
+                      {{ pets.length }}
+                    </div>
+                    <div class="stat-card-label">
+                      Registered Pets
+                    </div>
+                  </div>
                 </div>
-                
-                <div class="dashed-border"></div>
+                <div class="hero-stat-card">
+                  <div class="stat-icon-box success">
+                    <VIcon
+                      icon="tabler-calendar-check"
+                      size="22"
+                      color="white"
+                    />
+                  </div>
+                  <div>
+                    <div class="stat-card-num">
+                      {{ upcomingBookings.length }}
+                    </div>
+                    <div class="stat-card-label">
+                      Active Bookings
+                    </div>
+                  </div>
+                </div>
+                <div class="hero-stat-card">
+                  <div class="stat-icon-box warning">
+                    <VIcon
+                      icon="tabler-bell"
+                      size="22"
+                      color="white"
+                    />
+                  </div>
+                  <div>
+                    <div class="stat-card-num">
+                      {{ reminders.length }}
+                    </div>
+                    <div class="stat-card-label">
+                      Reminders
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </VCol>
+          </VRow>
+        </VContainer>
+      </div>
+
+      <div class="dashboard-wrapper">
+        <VContainer>
+          <!-- MY PETS SECTION: LUXURY FAMILY GALLERY -->
+          <section class="section-spacer mb-20 relative overflow-hidden">
+            <!-- Background Halo -->
+            <div class="family-halo" />
+
+            <div class="family-section-header mb-10">
+              <div class="family-header-left">
+                <div class="d-flex align-center gap-3 mb-2">
+                  <div class="family-section-icon">
+                    <VIcon
+                      icon="tabler-heart"
+                      size="20"
+                      color="white"
+                    />
+                  </div>
+                  <div
+                    class="text-caption font-weight-black text-primary uppercase"
+                    style="letter-spacing: 1.5px"
+                  >
+                    My Family
+                  </div>
+                </div>
+                <h2 class="family-section-title">
+                  Your Beloved Companions
+                </h2>
+                <p class="family-section-sub">
+                  Manage health, records & appointments for each pet.
+                </p>
+              </div>
+              <div class="d-flex align-center gap-3">
+                <div class="pet-count-badge">
+                  <span class="pet-count-num">{{ pets.length }}</span>
+                  <span class="pet-count-label">Pets</span>
+                </div>
+                <VBtn
+                  color="primary"
+                  class="rounded-2xl font-weight-black px-6"
+                  height="48"
+                  prepend-icon="tabler-plus"
+                  @click="handleAddPet"
+                >
+                  Add Pet
+                </VBtn>
               </div>
             </div>
-          </div>
-        </section>
 
-        <VRow class="section-spacer mb-16">
-          <!-- LEFT COLUMN: BOOKINGS -->
-          <VCol cols="12" md="7">
-            <div class="d-flex align-center justify-space-between mb-6">
-              <h2 class="text-h4 font-weight-bold text-slate-800">My Bookings</h2>
-              
-              <VTabs v-model="bookingTab" color="primary" density="compact" class="booking-tabs">
-                <VTab value="upcoming" class="px-4">Upcoming</VTab>
-                <VTab value="history" class="px-4">History</VTab>
-              </VTabs>
-            </div>
-            
-            <VWindow v-model="bookingTab">
-              <!-- Upcoming Bookings Window -->
-              <VWindowItem value="upcoming">
-                <div v-if="upcomingBookings.length === 0" class="pa-12 text-center bg-slate-50 rounded-xl border-dashed border-2 animate-fade-in">
-                  <VIcon icon="tabler-calendar-heart" size="64" color="primary" class="mb-4 opacity-20" />
-                  <h3 class="text-h6 font-weight-bold text-slate-700 mb-1">No Upcoming Appointments</h3>
-                  <p class="text-slate-500 mb-6">Ready for your pet's next adventure? Book a professional care session today.</p>
-                  <VBtn color="primary" variant="tonal" rounded="lg" prepend-icon="tabler-plus" @click="router.push('/pet-owner/book')">
-                    Book Now
-                  </VBtn>
-                </div>
-                
-                <div v-else class="animate-fade-in">
-                  <BookingCardPremium
-                    v-for="booking in upcomingBookings"
-                    :key="booking.id"
-                    :booking="booking"
-                    @manage="handleManageBooking"
-                  />
-                </div>
-              </VWindowItem>
-
-              <!-- Booking History Window -->
-              <VWindowItem value="history">
-                <div v-if="pastBookings.length === 0" class="pa-12 text-center bg-slate-50 rounded-xl border-dashed border-2 animate-fade-in">
-                  <VIcon icon="tabler-history" size="64" color="slate-300" class="mb-4 opacity-20" />
-                  <h3 class="text-h6 font-weight-bold text-slate-700 mb-1">No Booking History</h3>
-                  <p class="text-slate-500 mb-0">Completed care sessions will appear here as your history built up.</p>
-                </div>
-                
-                <div v-else class="animate-fade-in">
-                  <BookingCardPremium
-                    v-for="booking in pastBookings"
-                    :key="booking.id"
-                    :booking="booking"
-                    @manage="handleManageBooking"
-                  />
-                </div>
-              </VWindowItem>
-            </VWindow>
-          </VCol>
-
-          <!-- RIGHT COLUMN: REMINDERS & ACTIONS -->
-          <VCol cols="12" md="5">
-            <div class="mb-12">
-              <h2 class="text-h5 font-weight-bold text-slate-800 mb-6">Reminders</h2>
-              <ReminderCard
-                v-for="reminder in reminders"
-                :key="reminder.id"
-                v-bind="reminder"
-                @dismiss="handleDismissReminder(reminder.id)"
+            <div
+              v-if="loading"
+              class="d-flex py-20 justify-center"
+            >
+              <VProgressCircular
+                indeterminate
+                color="primary"
+                size="64"
+                width="6"
               />
             </div>
 
-            <div>
-              <h2 class="text-h5 font-weight-bold text-slate-800 mb-6">Quick Actions</h2>
-              <VRow dense>
-                <VCol cols="6">
-                  <QuickActionCard icon="tabler-stethoscope" label="Book Vet" color="blue" />
-                </VCol>
-                <VCol cols="6">
-                  <QuickActionCard icon="tabler-scissors" label="Grooming" color="orange" />
-                </VCol>
-                <VCol cols="6">
-                  <QuickActionCard icon="tabler-file-analytics" label="Records" color="success" />
-                </VCol>
-                <VCol cols="6">
-                  <QuickActionCard icon="tabler-settings" label="Settings" color="slate" />
-                </VCol>
-              </VRow>
+            <PetEmptyState
+              v-else-if="pets.length === 0"
+              @add="handleAddPet"
+            />
+
+            <!-- Luxury Scroll Experience -->
+            <div
+              v-else
+              class="luxury-scroll-wrapper"
+            >
+              <!-- Scroll Fade Mask -->
+              <div class="scroll-edge-fade left" />
+              <div class="scroll-edge-fade right" />
+
+              <div class="d-flex pb-12 pt-4 px-4 overflow-x-auto hide-scrollbar horizontal-scroll-luxury">
+                <PetCardPremium
+                  v-for="(pet, index) in pets"
+                  :key="pet.id"
+                  :pet="pet"
+                  :class="`luxury-stagger delay-${(index % 5) + 1}`"
+                  @view="handleViewPet"
+                  @medical="handleOpenMedical"
+                  @edit="handleEditPet"
+                  @delete="handleDeletePet"
+                />
+              
+                <!-- Luxury Add Card Explorer -->
+                <div 
+                  class="luxury-add-explorer d-flex align-center justify-center cursor-pointer luxury-stagger delay-5"
+                  @click="handleAddPet"
+                >
+                  <div class="text-center content-animate">
+                    <div class="explorer-icon-glow mb-4">
+                      <VIcon
+                        icon="tabler-plus"
+                        size="32"
+                        color="primary"
+                      />
+                    </div>
+                    <div class="text-h6 font-weight-black text-slate-700">
+                      Add Another
+                    </div>
+                    <div class="text-caption font-weight-bold text-slate-400 opacity-80">
+                      Expand your family
+                    </div>
+                  </div>
+                
+                  <div class="dashed-border" />
+                </div>
+              </div>
             </div>
-          </VCol>
-        </VRow>
-      </VContainer>
+          </section>
 
-      <!-- Form Dialog -->
-      <PetFormDialog
-        v-model="showFormDialog"
-        :pet="selectedPet"
-        @saved="handleFormSaved"
-        @close="showFormDialog = false"
-      />
+          <VRow class="section-spacer mb-16">
+            <!-- LEFT COLUMN: BOOKINGS -->
+            <VCol
+              cols="12"
+              md="7"
+            >
+              <div class="d-flex align-center justify-space-between mb-6">
+                <h2 class="text-h4 font-weight-bold text-slate-800">
+                  My Bookings
+                </h2>
+              
+                <VTabs
+                  v-model="bookingTab"
+                  color="primary"
+                  density="compact"
+                  class="booking-tabs"
+                >
+                  <VTab
+                    value="upcoming"
+                    class="px-4"
+                  >
+                    Upcoming
+                  </VTab>
+                  <VTab
+                    value="history"
+                    class="px-4"
+                  >
+                    History
+                  </VTab>
+                </VTabs>
+              </div>
+            
+              <VWindow v-model="bookingTab">
+                <!-- Upcoming Bookings Window -->
+                <VWindowItem value="upcoming">
+                  <div
+                    v-if="upcomingBookings.length === 0"
+                    class="pa-12 text-center bg-slate-50 rounded-xl border-dashed border-2 animate-fade-in"
+                  >
+                    <VIcon
+                      icon="tabler-calendar-heart"
+                      size="64"
+                      color="primary"
+                      class="mb-4 opacity-20"
+                    />
+                    <h3 class="text-h6 font-weight-bold text-slate-700 mb-1">
+                      No Upcoming Appointments
+                    </h3>
+                    <p class="text-slate-500 mb-6">
+                      Ready for your pet's next adventure? Book a professional care session today.
+                    </p>
+                    <VBtn
+                      color="primary"
+                      variant="tonal"
+                      rounded="lg"
+                      prepend-icon="tabler-plus"
+                      @click="router.push('/pet-owner/book')"
+                    >
+                      Book Now
+                    </VBtn>
+                  </div>
+                
+                  <div
+                    v-else
+                    class="animate-fade-in"
+                  >
+                    <BookingCardPremium
+                      v-for="booking in upcomingBookings"
+                      :key="booking.id"
+                      :booking="booking"
+                      @manage="handleManageBooking"
+                    />
+                  </div>
+                </VWindowItem>
 
-      <!-- Medical Dialog -->
-      <PetMedicalDialog
-        v-model="showMedicalDialog"
-        :pet="selectedPet"
-        @saved="handleFormSaved"
-        @close="showMedicalDialog = false"
-      />
+                <!-- Booking History Window -->
+                <VWindowItem value="history">
+                  <div
+                    v-if="pastBookings.length === 0"
+                    class="pa-12 text-center bg-slate-50 rounded-xl border-dashed border-2 animate-fade-in"
+                  >
+                    <VIcon
+                      icon="tabler-history"
+                      size="64"
+                      color="slate-300"
+                      class="mb-4 opacity-20"
+                    />
+                    <h3 class="text-h6 font-weight-bold text-slate-700 mb-1">
+                      No Booking History
+                    </h3>
+                    <p class="text-slate-500 mb-0">
+                      Completed care sessions will appear here as your history built up.
+                    </p>
+                  </div>
+                
+                  <div
+                    v-else
+                    class="animate-fade-in"
+                  >
+                    <BookingCardPremium
+                      v-for="booking in pastBookings"
+                      :key="booking.id"
+                      :booking="booking"
+                      @manage="handleManageBooking"
+                    />
+                  </div>
+                </VWindowItem>
+              </VWindow>
+            </VCol>
 
-      <!-- Manage Booking Dialog -->
-      <ManageBookingDialog
-        v-model="showManageDialog"
-        :booking="selectedBooking"
-        @saved="handleBookingAction"
-        @cancelled="handleBookingAction"
-      />
+            <!-- RIGHT COLUMN: REMINDERS & ACTIONS -->
+            <VCol
+              cols="12"
+              md="5"
+            >
+              <div class="mb-12">
+                <h2 class="text-h5 font-weight-bold text-slate-800 mb-6">
+                  Reminders
+                </h2>
+                <ReminderCard
+                  v-for="reminder in reminders"
+                  :key="reminder.id"
+                  v-bind="reminder"
+                  @dismiss="handleDismissReminder(reminder.id)"
+                />
+              </div>
+
+              <div>
+                <h2 class="text-h5 font-weight-bold text-slate-800 mb-6">
+                  Quick Actions
+                </h2>
+                <VRow dense>
+                  <VCol cols="6">
+                    <QuickActionCard
+                      icon="tabler-stethoscope"
+                      label="Book Vet"
+                      color="blue"
+                    />
+                  </VCol>
+                  <VCol cols="6">
+                    <QuickActionCard
+                      icon="tabler-scissors"
+                      label="Grooming"
+                      color="orange"
+                    />
+                  </VCol>
+                  <VCol cols="6">
+                    <QuickActionCard
+                      icon="tabler-file-analytics"
+                      label="Records"
+                      color="success"
+                    />
+                  </VCol>
+                  <VCol cols="6">
+                    <QuickActionCard
+                      icon="tabler-settings"
+                      label="Settings"
+                      color="slate"
+                    />
+                  </VCol>
+                </VRow>
+              </div>
+            </VCol>
+          </VRow>
+        </VContainer>
+
+        <!-- Form Dialog -->
+        <PetFormDialog
+          v-model="showFormDialog"
+          :pet="selectedPet"
+          @saved="handleFormSaved"
+          @close="showFormDialog = false"
+        />
+
+        <!-- Medical Dialog -->
+        <PetMedicalDialog
+          v-model="showMedicalDialog"
+          :pet="selectedPet"
+          @saved="handleFormSaved"
+          @close="showMedicalDialog = false"
+        />
+
+        <!-- Manage Booking Dialog -->
+        <ManageBookingDialog
+          v-model="showManageDialog"
+          :booking="selectedBooking"
+          @saved="handleBookingAction"
+          @cancelled="handleBookingAction"
+        />
+      </div>
     </div>
   </div>
-</div>
 </template>
 
 <style scoped>

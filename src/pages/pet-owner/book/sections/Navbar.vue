@@ -2,16 +2,21 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cartStore'
+import { useAuthStore } from '@/stores/authStore'
 
 const props = defineProps({
   currentCity: {
     type: String,
-    default: ''
+    default: '',
   },
   mode: {
     type: String,
-    default: 'app' // 'app' | 'landing'
-  }
+    default: 'app', // 'app' | 'landing'
+  },
+  hideBrand: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:city'])
@@ -19,6 +24,7 @@ const emit = defineEmits(['update:city'])
 const router = useRouter()
 const route = useRoute()
 const cartStore = useCartStore()
+const authStore = useAuthStore()
 
 // Provider ID for detail page navigation
 const providerId = computed(() => route.params.id || '')
@@ -30,19 +36,18 @@ const userName = computed(() => (userData.full_name || 'Pet Parent').split(' ')[
 const cities = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad']
 
 // Smooth scroll helper — offsets for fixed navbar
-const scrollTo = (id) => {
+const scrollTo = id => {
   const el = document.getElementById(id)
   if (el) {
     const navHeight = 72
     const top = el.getBoundingClientRect().top + window.scrollY - navHeight
+
     window.scrollTo({ top, behavior: 'smooth' })
   }
 }
 
-const logout = () => {
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('userData')
-  router.push('/login')
+const logout = async () => {
+  await authStore.logout()
 }
 
 onMounted(() => {
@@ -55,9 +60,17 @@ onMounted(() => {
     <div class="nav-inner">
       <!-- LEFT: Brand + City -->
       <div class="nav-left">
-        <div class="brand" @click="router.push('/pet-owner/book')">
+        <div
+          v-if="!hideBrand"
+          class="brand"
+          @click="router.push('/pet-owner/book')"
+        >
           <div class="brand-logo">
-            <VIcon icon="tabler-paw-filled" color="white" size="20" />
+            <VIcon
+              icon="tabler-paw-filled"
+              color="white"
+              size="20"
+            />
           </div>
           <span class="brand-name">PetLeo</span>
         </div>
@@ -65,18 +78,40 @@ onMounted(() => {
         <div class="nav-divider d-none d-sm-block" />
 
         <!-- City Selector -->
-        <VMenu location="bottom start" transition="slide-y-transition" offset="6">
+        <VMenu
+          location="bottom start"
+          transition="slide-y-transition"
+          offset="6"
+        >
           <template #activator="{ props: menuProps }">
-            <div v-bind="menuProps" class="city-pill">
-              <VIcon icon="tabler-map-pin" size="16" color="primary" />
+            <div
+              v-bind="menuProps"
+              class="city-pill"
+            >
+              <VIcon
+                icon="tabler-map-pin"
+                size="16"
+                color="primary"
+              />
               <div>
-                <div class="city-label">Deliver to</div>
-                <div class="city-value">{{ currentCity || 'Your City' }}</div>
+                <div class="city-label">
+                  Deliver to
+                </div>
+                <div class="city-value">
+                  {{ currentCity || 'Your City' }}
+                </div>
               </div>
-              <VIcon icon="tabler-chevron-down" size="14" color="slate-400" />
+              <VIcon
+                icon="tabler-chevron-down"
+                size="14"
+                color="slate-400"
+              />
             </div>
           </template>
-          <VList class="mt-1 elevation-10 rounded-2xl py-2" width="200">
+          <VList
+            class="mt-1 elevation-10 rounded-2xl py-2"
+            width="200"
+          >
             <VListItem
               v-for="city in cities"
               :key="city"
@@ -92,67 +127,109 @@ onMounted(() => {
 
       <!-- CENTER: Nav Links (Desktop) -->
       <nav class="nav-links d-none d-lg-flex">
-
         <!-- Landing/Discovery page: public marketing links -->
         <template v-if="mode === 'landing'">
-          <button class="nav-link nav-link-btn" @click="scrollTo('about-section')">
-            <VIcon icon="tabler-info-circle" size="16" class="mr-2" />
+          <button
+            class="nav-link nav-link-btn"
+            @click="scrollTo('about-section')"
+          >
+            <VIcon
+              icon="tabler-info-circle"
+              size="16"
+              class="mr-2"
+            />
             About Us
           </button>
-          <button class="nav-link nav-link-btn" @click="scrollTo('services-section')">
-            <VIcon icon="tabler-list-check" size="16" class="mr-2" />
+          <button
+            class="nav-link nav-link-btn"
+            @click="scrollTo('services-section')"
+          >
+            <VIcon
+              icon="tabler-list-check"
+              size="16"
+              class="mr-2"
+            />
             Services
           </button>
-          <button class="nav-link nav-link-btn" @click="scrollTo('how-it-works-section')">
-            <VIcon icon="tabler-help-circle" size="16" class="mr-2" />
+          <button
+            class="nav-link nav-link-btn"
+            @click="scrollTo('how-it-works-section')"
+          >
+            <VIcon
+              icon="tabler-help-circle"
+              size="16"
+              class="mr-2"
+            />
             How It Works
           </button>
-          <button class="nav-link nav-link-btn" @click="scrollTo('contact-section')">
-            <VIcon icon="tabler-mail" size="16" class="mr-2" />
+          <button
+            class="nav-link nav-link-btn"
+            @click="scrollTo('contact-section')"
+          >
+            <VIcon
+              icon="tabler-mail"
+              size="16"
+              class="mr-2"
+            />
             Contact
           </button>
         </template>
 
         <!-- Provider detail page: provider-specific links -->
         <template v-else-if="mode === 'provider'">
-          <router-link
+          <RouterLink
             :to="`/pet-owner/book/${providerId}`"
             class="nav-link"
             active-class="nav-link-active"
             exact
           >
-            <VIcon icon="tabler-info-circle" size="16" class="mr-2" />
+            <VIcon
+              icon="tabler-info-circle"
+              size="16"
+              class="mr-2"
+            />
             About
-          </router-link>
-          <router-link
+          </RouterLink>
+          <RouterLink
             :to="`/pet-owner/book/${providerId}/services`"
             class="nav-link"
             active-class="nav-link-active"
           >
-            <VIcon icon="tabler-list-check" size="16" class="mr-2" />
+            <VIcon
+              icon="tabler-list-check"
+              size="16"
+              class="mr-2"
+            />
             Services
-          </router-link>
-          <router-link
+          </RouterLink>
+          <RouterLink
             :to="`/pet-owner/book/${providerId}/blogs`"
             class="nav-link"
             active-class="nav-link-active"
           >
-            <VIcon icon="tabler-news" size="16" class="mr-2" />
+            <VIcon
+              icon="tabler-news"
+              size="16"
+              class="mr-2"
+            />
             Blogs
-          </router-link>
-          <router-link
+          </RouterLink>
+          <RouterLink
             :to="`/pet-owner/book/${providerId}/reviews`"
             class="nav-link"
             active-class="nav-link-active"
           >
-            <VIcon icon="tabler-star" size="16" class="mr-2" />
+            <VIcon
+              icon="tabler-star"
+              size="16"
+              class="mr-2"
+            />
             Reviews
-          </router-link>
+          </RouterLink>
         </template>
 
         <!-- App pages: Nav links removed as they are now in the Sidebar -->
         <template v-else />
-
       </nav>
 
       <!-- RIGHT: Actions -->
@@ -171,28 +248,65 @@ onMounted(() => {
             color="primary"
             floating
           >
-            <VIcon icon="tabler-shopping-cart" size="22" />
+            <VIcon
+              icon="tabler-shopping-cart"
+              size="22"
+            />
           </VBadge>
-          <VIcon v-else icon="tabler-shopping-cart" size="22" />
+          <VIcon
+            v-else
+            icon="tabler-shopping-cart"
+            size="22"
+          />
         </VBtn>
 
         <!-- Notifications -->
-        <VBtn icon variant="text" size="small" class="action-btn d-none d-sm-flex">
-          <VIcon icon="tabler-bell" size="22" />
+        <VBtn
+          icon
+          variant="text"
+          size="small"
+          class="action-btn d-none d-sm-flex"
+        >
+          <VIcon
+            icon="tabler-bell"
+            size="22"
+          />
         </VBtn>
 
         <!-- User Menu -->
-        <VMenu location="bottom end" transition="slide-y-transition" offset="8">
+        <VMenu
+          location="bottom end"
+          transition="slide-y-transition"
+          offset="8"
+        >
           <template #activator="{ props }">
-            <div v-bind="props" class="user-chip">
-              <VAvatar size="30" color="primary" class="user-avatar">
-                <VIcon icon="tabler-user" size="18" color="white" />
+            <div
+              v-bind="props"
+              class="user-chip"
+            >
+              <VAvatar
+                size="30"
+                color="primary"
+                class="user-avatar"
+              >
+                <VIcon
+                  icon="tabler-user"
+                  size="18"
+                  color="white"
+                />
               </VAvatar>
               <span class="d-none d-sm-block">{{ userName }}</span>
-              <VIcon icon="tabler-chevron-down" size="14" class="d-none d-sm-block" />
+              <VIcon
+                icon="tabler-chevron-down"
+                size="14"
+                class="d-none d-sm-block"
+              />
             </div>
           </template>
-          <VList class="mt-1 elevation-10 rounded-2xl py-2" width="200">
+          <VList
+            class="mt-1 elevation-10 rounded-2xl py-2"
+            width="200"
+          >
             <VListItem
               to="/pet-owner/dashboard"
               prepend-icon="tabler-layout-dashboard"

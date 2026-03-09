@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 
 const props = defineProps({
   provider: { type: Object, required: true },
-  viewMode: { type: String, default: 'grid' }
+  viewMode: { type: String, default: 'grid' },
 })
 
 const router = useRouter()
@@ -12,6 +12,7 @@ const router = useRouter()
 const addToRecentlyViewed = () => {
   const history = JSON.parse(localStorage.getItem('recentlyViewed') || '[]')
   const filtered = history.filter(p => p.id !== props.provider.id)
+
   filtered.unshift(props.provider)
   localStorage.setItem('recentlyViewed', JSON.stringify(filtered.slice(0, 10)))
 }
@@ -24,6 +25,7 @@ const navigateToProvider = () => {
 // Avatar initials from provider name
 const initials = computed(() => {
   const name = props.provider.name || ''
+  
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'P'
 })
 
@@ -35,24 +37,28 @@ const bannerGradients = [
   'linear-gradient(135deg, #6366f1 0%, #3b82f6 50%, #06b6d4 100%)',
   'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%)',
 ]
+
 const bannerGradient = computed(() => {
   const idx = (props.provider.name?.charCodeAt(0) || 0) % bannerGradients.length
+  
   return bannerGradients[idx]
 })
 
 // Service tag colors (cycle)
 const tagColors = ['indigo', 'purple', 'cyan', 'teal', 'orange']
-const tagColor = (i) => tagColors[i % tagColors.length]
+const tagColor = i => tagColors[i % tagColors.length]
 
 const photoUrl = computed(() => {
   const p = props.provider
   if (p.photo && p.photo.startsWith('http')) return p.photo
   if (p.banner && p.banner.startsWith('http')) return p.banner
+  
   return null
 })
 
 const rating = computed(() => {
   const r = parseFloat(props.provider.rating)
+  
   return isNaN(r) ? null : r.toFixed(1)
 })
 
@@ -61,29 +67,58 @@ const reviewCount = computed(() => props.provider.reviews || 0)
 
 <template>
   <!-- ── GRID card ── -->
-  <div v-if="viewMode === 'grid'" class="provider-card" @click="navigateToProvider">
+  <div
+    v-if="viewMode === 'grid'"
+    class="provider-card"
+    @click="navigateToProvider"
+  >
     <!-- Banner / Cover -->
-    <div class="card-banner" :style="`background: ${bannerGradient}`">
+    <div
+      class="card-banner"
+      :style="`background: ${bannerGradient}`"
+    >
       <!-- Photo or pattern -->
-      <img v-if="photoUrl" :src="photoUrl" class="banner-img" :alt="provider.name" />
-      <div v-else class="banner-pattern" />
+      <img
+        v-if="photoUrl"
+        :src="photoUrl"
+        class="banner-img"
+        :alt="provider.name"
+      >
+      <div
+        v-else
+        class="banner-pattern"
+      />
 
       <!-- Rating pill -->
       <div class="rating-pill">
-        <VIcon icon="tabler-star-filled" size="11" color="#f59e0b" />
+        <VIcon
+          icon="tabler-star-filled"
+          size="11"
+          color="#f59e0b"
+        />
         <span>{{ rating || 'New' }}</span>
       </div>
 
       <!-- Verified badge -->
-      <div v-if="provider.verified" class="verified-pill">
-        <VIcon icon="tabler-rosette-discount-check" size="13" color="#10b981" />
+      <div
+        v-if="provider.verified"
+        class="verified-pill"
+      >
+        <VIcon
+          icon="tabler-rosette-discount-check"
+          size="13"
+          color="#10b981"
+        />
         Verified
       </div>
     </div>
 
     <!-- Avatar overlapping banner -->
     <div class="avatar-wrap">
-      <div class="provider-avatar" :style="`background: ${bannerGradient}`">
+      <div
+        class="provider-avatar"
+        :style="`background: ${bannerGradient}`"
+      >
         <span class="avatar-initials">{{ initials }}</span>
       </div>
     </div>
@@ -92,21 +127,41 @@ const reviewCount = computed(() => props.provider.reviews || 0)
     <div class="card-body">
       <!-- Name + verify icon -->
       <div class="provider-name-row">
-        <h3 class="provider-name">{{ provider.name }}</h3>
-        <VIcon v-if="provider.verified" icon="tabler-discount-check-filled" color="#6366f1" size="18" />
+        <h3 class="provider-name">
+          {{ provider.name }}
+        </h3>
+        <VIcon
+          v-if="provider.verified"
+          icon="tabler-discount-check-filled"
+          color="#6366f1"
+          size="18"
+        />
       </div>
 
       <!-- Org / Type label -->
-      <p class="provider-type">{{ provider.organization || 'Verified PetLeo Professional' }}</p>
+      <p class="provider-type">
+        {{ provider.organization || 'Verified PetLeo Professional' }}
+      </p>
 
       <!-- Location & reviews -->
       <div class="provider-meta">
-        <div class="meta-item" v-if="provider.location">
-          <VIcon icon="tabler-map-pin" size="13" color="#94a3b8" />
+        <div
+          v-if="provider.location"
+          class="meta-item"
+        >
+          <VIcon
+            icon="tabler-map-pin"
+            size="13"
+            color="#94a3b8"
+          />
           <span class="meta-text">{{ provider.location }}</span>
         </div>
         <div class="meta-item">
-          <VIcon icon="tabler-message-circle" size="13" color="#94a3b8" />
+          <VIcon
+            icon="tabler-message-circle"
+            size="13"
+            color="#94a3b8"
+          />
           <span class="meta-text">{{ reviewCount }} Reviews</span>
         </div>
       </div>
@@ -121,59 +176,116 @@ const reviewCount = computed(() => props.provider.reviews || 0)
         >
           {{ svc }}
         </span>
-        <span v-if="(provider.services || []).length > 3" class="service-tag tag-more">
+        <span
+          v-if="(provider.services || []).length > 3"
+          class="service-tag tag-more"
+        >
           +{{ provider.services.length - 3 }}
         </span>
       </div>
 
       <!-- Footer -->
       <div class="card-footer">
-        <div v-if="provider.price" class="price-block">
+        <div
+          v-if="provider.price"
+          class="price-block"
+        >
           <span class="price-label">From</span>
           <span class="price-value">₹{{ provider.price }}</span>
         </div>
-        <div v-else class="price-block">
+        <div
+          v-else
+          class="price-block"
+        >
           <span class="price-label">Book Now</span>
         </div>
         <button class="explore-btn">
           Explore
-          <VIcon icon="tabler-arrow-right" size="14" />
+          <VIcon
+            icon="tabler-arrow-right"
+            size="14"
+          />
         </button>
       </div>
     </div>
   </div>
 
   <!-- ── LIST card ── -->
-  <div v-else class="provider-list-card" @click="navigateToProvider">
+  <div
+    v-else
+    class="provider-list-card"
+    @click="navigateToProvider"
+  >
     <!-- Left accent bar -->
-    <div class="list-accent" :style="`background: ${bannerGradient}`" />
+    <div
+      class="list-accent"
+      :style="`background: ${bannerGradient}`"
+    />
 
     <!-- Avatar -->
-    <div class="list-avatar" :style="`background: ${bannerGradient}`">
-      <img v-if="photoUrl" :src="photoUrl" class="list-avatar-img" :alt="provider.name" />
-      <span v-else class="list-avatar-initials">{{ initials }}</span>
+    <div
+      class="list-avatar"
+      :style="`background: ${bannerGradient}`"
+    >
+      <img
+        v-if="photoUrl"
+        :src="photoUrl"
+        class="list-avatar-img"
+        :alt="provider.name"
+      >
+      <span
+        v-else
+        class="list-avatar-initials"
+      >{{ initials }}</span>
     </div>
 
     <!-- Info -->
     <div class="list-info">
       <div class="list-name-row">
-        <h3 class="list-name">{{ provider.name }}</h3>
-        <VIcon v-if="provider.verified" icon="tabler-discount-check-filled" color="#6366f1" size="20" />
-        <div v-if="rating" class="list-rating">
-          <VIcon icon="tabler-star-filled" size="13" color="#f59e0b" />
+        <h3 class="list-name">
+          {{ provider.name }}
+        </h3>
+        <VIcon
+          v-if="provider.verified"
+          icon="tabler-discount-check-filled"
+          color="#6366f1"
+          size="20"
+        />
+        <div
+          v-if="rating"
+          class="list-rating"
+        >
+          <VIcon
+            icon="tabler-star-filled"
+            size="13"
+            color="#f59e0b"
+          />
           {{ rating }}
         </div>
       </div>
 
-      <p class="list-type">{{ provider.organization || 'Verified PetLeo Professional' }}</p>
+      <p class="list-type">
+        {{ provider.organization || 'Verified PetLeo Professional' }}
+      </p>
 
       <div class="list-meta-row">
-        <div class="list-meta-item" v-if="provider.location">
-          <VIcon icon="tabler-map-pin" size="14" color="#94a3b8" />
+        <div
+          v-if="provider.location"
+          class="list-meta-item"
+        >
+          <VIcon
+            icon="tabler-map-pin"
+            size="14"
+            color="#94a3b8"
+          />
           {{ provider.location }}
         </div>
         <div class="list-meta-item">
-          <VIcon icon="tabler-message-circle" size="14" color="#94a3b8" />
+          <VIcon
+            icon="tabler-message-circle"
+            size="14"
+            color="#94a3b8"
+          />
           {{ reviewCount }} Verified Reviews
         </div>
       </div>
@@ -193,13 +305,23 @@ const reviewCount = computed(() => props.provider.reviews || 0)
 
     <!-- Right CTA -->
     <div class="list-cta">
-      <div v-if="provider.price" class="list-price">
+      <div
+        v-if="provider.price"
+        class="list-price"
+      >
         <span class="price-label">From</span>
         <span class="list-price-val">₹{{ provider.price }}</span>
       </div>
-      <button class="list-explore-btn" :style="`background: ${bannerGradient}`">
+      <button
+        class="list-explore-btn"
+        :style="`background: ${bannerGradient}`"
+      >
         View Profile
-        <VIcon icon="tabler-arrow-up-right" size="16" class="ml-1" />
+        <VIcon
+          icon="tabler-arrow-up-right"
+          size="16"
+          class="ml-1"
+        />
       </button>
     </div>
   </div>
@@ -221,9 +343,12 @@ const reviewCount = computed(() => props.provider.reviews || 0)
 }
 
 .provider-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 24px 56px rgba(99,102,241,0.12), 0 0 0 1px rgba(99,102,241,0.1);
-  border-color: #c7d2fe;
+  transform: perspective(1000px) translateZ(30px) rotateX(4deg);
+  box-shadow: 
+    0 32px 64px rgba(99,102,241,0.18), 
+    0 0 0 1px rgba(99,102,241,0.15),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: #a5b4fc;
 }
 
 /* Banner */
@@ -265,6 +390,8 @@ const reviewCount = computed(() => props.provider.reviews || 0)
   display: flex;
   align-items: center;
   gap: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), 0 4px 8px rgba(0,0,0,0.3);
 }
 
 .verified-pill {
@@ -282,6 +409,7 @@ const reviewCount = computed(() => props.provider.reviews || 0)
   display: flex;
   align-items: center;
   gap: 4px;
+  box-shadow: inset 0 1px 1px rgba(16,185,129,0.2), 0 4px 8px rgba(0,0,0,0.1);
 }
 
 /* Avatar */

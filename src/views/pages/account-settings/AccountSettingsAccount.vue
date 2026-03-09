@@ -82,6 +82,7 @@ const submitForm = async () => {
 
   // Construct fields JSON and append files
   const fieldsData = []
+
   fields.value.forEach(field => {
     if (field.field_type === 'file') {
       if (field.fileValue) {
@@ -107,13 +108,15 @@ const submitForm = async () => {
     if (profile) {
       // 1. Update Cookie
       const currentData = userData.value || {}
+
       const updatedData = {
         ...currentData,
         fullName: profile.fullName,
         email: profile.email,
         phoneNumber: profile.phoneNumber,
-        avatar: profile.avatar || currentData.avatar
+        avatar: profile.avatar || currentData.avatar,
       }
+
       userData.value = updatedData
       localStorage.setItem('userData', JSON.stringify(updatedData))
 
@@ -124,6 +127,7 @@ const submitForm = async () => {
 
       // 3. Sync with PermissionStore (updates Header, Sidebar, etc.)
       const permissionStore = usePermissionStore()
+
       permissionStore.userData = updatedData
       
       // 🚀 SYNC TO AUTH SERVICE (Port 8000)
@@ -131,7 +135,7 @@ const submitForm = async () => {
         await api.patch(`/users/${userData.value.id}/`, {
           avatar_url: profile.avatar || currentData.avatar,
           full_name: profile.fullName,
-          email: profile.email
+          email: profile.email,
         })
         console.log("✅ Profile synced to Auth Service successfully.")
       } catch (authErr) {
@@ -290,7 +294,10 @@ onMounted(() => {
                   persistent-hint
                   prepend-icon="tabler-file"
                 >
-                  <template v-if="field.metadata?.file_url" #append>
+                  <template
+                    v-if="field.metadata?.file_url"
+                    #append
+                  >
                     <VBtn
                       icon
                       size="small"

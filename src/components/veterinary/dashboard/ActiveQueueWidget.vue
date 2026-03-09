@@ -15,7 +15,7 @@ const headers = [
   { title: 'Handled By', key: 'handled_by' },
 ]
 
-const getStatusColor = (status) => {
+const getStatusColor = status => {
   const map = {
     CHECKED_IN: 'warning',
     VITALS_RECORDED: 'info',
@@ -25,12 +25,17 @@ const getStatusColor = (status) => {
     PRESCRIPTION_FINALIZED: 'success',
     MEDICINES_DISPENSED: 'success',
   }
+
+  
   return map[status] || 'secondary'
 }
 </script>
 
 <template>
-  <VCard class="border" elevation="0">
+  <VCard
+    class="border"
+    elevation="0"
+  >
     <VCardItem>
       <VCardTitle>Live Activity Queue</VCardTitle>
       <VCardSubtitle>Real-time patient flow monitoring</VCardSubtitle>

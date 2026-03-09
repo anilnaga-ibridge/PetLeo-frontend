@@ -24,7 +24,7 @@ const fetchProfile = async () => {
     
     const target = userData.value?.provider_type || 
                    (roleName === 'superadmin' ? 'superadmin' : 
-                    roleName === 'organization' ? 'organization' : 'individual')
+                     roleName === 'organization' ? 'organization' : 'individual')
     
     console.log('Fetching Profile for:', { user: userData.value.id, role: roleName, target })
 
@@ -34,17 +34,19 @@ const fetchProfile = async () => {
         target: target,
       },
     })
+
     fields.value = res.data.fields || []
   } catch (err) {
     console.error('Failed to fetch profile for about section:', err)
   }
 }
 
-const updateUser = async (updatedData) => {
+const updateUser = async updatedData => {
   try {
     const payload = {
       full_name: updatedData.fullName,
       email: updatedData.email,
+
       // Add other auth fields if needed
     }
     
@@ -57,14 +59,14 @@ const updateUser = async (updatedData) => {
       
       // Backend expects a list of objects with field_id
       const fieldsPayload = updatedData.dynamicFields.map(f => ({
-          field_id: f.id,
-          value: f.value
+        field_id: f.id,
+        value: f.value,
       }))
       
       fd.append('fields', JSON.stringify(fieldsPayload))
       
       if (userData.value.id) {
-         fd.append('auth_user_id', userData.value.id)
+        fd.append('auth_user_id', userData.value.id)
       }
 
       await providerApi.post('/api/provider/profile/', fd)
@@ -76,6 +78,7 @@ const updateUser = async (updatedData) => {
     
     // Update permission store for auth fields
     const finalData = { ...userData.value, ...updatedData }
+
     permissionStore.userData = finalData
     localStorage.setItem('userData', JSON.stringify(finalData))
     
@@ -99,11 +102,12 @@ const profileTabData = computed(() => {
     .map(f => ({
       property: f.label,
       value: f.value || 'Not set',
-      icon: 'tabler-info-circle'
+      icon: 'tabler-info-circle',
     }))
 
-  const getFieldValue = (name) => {
+  const getFieldValue = name => {
     const field = fields.value.find(f => f.name === name)
+    
     return field ? field.value : null
   }
 
@@ -118,10 +122,10 @@ const profileTabData = computed(() => {
       { property: 'Role', value: (userData.value.role === 'provider' ? (userData.value.provider_type || 'Provider') : (userData.value.role_name || userData.value.role?.name || userData.value.role || 'User')), icon: 'tabler-crown' },
       { property: 'Country', value: apiCountry || 'Not set', icon: 'tabler-flag' },
       ...dynamicAbout.map(f => ({
-         property: f.property,
-         value: f.value,
-         icon: f.icon || 'tabler-info-circle'
-      }))
+        property: f.property,
+        value: f.value,
+        icon: f.icon || 'tabler-info-circle',
+      })),
     ],
     contacts: [
       { property: 'Contact', value: apiPhone || userData.value.phoneNumber || userData.value.phone_number, icon: 'tabler-phone-call' },

@@ -17,12 +17,14 @@ const serviceStyles = {
   WALKING: { icon: 'tabler-walk', bg: 'linear-gradient(135deg, #06b6d4, #0284c7)', emoji: '🦮' },
 }
 
-const getStyle = (service) => {
+const getStyle = service => {
   const key = (service.linked_capability || service.name || '').toUpperCase()
+
   // Try exact match, then partial match
   for (const [k, v] of Object.entries(serviceStyles)) {
     if (key.includes(k)) return v
   }
+  
   return { icon: 'tabler-paw', bg: 'linear-gradient(135deg, #6366f1, #3b82f6)', emoji: '🐾' }
 }
 
@@ -31,6 +33,7 @@ const fetchServices = async () => {
   try {
     const res = await superAdminApi.get('/api/superadmin/services/')
     const all = Array.isArray(res.data) ? res.data : (res.data.results || [])
+
     services.value = all.filter(s => s.is_active && !s.blocked)
   } catch (err) {
     console.error('Failed to fetch services', err)
@@ -43,11 +46,18 @@ onMounted(fetchServices)
 </script>
 
 <template>
-  <section id="services-section" class="services-section">
+  <section
+    id="services-section"
+    class="services-section"
+  >
     <!-- Header -->
     <div class="services-header">
-      <div class="section-eyebrow">Our Services</div>
-      <h2 class="services-title">Everything Your Pet Needs</h2>
+      <div class="section-eyebrow">
+        Our Services
+      </div>
+      <h2 class="services-title">
+        Everything Your Pet Needs
+      </h2>
       <p class="services-sub">
         From routine checkups to emergency care — PetLeo connects you with verified professionals 
         for every aspect of your pet's wellbeing.
@@ -55,13 +65,26 @@ onMounted(fetchServices)
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="services-loading">
-      <VProgressCircular indeterminate color="primary" size="44" width="4" />
-      <p class="loading-text">Loading services…</p>
+    <div
+      v-if="loading"
+      class="services-loading"
+    >
+      <VProgressCircular
+        indeterminate
+        color="primary"
+        size="44"
+        width="4"
+      />
+      <p class="loading-text">
+        Loading services…
+      </p>
     </div>
 
     <!-- Services Grid -->
-    <div v-else-if="services.length > 0" class="services-grid">
+    <div
+      v-else-if="services.length > 0"
+      class="services-grid"
+    >
       <div
         v-for="(service, i) in services"
         :key="service.id"
@@ -69,13 +92,18 @@ onMounted(fetchServices)
         :style="`animation-delay: ${i * 0.07}s`"
       >
         <!-- Icon Block -->
-        <div class="service-icon-wrap" :style="`background: ${getStyle(service).bg}`">
+        <div
+          class="service-icon-wrap"
+          :style="`background: ${getStyle(service).bg}`"
+        >
           <span class="service-emoji">{{ getStyle(service).emoji }}</span>
         </div>
 
         <!-- Content -->
         <div class="service-content">
-          <h3 class="service-name">{{ service.display_name || service.name }}</h3>
+          <h3 class="service-name">
+            {{ service.display_name || service.name }}
+          </h3>
           <p class="service-desc">
             {{ service.description || `Professional ${service.display_name || service.name} services for your beloved pet.` }}
           </p>
@@ -84,35 +112,49 @@ onMounted(fetchServices)
         <!-- Footer row -->
         <div class="service-footer">
           <div class="billing-tag">
-            <VIcon icon="tabler-clock" size="12" />
+            <VIcon
+              icon="tabler-clock"
+              size="12"
+            />
             {{ service.default_billing_unit?.replace(/_/g, ' ') || 'Per Session' }}
           </div>
           <div class="audience-tag">
-            <VIcon icon="tabler-users" size="12" />
+            <VIcon
+              icon="tabler-users"
+              size="12"
+            />
             {{ service.target_audience || 'All' }}
           </div>
         </div>
 
         <!-- Hover glow line -->
-        <div class="service-card-glow" :style="`background: ${getStyle(service).bg}`" />
+        <div
+          class="service-card-glow"
+          :style="`background: ${getStyle(service).bg}`"
+        />
       </div>
     </div>
 
     <!-- Empty fallback -->
-    <div v-else class="services-empty">
+    <div
+      v-else
+      class="services-empty"
+    >
       <p>No services available at the moment. Please check back soon.</p>
     </div>
 
     <!-- CTA -->
     <div class="services-cta">
-      <p class="cta-label">Ready to book for your pet?</p>
+      <p class="cta-label">
+        Ready to book for your pet?
+      </p>
       <VBtn
         color="primary"
         height="54"
         class="font-weight-black rounded-2xl px-10"
         prepend-icon="tabler-search"
-        @click="$router.push('/pet-owner/book')"
         onclick="document.getElementById('providers-section')?.scrollIntoView({ behavior: 'smooth' })"
+        @click="$router.push('/pet-owner/book')"
       >
         Find a Provider
       </VBtn>

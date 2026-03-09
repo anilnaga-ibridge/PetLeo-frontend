@@ -6,21 +6,21 @@ import { useCookie } from '@/@core/composable/useCookie'
 const props = defineProps({
   serviceId: {
     type: String,
-    required: true
+    required: true,
   },
   permissions: {
     type: Object,
     default: () => ({
       can_create: false,
       can_edit: false,
-      can_delete: false
-    })
+      can_delete: false,
+    }),
   },
   mode: {
     type: String,
     default: 'facilities', // 'categories', 'facilities', 'summary'
-    validator: v => ['categories', 'facilities', 'summary'].includes(v)
-  }
+    validator: v => ['categories', 'facilities', 'summary'].includes(v),
+  },
 })
 
 const categories = ref([])
@@ -41,13 +41,23 @@ const isAdmin = computed(() => {
   return adminRoles.includes(userRole.value)
 })
 
-const normalizedPerms = computed(() => ({
-  // Strict: Only true Admins can manage categories and facilities
-  can_create: isAdmin.value,
-  can_edit: isAdmin.value,
-  can_delete: isAdmin.value,
-  can_view: true,
-}))
+const normalizedPerms = computed(() => {
+  if (isAdmin.value) {
+    return {
+      can_create: true,
+      can_edit: true,
+      can_delete: true,
+      can_view: true,
+    }
+  }
+  
+  return {
+    can_create: !!props.permissions?.can_create,
+    can_edit: !!props.permissions?.can_edit,
+    can_delete: !!props.permissions?.can_delete,
+    can_view: true,
+  }
+})
 
 const showPermissionDialog = ref(false)
 
@@ -57,7 +67,7 @@ const permissionMatrix = computed(() => [
   { entity: 'Price',    create: normalizedPerms.value.can_create, edit: normalizedPerms.value.can_edit, delete: normalizedPerms.value.can_delete },
 ])
 
-const handleRestrictedAction = (action) => {
+const handleRestrictedAction = action => {
   permissionDeniedAction.value = action
   showPermissionDialog.value = true
 }
@@ -73,7 +83,7 @@ const categoryForm = ref({
   name: '',
   description: '',
   service: props.serviceId,
-  is_active: true
+  is_active: true,
 })
 
 const facilityForm = ref({
@@ -95,7 +105,7 @@ const facilityForm = ref({
   image_file: null, // Primary image
   imageUrl: null,
   gallery_files: [], // Multi-image gallery
-  galleryUrls: []
+  galleryUrls: [],
 })
 
 const billingUnitOptions = [
@@ -118,24 +128,35 @@ const strategyOptions = [
 ]
 
 // Image Preview Helpers
-const handleImageUpload = (file) => {
-  if (!file) return
+const handleImageUpload = file => {
+  if (!file || (Array.isArray(file) && file.length === 0)) return
   try {
-    facilityForm.value.imageUrl = window.URL.createObjectURL(file)
+    const actualFile = Array.isArray(file) ? file[0] : file
+    if (actualFile) {
+      facilityForm.value.imageUrl = window.URL.createObjectURL(actualFile)
+    }
   } catch (err) {
     console.error('Error creating preview:', err)
   }
 }
 
-const handleGalleryUpload = (files) => {
+const handleGalleryUpload = files => {
   if (!files || files.length === 0) return
   try {
-    files.forEach(f => {
+    const actualFiles = Array.isArray(files) ? files : Array.from(files)
+
+    actualFiles.forEach(f => {
       facilityForm.value.galleryUrls.push(window.URL.createObjectURL(f))
+      facilityForm.value.gallery_files.push(f)
     })
   } catch (err) {
     console.error('Error creating gallery previews:', err)
   }
+}
+
+const removeGalleryImage = idx => {
+  facilityForm.value.galleryUrls.splice(idx, 1)
+  facilityForm.value.gallery_files.splice(idx, 1)
 }
 
 // Fetch Data
@@ -145,8 +166,9 @@ const fetchData = async () => {
   try {
     const [catRes, priceRes] = await Promise.all([
       providerApi.get(`/api/provider/categories/?service=${props.serviceId}`),
-      providerApi.get(`/api/provider/pricing/?service=${props.serviceId}`)
+      providerApi.get(`/api/provider/pricing/?service=${props.serviceId}`),
     ])
+
     categories.value = catRes.data.results || catRes.data || []
     pricingRules.value = priceRes.data.results || priceRes.data || []
   } catch (err) {
@@ -161,23 +183,29 @@ const hierarchy = computed(() => {
   let filteredCats = categories.value
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
+
     filteredCats = categories.value.filter(c => c.name.toLowerCase().includes(q))
   }
 
-  const getCategoryId = (rule) => {
+  const getCategoryId = rule => {
     if (rule.category_id) return rule.category_id
     if (!rule.category) return null
+    
     return typeof rule.category === 'object' ? rule.category.id : rule.category
   }
 
   const processedRuleIds = new Set()
+
   const menu = filteredCats.map(cat => {
     const rules = pricingRules.value.filter(rule => {
-       const ruleCatId = getCategoryId(rule)
-       const isMatch = ruleCatId === cat.id && rule.facility
-       if (isMatch) processedRuleIds.add(rule.id)
-       return isMatch
+      const ruleCatId = getCategoryId(rule)
+      const isMatch = ruleCatId === cat.id && rule.facility
+      if (isMatch) processedRuleIds.add(rule.id)
+      
+      return isMatch
     })
+
+    
     return {
       ...cat,
       items: rules.map(rule => ({
@@ -190,18 +218,23 @@ const hierarchy = computed(() => {
         billing_unit: rule.billing_unit,
         protocol_type: rule.service_duration_type === 'SESSIONS' ? 'SESSION_BASED' : rule.service_duration_type === 'DAYS' ? 'DAY_BASED' : 'MINUTES_BASED',
         pricing_strategy: rule.pricing_model,
+        duration_value: rule.duration_value,
+        daily_capacity: rule.daily_capacity,
+        monthly_limit: rule.monthly_limit,
         is_active: rule.is_active,
-        image_url: rule.facility?.image_url || rule.facility?.image || null, // Capture image URL
+        image_url: rule.facility_image_url || rule.facility?.image_url || rule.facility?.image || null, // Capture image URL
+        gallery: rule.facility_gallery || rule.facility?.gallery || [],
         can_edit: rule.can_edit,
-        can_delete: rule.can_delete
-      }))
+        can_delete: rule.can_delete,
+      })),
     }
   })
 
   // Uncategorized Rules
   const leftoverRules = pricingRules.value.filter(rule => 
-      !processedRuleIds.has(rule.id) && rule.facility
+    !processedRuleIds.has(rule.id) && rule.facility,
   )
+
   if (leftoverRules.length > 0 && !searchQuery.value) {
     menu.push({
       id: 'uncategorized',
@@ -215,12 +248,20 @@ const hierarchy = computed(() => {
         price: rule.price,
         billing_unit: rule.billing_unit,
         duration: (rule.duration !== null && rule.duration !== undefined && rule.duration !== 'null') ? rule.duration : (rule.duration_minutes !== null && rule.duration_minutes !== undefined && rule.duration_minutes !== 'null') ? rule.duration_minutes : 60,
+        protocol_type: rule.service_duration_type === 'SESSIONS' ? 'SESSION_BASED' : rule.service_duration_type === 'DAYS' ? 'DAY_BASED' : 'MINUTES_BASED',
+        pricing_strategy: rule.pricing_model,
+        duration_value: rule.duration_value,
+        daily_capacity: rule.daily_capacity,
+        monthly_limit: rule.monthly_limit,
         is_active: rule.is_active,
+        image_url: rule.facility_image_url || rule.facility?.image_url || rule.facility?.image || null,
+        gallery: rule.facility_gallery || rule.facility?.gallery || [],
         can_edit: rule.can_edit,
-        can_delete: rule.can_delete
-      }))
+        can_delete: rule.can_delete,
+      })),
     })
   }
+  
   return menu
 })
 
@@ -233,7 +274,7 @@ const openCategoryDrawer = (category = null) => {
       name: category.name,
       description: category.description,
       service_id: props.serviceId,
-      is_active: category.is_active
+      is_active: category.is_active,
     }
   } else {
     isEdit.value = false
@@ -241,7 +282,7 @@ const openCategoryDrawer = (category = null) => {
       name: '',
       description: '',
       service_id: props.serviceId,
-      is_active: true
+      is_active: true,
     }
   }
   categoryDrawerOpen.value = true
@@ -265,7 +306,7 @@ const submitCategory = async () => {
   }
 }
 
-const deleteCategory = async (id) => {
+const deleteCategory = async id => {
   if (!confirm('Delete this category?')) return
   try {
     await providerApi.delete(`/api/provider/categories/${id}/`)
@@ -275,10 +316,10 @@ const deleteCategory = async (id) => {
   }
 }
 
-const toggleCategoryStatus = async (category) => {
+const toggleCategoryStatus = async category => {
   try {
     await providerApi.patch(`/api/provider/categories/${category.id}/`, {
-      is_active: category.is_active
+      is_active: category.is_active,
     })
   } catch (err) {
     // Revert on failure
@@ -320,7 +361,7 @@ const openFacilityDrawer = (category, item = null) => {
       image_file: null,
       imageUrl: item.image_url, // Primary image
       galleryUrls: item.gallery?.map(g => g.image_url) || [],
-      gallery_files: []
+      gallery_files: [],
     }
   } else {
     isEdit.value = false
@@ -343,7 +384,7 @@ const openFacilityDrawer = (category, item = null) => {
       image_file: null,
       imageUrl: null,
       gallery_files: [],
-      galleryUrls: []
+      galleryUrls: [],
     }
   }
   facilityDrawerOpen.value = true
@@ -359,6 +400,7 @@ const submitFacility = async () => {
 
     // 1. Prepare Facility Data (Multipart)
     const facilityFormData = new FormData()
+
     facilityFormData.append('name', facilityForm.value.name)
     facilityFormData.append('description', facilityForm.value.description || '')
     facilityFormData.append('service', props.serviceId)
@@ -372,25 +414,40 @@ const submitFacility = async () => {
     facilityFormData.append('is_active', facilityForm.value.is_active)
     
     if (facilityForm.value.image_file) {
-      facilityFormData.append('image', facilityForm.value.image_file)
+      const actualImg = Array.isArray(facilityForm.value.image_file) ? facilityForm.value.image_file[0] : facilityForm.value.image_file
+      if (actualImg) {
+        facilityFormData.append('image', actualImg)
+      }
     }
 
     // Gallery images
     if (facilityForm.value.gallery_files && facilityForm.value.gallery_files.length > 0) {
-      facilityForm.value.gallery_files.forEach(file => {
+      const filesToAppend = Array.isArray(facilityForm.value.gallery_files[0]) 
+        ? facilityForm.value.gallery_files[0] 
+        : facilityForm.value.gallery_files
+          
+      filesToAppend.forEach(file => {
         facilityFormData.append('gallery', file)
       })
     }
 
+    // Debug: Log the FormData contents
+    console.log("=== SUBMITTING FACILITY FORMDATA ===")
+    for (let pair of facilityFormData.entries()) {
+      console.log(`${pair[0]}:`, pair[1])
+    }
+    console.log("======================================")
+
     let facilityId = editId.value
     if (isEdit.value && facilityId) {
       await providerApi.put(`/api/provider/facilities/${facilityId}/`, facilityFormData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
     } else {
       const res = await providerApi.post('/api/provider/facilities/', facilityFormData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
+
       facilityId = res.data.id
     }
 
@@ -408,13 +465,13 @@ const submitFacility = async () => {
       daily_capacity: facilityForm.value.daily_capacity,
       monthly_limit: facilityForm.value.monthly_limit,
       is_active: facilityForm.value.is_active,
-      description: facilityForm.value.description
+      description: facilityForm.value.description,
     }
 
     if (isEdit.value && facilityForm.value.ruleId) {
-       await providerApi.put(`/api/provider/pricing/${facilityForm.value.ruleId}/`, pricingData)
+      await providerApi.put(`/api/provider/pricing/${facilityForm.value.ruleId}/`, pricingData)
     } else {
-       await providerApi.post('/api/provider/pricing/', pricingData)
+      await providerApi.post('/api/provider/pricing/', pricingData)
     }
 
     facilityDrawerOpen.value = false
@@ -426,7 +483,7 @@ const submitFacility = async () => {
   }
 }
 
-const deleteFacility = async (item) => {
+const deleteFacility = async item => {
   if (!confirm('Delete this facility?')) return
   try {
     if (item.ruleId) await providerApi.delete(`/api/provider/pricing/${item.ruleId}/`)
@@ -445,62 +502,102 @@ watch(() => props.serviceId, fetchData)
   <div class="d-flex flex-column">
     <!-- 1. Permissions Card (Collapsible) -->
     <VCard 
+      v-if="mode === 'categories'" 
       class="mb-6 border overflow-hidden" 
-      elevation="0" 
-      v-if="mode === 'categories'"
+      elevation="0"
       variant="flat"
       color="surface"
     >
       <div 
-        @click="showPermissions = !showPermissions" 
+        v-ripple 
         class="cursor-pointer py-3 px-5 d-flex align-center justify-space-between bg-var-theme-background"
         style="transition: background 0.2s"
-        v-ripple
+        @click="showPermissions = !showPermissions"
       >
         <div class="d-flex align-center gap-3">
-            <VAvatar color="primary" variant="tonal" size="36">
-                <VIcon icon="tabler-shield-lock" size="20" />
-            </VAvatar>
-            <div>
-                 <div class="text-subtitle-1 font-weight-bold">Plan Permissions</div>
-                 <div class="text-caption text-medium-emphasis">View your access level</div>
+          <VAvatar
+            color="primary"
+            variant="tonal"
+            size="36"
+          >
+            <VIcon
+              icon="tabler-shield-lock"
+              size="20"
+            />
+          </VAvatar>
+          <div>
+            <div class="text-subtitle-1 font-weight-bold">
+              Plan Permissions
             </div>
+            <div class="text-caption text-medium-emphasis">
+              View your access level
+            </div>
+          </div>
         </div>
         <div class="d-flex align-center gap-2">
-           <VIcon :icon="showPermissions ? 'tabler-chevron-up' : 'tabler-chevron-down'" size="20" class="text-medium-emphasis" />
+          <VIcon
+            :icon="showPermissions ? 'tabler-chevron-up' : 'tabler-chevron-down'"
+            size="20"
+            class="text-medium-emphasis"
+          />
         </div>
       </div>
       
       <VExpandTransition>
         <div v-show="showPermissions">
           <VDivider />
-            <div class="d-flex flex-wrap gap-4 pa-5 bg-grey-lighten-5">
-              <div v-for="row in permissionMatrix" :key="row.entity" class="bg-surface border rounded-lg px-4 py-3 flex-grow-1" style="min-width: 200px">
-                  <div class="text-caption font-weight-bold text-uppercase mb-2 text-medium-emphasis">{{ row.entity }}</div>
-                  <div class="d-flex align-center justify-space-between">
-                      <div class="d-flex align-center gap-1" :class="row.create ? 'text-success' : 'text-medium-emphasis'">
-                         <VIcon :icon="row.create ? 'tabler-circle-check-filled' : 'tabler-circle-x'" size="16" />
-                         <span class="text-caption font-weight-medium">Create</span>
-                      </div>
-                      <div class="d-flex align-center gap-1" :class="row.edit ? 'text-success' : 'text-medium-emphasis'">
-                         <VIcon :icon="row.edit ? 'tabler-circle-check-filled' : 'tabler-circle-x'" size="16" />
-                         <span class="text-caption font-weight-medium">Edit</span>
-                      </div>
-                      <div class="d-flex align-center gap-1" :class="row.delete ? 'text-success' : 'text-medium-emphasis'">
-                         <VIcon :icon="row.delete ? 'tabler-circle-check-filled' : 'tabler-circle-x'" size="16" />
-                         <span class="text-caption font-weight-medium">Delete</span>
-                      </div>
-                  </div>
+          <div class="d-flex flex-wrap gap-4 pa-5 bg-grey-lighten-5">
+            <div
+              v-for="row in permissionMatrix"
+              :key="row.entity"
+              class="bg-surface border rounded-lg px-4 py-3 flex-grow-1"
+              style="min-width: 200px"
+            >
+              <div class="text-caption font-weight-bold text-uppercase mb-2 text-medium-emphasis">
+                {{ row.entity }}
+              </div>
+              <div class="d-flex align-center justify-space-between">
+                <div
+                  class="d-flex align-center gap-1"
+                  :class="row.create ? 'text-success' : 'text-medium-emphasis'"
+                >
+                  <VIcon
+                    :icon="row.create ? 'tabler-circle-check-filled' : 'tabler-circle-x'"
+                    size="16"
+                  />
+                  <span class="text-caption font-weight-medium">Create</span>
+                </div>
+                <div
+                  class="d-flex align-center gap-1"
+                  :class="row.edit ? 'text-success' : 'text-medium-emphasis'"
+                >
+                  <VIcon
+                    :icon="row.edit ? 'tabler-circle-check-filled' : 'tabler-circle-x'"
+                    size="16"
+                  />
+                  <span class="text-caption font-weight-medium">Edit</span>
+                </div>
+                <div
+                  class="d-flex align-center gap-1"
+                  :class="row.delete ? 'text-success' : 'text-medium-emphasis'"
+                >
+                  <VIcon
+                    :icon="row.delete ? 'tabler-circle-check-filled' : 'tabler-circle-x'"
+                    size="16"
+                  />
+                  <span class="text-caption font-weight-medium">Delete</span>
+                </div>
               </div>
             </div>
+          </div>
         </div>
       </VExpandTransition>
     </VCard>
 
     <!-- 2. Toolbar & Search -->
     <div class="d-flex flex-wrap align-center justify-space-between gap-4 mb-6">
-       <!-- Search -->
-       <div style="flex: 1; min-width: 280px; max-width: 500px;">
+      <!-- Search -->
+      <div style="flex: 1; min-width: 280px; max-width: 500px;">
         <VTextField
           v-model="searchQuery"
           placeholder="Search categories & facilities..."
@@ -509,497 +606,822 @@ watch(() => props.serviceId, fetchData)
           variant="outlined"
           hide-details
           class="rounded-lg bg-surface"
-        >
-        </VTextField>
+        />
       </div>
 
-       <!-- Actions -->
-       <div class="d-flex align-center gap-3">
-          <VBtnToggle
-            v-if="mode !== 'categories'"
-            v-model="viewMode"
-            mandatory
-            density="comfortable"
-            color="primary"
-            variant="outlined"
-            class="rounded-lg"
-          >
-            <VBtn value="card" icon="tabler-layout-grid" />
-            <VBtn value="table" icon="tabler-list" />
-          </VBtnToggle>
+      <!-- Actions -->
+      <div class="d-flex align-center gap-3">
+        <VBtnToggle
+          v-if="mode !== 'categories'"
+          v-model="viewMode"
+          mandatory
+          density="comfortable"
+          color="primary"
+          variant="outlined"
+          class="rounded-lg"
+        >
+          <VBtn
+            value="card"
+            icon="tabler-layout-grid"
+          />
+          <VBtn
+            value="table"
+            icon="tabler-list"
+          />
+        </VBtnToggle>
           
-          <VDivider v-if="mode !== 'categories'" vertical class="mx-1" />
+        <VDivider
+          v-if="mode !== 'categories'"
+          vertical
+          class="mx-1"
+        />
 
-          <div v-if="mode === 'categories'">
-               <VBtn
-                v-if="normalizedPerms.can_create"
-                color="primary"
-                prepend-icon="tabler-plus"
-                height="44"
-                class="px-6"
-                @click="openCategoryDrawer()"
-              >
-                Add Category
-              </VBtn>
-               <VBtn v-else disabled color="medium-emphasis" prepend-icon="tabler-lock">Add Category</VBtn>
-          </div>
-       </div>
+        <div v-if="mode === 'categories'">
+          <VBtn
+            v-if="normalizedPerms.can_create"
+            color="primary"
+            prepend-icon="tabler-plus"
+            height="44"
+            class="px-6"
+            @click="openCategoryDrawer"
+          >
+            Add Category
+          </VBtn>
+          <VBtn
+            v-else
+            disabled
+            color="medium-emphasis"
+            prepend-icon="tabler-lock"
+          >
+            Add Category
+          </VBtn>
+        </div>
+      </div>
     </div>
 
     <!-- 3. Content Area -->
-    <div v-if="loading" class="d-flex justify-center align-center py-12 flex-grow-1">
-       <VProgressCircular indeterminate color="primary" size="48" />
+    <div
+      v-if="loading"
+      class="d-flex justify-center align-center py-12 flex-grow-1"
+    >
+      <VProgressCircular
+        indeterminate
+        color="primary"
+        size="48"
+      />
     </div>
 
-    <div v-else-if="hierarchy.length > 0" class="px-1">
-       
-       <!-- MODE: Categories (Grid) -->
-       <div v-if="mode === 'categories'">
-          <VRow>
-             <VCol v-for="category in hierarchy" :key="category.id" cols="12" sm="6" md="4" lg="3">
-                <VCard 
-                  class="h-100 d-flex flex-column hover-card border"
-                  elevation="0" 
-                  @click="normalizedPerms.can_edit ? openCategoryDrawer(category) : null"
-                >
-                   <VCardItem class="items-start">
-                      <template #prepend>
-                         <VAvatar color="primary" variant="tonal" rounded="lg">
-                            <VIcon icon="tabler-category" />
-                         </VAvatar>
-                      </template>
-                      <template #append>
-                         <VChip size="x-small" :color="category.is_active ? 'success' : 'secondary'">
-                            {{ category.is_active ? 'Active' : 'Inactive' }}
-                         </VChip>
-                      </template>
-                      <VCardTitle class="mt-1">{{ category.name }}</VCardTitle>
-                      <VCardSubtitle class="line-clamp-2 mt-1">{{ category.description || 'No description provided' }}</VCardSubtitle>
-                   </VCardItem>
+    <div
+      v-else-if="hierarchy.length > 0"
+      class="px-1"
+    >
+      <!-- MODE: Categories (Grid) -->
+      <div v-if="mode === 'categories'">
+        <VRow>
+          <VCol
+            v-for="category in hierarchy"
+            :key="category.id"
+            cols="12"
+            sm="6"
+            md="4"
+            lg="3"
+          >
+            <VCard 
+              class="h-100 d-flex flex-column hover-card border"
+              elevation="0" 
+              @click="normalizedPerms.can_edit ? openCategoryDrawer(category) : null"
+            >
+              <VCardItem class="items-start">
+                <template #prepend>
+                  <VAvatar
+                    color="primary"
+                    variant="tonal"
+                    rounded="lg"
+                  >
+                    <VIcon icon="tabler-category" />
+                  </VAvatar>
+                </template>
+                <template #append>
+                  <VChip
+                    size="x-small"
+                    :color="category.is_active ? 'success' : 'secondary'"
+                  >
+                    {{ category.is_active ? 'Active' : 'Inactive' }}
+                  </VChip>
+                </template>
+                <VCardTitle class="mt-1">
+                  {{ category.name }}
+                </VCardTitle>
+                <VCardSubtitle class="line-clamp-2 mt-1">
+                  {{ category.description || 'No description provided' }}
+                </VCardSubtitle>
+              </VCardItem>
                    
-                   <VCardText class="d-flex align-end mt-auto pt-2">
-                       <span class="text-caption text-medium-emphasis bg-grey-lighten-4 px-2 py-1 rounded">
-                         {{ category.items?.length || 0 }} Facilities
-                       </span>
-                       <VSpacer />
-                       <!-- Actions on Hover -->
-                       <div class="hover-actions d-flex gap-1" v-if="normalizedPerms.can_delete">
-                          <VBtn 
-                            icon="tabler-trash" 
-                            variant="text" 
-                            size="x-small" 
-                            color="error" 
-                            @click.stop="deleteCategory(category.id)" 
-                          />
-                       </div>
-                   </VCardText>
-                </VCard>
-             </VCol>
-          </VRow>
-       </div>
-
-       <!-- MODE: Facilities / Summary -->
-       <div v-else class="d-flex flex-column gap-6">
-          <div v-for="category in hierarchy" :key="category.id">
-             <!-- Section Header -->
-             <div class="d-flex align-center justify-space-between mb-4 mt-2">
-                <div class="d-flex align-center gap-3">
-                   <div class="bg-primary-lighten-5 pa-2 rounded-lg text-primary">
-                      <VIcon icon="tabler-category" size="20" />
-                   </div>
-                   <div>
-                      <h4 class="text-h6 font-weight-bold">{{ category.name }}</h4>
-                      <div class="text-caption text-medium-emphasis">{{ category.items?.length || 0 }} Items available</div>
-                   </div>
+              <VCardText class="d-flex align-end mt-auto pt-2">
+                <span class="text-caption text-medium-emphasis bg-grey-lighten-4 px-2 py-1 rounded">
+                  {{ category.items?.length || 0 }} Facilities
+                </span>
+                <VSpacer />
+                <!-- Actions on Hover -->
+                <div class="hover-actions d-flex gap-1">
+                  <VBtn 
+                    v-if="normalizedPerms.can_edit"
+                    icon="tabler-pencil" 
+                    variant="text" 
+                    size="x-small" 
+                    color="medium-emphasis" 
+                    @click.stop="openCategoryDrawer(category)" 
+                  />
+                  <VBtn 
+                    v-if="normalizedPerms.can_delete"
+                    icon="tabler-trash" 
+                    variant="text" 
+                    size="x-small" 
+                    color="error" 
+                    @click.stop="deleteCategory(category.id)" 
+                  />
                 </div>
-                <!-- Action for Facility Create -->
-                <div v-if="mode === 'facilities'">
-                   <VBtn 
-                      v-if="normalizedPerms.can_create"
-                      variant="text" 
-                      color="primary" 
-                      prepend-icon="tabler-plus"
-                      @click="openFacilityDrawer(category)"
-                    >
-                      New Item
-                    </VBtn>
+              </VCardText>
+            </VCard>
+          </VCol>
+        </VRow>
+      </div>
+
+      <!-- MODE: Facilities / Summary -->
+      <div
+        v-else
+        class="d-flex flex-column gap-6"
+      >
+        <div
+          v-for="category in hierarchy"
+          :key="category.id"
+        >
+          <!-- Section Header -->
+          <div class="d-flex align-center justify-space-between mb-4 mt-2">
+            <div class="d-flex align-center gap-3">
+              <div class="bg-primary-lighten-5 pa-2 rounded-lg text-primary">
+                <VIcon
+                  icon="tabler-category"
+                  size="20"
+                />
+              </div>
+              <div>
+                <h4 class="text-h6 font-weight-bold">
+                  {{ category.name }}
+                </h4>
+                <div class="text-caption text-medium-emphasis">
+                  {{ category.items?.length || 0 }} Items available
                 </div>
-             </div>
-
-             <!-- Items Grid -->
-             <div v-if="category.items && category.items.length > 0">
-                <VRow>
-                   <VCol v-for="item in category.items" :key="item.id" cols="12" sm="6" md="4" lg="3">
-                       <VCard class="border h-100 d-flex flex-row hover-card-v2 overflow-hidden" elevation="0">
-                          <!-- Image Section -->
-                          <div class="facility-image-wrapper" style="width: 100px; height: 100%; border-right: 1px solid rgba(var(--v-border-color), 0.1);">
-                             <VImg 
-                               v-if="item.image_url" 
-                               :src="item.image_url" 
-                               cover 
-                               height="100%" 
-                               class="bg-grey-lighten-4"
-                             />
-                             <div v-else class="w-100 h-100 d-flex align-center justify-center bg-grey-lighten-4 text-disabled">
-                                <VIcon icon="tabler-photo-off" size="24" />
-                             </div>
-                          </div>
-
-                          <div class="pa-4 flex-grow-1">
-                             <div class="d-flex justify-space-between align-start mb-2">
-                                <div class="d-flex flex-column gap-1">
-                                   <h5 class="text-subtitle-1 font-weight-bold">{{ item.name }}</h5>
-                                   <VChip size="x-small" :color="item.protocol_type === 'SESSION_BASED' ? 'info' : 'secondary'" variant="tonal" class="text-uppercase" style="width: fit-content;">
-                                      {{ item.protocol_type?.replace('_', ' ') }}
-                                   </VChip>
-                                </div>
-                                <div class="d-flex gap-1 align-center hover-actions">
-                                   <VIcon 
-                                     v-if="mode === 'facilities' && normalizedPerms.can_edit"
-                                     icon="tabler-pencil" 
-                                     size="16" 
-                                     class="text-medium-emphasis cursor-pointer edit-icon"
-                                     @click="openFacilityDrawer(category, item)" 
-                                   />
-                                   <VIcon 
-                                     v-if="mode === 'facilities' && normalizedPerms.can_delete"
-                                     icon="tabler-trash" 
-                                     size="16" 
-                                     class="text-error cursor-pointer delete-icon"
-                                     @click="deleteFacility(item)" 
-                                   />
-                                </div>
-                             </div>
-                             
-                             <p class="text-caption text-medium-emphasis line-clamp-2 mb-4" style="height: 32px;">
-                                {{ item.description || 'No description provided' }}
-                             </p>
-                             
-                             <div class="d-flex flex-column gap-1 mt-auto">
-                                <div class="d-flex align-center gap-2">
-                                   <span class="text-h6 font-weight-bold text-primary">₹{{ item.price }}</span>
-                                   <span class="text-caption text-medium-emphasis">
-                                      {{ item.pricing_strategy === 'FIXED' ? '(Fixed Total)' : `/ ${String(item.billing_unit || '').replace('PER_', '').toLowerCase()}` }}
-                                   </span>
-                                </div>
-                                <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
-                                   <VIcon icon="tabler-clock" size="14" />
-                                    <span>
-                                       {{ (item.duration && item.duration !== 'null' && item.duration >= 60 && item.duration % 60 === 0) ? `${item.duration / 60} hour(s)` : `${(item.duration && item.duration !== 'null') ? item.duration : 60} minutes` }}
-                                    </span>
-                                </div>
-                             </div>
-                          </div>
-                      </VCard>
-                   </VCol>
-                </VRow>
-             </div>
-             <div v-else class="text-center py-6 border-dashed rounded-lg bg-grey-lighten-5">
-                 <span class="text-medium-emphasis text-body-2">No facilities yet.</span>
-                 <VBtn 
-                   v-if="mode === 'facilities' && normalizedPerms.can_create"
-                   variant="text" 
-                   size="small" 
-                   color="primary" 
-                   class="ms-2"
-                   @click="openFacilityDrawer(category)"
-                 >
-                   Add One
-                 </VBtn>
-             </div>
+              </div>
+            </div>
+            <!-- Action for Facility Create -->
+            <div v-if="mode === 'facilities'">
+              <VBtn 
+                v-if="normalizedPerms.can_create"
+                variant="text" 
+                color="primary" 
+                prepend-icon="tabler-plus"
+                @click="openFacilityDrawer(category)"
+              >
+                New Item
+              </VBtn>
+            </div>
           </div>
-       </div>
 
+          <!-- Items Grid -->
+          <div v-if="category.items && category.items.length > 0">
+            <VRow>
+              <VCol
+                v-for="item in category.items"
+                :key="item.id"
+                cols="12"
+                sm="6"
+                md="4"
+                lg="3"
+              >
+                <VCard
+                  class="border h-100 d-flex flex-row hover-card-v2 overflow-hidden"
+                  elevation="0"
+                >
+                  <!-- Image Section -->
+                  <div
+                    class="facility-image-wrapper"
+                    style="width: 100px; height: 100%; border-right: 1px solid rgba(var(--v-border-color), 0.1);"
+                  >
+                    <VImg 
+                      v-if="item.image_url" 
+                      :src="item.image_url" 
+                      cover 
+                      height="100%" 
+                      class="bg-grey-lighten-4"
+                    />
+                    <div
+                      v-else
+                      class="w-100 h-100 d-flex align-center justify-center bg-grey-lighten-4 text-disabled"
+                    >
+                      <VIcon
+                        icon="tabler-photo-off"
+                        size="24"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="pa-4 flex-grow-1">
+                    <div class="d-flex justify-space-between align-start mb-2">
+                      <div class="d-flex flex-column gap-1">
+                        <h5 class="text-subtitle-1 font-weight-bold">
+                          {{ item.name }}
+                        </h5>
+                        <VChip
+                          size="x-small"
+                          :color="item.protocol_type === 'SESSION_BASED' ? 'info' : 'secondary'"
+                          variant="tonal"
+                          class="text-uppercase"
+                          style="width: fit-content;"
+                        >
+                          {{ item.protocol_type?.replace('_', ' ') }}
+                        </VChip>
+                      </div>
+                      <div class="d-flex gap-1 align-center hover-actions">
+                        <VIcon 
+                          v-if="normalizedPerms.can_edit"
+                          icon="tabler-pencil" 
+                          size="16" 
+                          class="text-medium-emphasis cursor-pointer edit-icon"
+                          @click="openFacilityDrawer(category, item)" 
+                        />
+                        <VIcon 
+                          v-if="normalizedPerms.can_delete"
+                          icon="tabler-trash" 
+                          size="16" 
+                          class="text-error cursor-pointer delete-icon"
+                          @click="deleteFacility(item)" 
+                        />
+                      </div>
+                    </div>
+                             
+                    <p
+                      class="text-caption text-medium-emphasis line-clamp-2 mb-4"
+                      style="height: 32px;"
+                    >
+                      {{ item.description || 'No description provided' }}
+                    </p>
+                             
+                    <div class="d-flex flex-column gap-1 mt-auto">
+                      <div class="d-flex align-center gap-2">
+                        <span class="text-h6 font-weight-bold text-primary">₹{{ item.price }}</span>
+                        <span class="text-caption text-medium-emphasis">
+                          {{ item.pricing_strategy === 'FIXED' ? '(Fixed Total)' : `/ ${String(item.billing_unit || '').replace('PER_', '').toLowerCase()}` }}
+                        </span>
+                      </div>
+                      <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
+                        <VIcon
+                          icon="tabler-clock"
+                          size="14"
+                        />
+                        <span>
+                          {{ (item.duration && item.duration !== 'null' && item.duration >= 60 && item.duration % 60 === 0) ? `${item.duration / 60} hour(s)` : `${(item.duration && item.duration !== 'null') ? item.duration : 60} minutes` }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </VCard>
+              </VCol>
+            </VRow>
+          </div>
+          <div
+            v-else
+            class="text-center py-6 border-dashed rounded-lg bg-grey-lighten-5"
+          >
+            <span class="text-medium-emphasis text-body-2">No facilities yet.</span>
+            <VBtn 
+              v-if="mode === 'facilities' && normalizedPerms.can_create"
+              variant="text" 
+              size="small" 
+              color="primary" 
+              class="ms-2"
+              @click="openFacilityDrawer(category)"
+            >
+              Add One
+            </VBtn>
+          </div>
+        </div>
+      </div>
     </div>
     
-    <div v-else class="text-center py-12 flex-grow-1 d-flex flex-column align-center justify-center">
-        <VAvatar color="secondary" variant="tonal" size="64" class="mb-4">
-           <VIcon icon="tabler-layout-grid-add" size="32" />
-        </VAvatar>
-        <h3 class="text-h6 font-weight-bold">No Categories Configured</h3>
-        <p class="text-medium-emphasis mb-6">Create your first category to start adding facilities.</p>
-        <VBtn v-if="normalizedPerms.can_create" color="primary" @click="openCategoryDrawer()">
-           Create Category
-        </VBtn>
+    <div
+      v-else
+      class="text-center py-12 flex-grow-1 d-flex flex-column align-center justify-center"
+    >
+      <VAvatar
+        color="secondary"
+        variant="tonal"
+        size="64"
+        class="mb-4"
+      >
+        <VIcon
+          icon="tabler-layout-grid-add"
+          size="32"
+        />
+      </VAvatar>
+      <h3 class="text-h6 font-weight-bold">
+        No Categories Configured
+      </h3>
+      <p class="text-medium-emphasis mb-6">
+        Create your first category to start adding facilities.
+      </p>
+      <VBtn
+        v-if="normalizedPerms.can_create"
+        color="primary"
+        @click="openCategoryDrawer"
+      >
+        Create Category
+      </VBtn>
     </div>
 
     <!-- Category Drawer -->
-    <VNavigationDrawer v-model="categoryDrawerOpen" location="end" temporary width="400">
-       <div class="d-flex flex-column h-100">
-          <div class="pa-4 border-b d-flex align-center justify-space-between bg-surface">
-             <h3 class="text-h6 font-weight-bold">{{ isEdit ? 'Edit Category' : 'New Category' }}</h3>
-             <VBtn icon="tabler-x" variant="text" density="compact" @click="categoryDrawerOpen = false" />
-          </div>
-          <div class="pa-4 flex-grow-1 overflow-y-auto">
-             <VForm @submit.prevent="submitCategory">
-                <AppTextField
-                  v-model="categoryForm.name"
-                  label="Category Name *"
-                  placeholder="e.g. Grooming"
-                  class="mb-4"
-                  :rules="[v => !!v || 'Required']"
-                />
-                <AppTextarea
-                  v-model="categoryForm.description"
-                  label="Description"
-                  placeholder="Describe this category..."
-                  rows="3"
-                  class="mb-4"
-                />
-                <VSwitch v-model="categoryForm.is_active" label="Enabled" color="success" />
+    <VNavigationDrawer
+      v-model="categoryDrawerOpen"
+      location="end"
+      temporary
+      width="400"
+    >
+      <div class="d-flex flex-column h-100">
+        <div class="pa-4 border-b d-flex align-center justify-space-between bg-surface">
+          <h3 class="text-h6 font-weight-bold">
+            {{ isEdit ? 'Edit Category' : 'New Category' }}
+          </h3>
+          <VBtn
+            icon="tabler-x"
+            variant="text"
+            density="compact"
+            @click="categoryDrawerOpen = false"
+          />
+        </div>
+        <div class="pa-4 flex-grow-1 overflow-y-auto">
+          <VForm @submit.prevent="submitCategory">
+            <AppTextField
+              v-model="categoryForm.name"
+              label="Category Name *"
+              placeholder="e.g. Grooming"
+              class="mb-4"
+              :rules="[v => !!v || 'Required']"
+            />
+            <AppTextarea
+              v-model="categoryForm.description"
+              label="Description"
+              placeholder="Describe this category..."
+              rows="3"
+              class="mb-4"
+            />
+            <VSwitch
+              v-model="categoryForm.is_active"
+              label="Enabled"
+              color="success"
+            />
                 
-                <VBtn block color="primary" type="submit" class="mt-6" :loading="submitting" size="large">
-                   {{ isEdit ? 'Save Changes' : 'Create Category' }}
-                </VBtn>
+            <VBtn
+              block
+              color="primary"
+              type="submit"
+              class="mt-6"
+              :loading="submitting"
+              size="large"
+            >
+              {{ isEdit ? 'Save Changes' : 'Create Category' }}
+            </VBtn>
 
-                <VBtn 
-                  v-if="isEdit && normalizedPerms.can_delete" 
-                  block variant="text" color="error" class="mt-2" 
-                  @click="deleteCategory(editId); categoryDrawerOpen=false;"
-                >
-                   Delete Category
-                </VBtn>
-             </VForm>
-          </div>
-       </div>
+            <VBtn 
+              v-if="isEdit && normalizedPerms.can_delete" 
+              block
+              variant="text"
+              color="error"
+              class="mt-2" 
+              @click="deleteCategory(editId); categoryDrawerOpen=false;"
+            >
+              Delete Category
+            </VBtn>
+          </VForm>
+        </div>
+      </div>
     </VNavigationDrawer>
 
     <!-- Facility Drawer -->
-    <VNavigationDrawer v-model="facilityDrawerOpen" location="end" temporary width="450">
-       <div class="d-flex flex-column h-100">
-          <div class="pa-4 border-b d-flex align-center justify-space-between bg-surface">
-             <h3 class="text-h6 font-weight-bold">{{ isEdit ? 'Edit Facility' : 'New Facility' }}</h3>
-             <VBtn icon="tabler-x" variant="text" density="compact" @click="facilityDrawerOpen = false" />
-          </div>
-          <div class="pa-4 flex-grow-1 overflow-y-auto">
-             <VForm @submit.prevent="submitFacility">
-                <!-- Facility Info -->
-                <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">Facility Details</div>
-                <AppTextField
-                  v-model="facilityForm.name"
-                  label="Name *"
-                  placeholder="e.g. Deluxe Suite"
-                  class="mb-4"
-                  :rules="[v => !!v || 'Required']"
+    <VNavigationDrawer
+      v-model="facilityDrawerOpen"
+      location="end"
+      temporary
+      width="450"
+    >
+      <div class="d-flex flex-column h-100">
+        <div class="pa-4 border-b d-flex align-center justify-space-between bg-surface">
+          <h3 class="text-h6 font-weight-bold">
+            {{ isEdit ? 'Edit Facility' : 'New Facility' }}
+          </h3>
+          <VBtn
+            icon="tabler-x"
+            variant="text"
+            density="compact"
+            @click="facilityDrawerOpen = false"
+          />
+        </div>
+        <div class="pa-4 flex-grow-1 overflow-y-auto">
+          <VForm @submit.prevent="submitFacility">
+            <!-- Facility Info -->
+            <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">
+              Facility Details
+            </div>
+            <AppTextField
+              v-model="facilityForm.name"
+              label="Name *"
+              placeholder="e.g. Deluxe Suite"
+              class="mb-4"
+              :rules="[v => !!v || 'Required']"
+            />
+            <AppTextarea
+              v-model="facilityForm.description"
+              label="Description"
+              rows="2"
+              class="mb-4"
+            />
+
+            <!-- Image Upload -->
+            <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">
+              Service Image
+            </div>
+            <div class="mb-4">
+              <div
+                v-if="facilityForm.imageUrl"
+                class="mb-3 rounded-lg overflow-hidden border-2 border-primary border-opacity-25"
+                style="height: 100px; position: relative;"
+              >
+                <VImg
+                  :src="facilityForm.imageUrl"
+                  cover
+                  height="100"
                 />
-                 <AppTextarea
-                   v-model="facilityForm.description"
-                   label="Description"
-                   rows="2"
-                   class="mb-4"
-                 />
-
-                 <!-- Image Upload -->
-                 <div class="text-subtitle-2 font-weight-bold mb-2 text-medium-emphasis text-uppercase">Service Image</div>
-                 <div class="mb-6">
-                    <div v-if="facilityForm.imageUrl" class="mb-3 rounded-lg overflow-hidden border" style="height: 120px; position: relative;">
-                       <VImg :src="facilityForm.imageUrl" cover height="120" />
-                       <VBtn 
-                         icon="tabler-x" 
-                         size="x-small" 
-                         color="error" 
-                         class="position-absolute" 
-                         style="top: 8px; right: 8px;"
-                         @click="facilityForm.imageUrl = null; facilityForm.image_file = null;"
-                       />
-                    </div>
-                    <VFileInput
-                      v-model="facilityForm.image_file"
-                      accept="image/*"
-                      label="Upload Service Image"
-                      prepend-icon="tabler-camera"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details
-                      @update:model-value="handleImageUpload"
-                    >
-                      <template #selection="{ fileNames }">
-                        <template v-for="fileName in fileNames" :key="fileName">
-                          <VChip size="small" label color="primary" class="me-2">
-                            {{ fileName }}
-                          </VChip>
-                        </template>
-                      </template>
-                    </VFileInput>
-                 </div>
-
-                 <!-- Gallery Images -->
-                 <div class="text-subtitle-2 font-weight-bold mb-2 text-medium-emphasis text-uppercase">Service Gallery (Additional Images)</div>
-                 <div class="mb-6">
-                    <VRow v-if="facilityForm.galleryUrls?.length" class="mb-3">
-                       <VCol v-for="(url, idx) in facilityForm.galleryUrls" :key="idx" cols="4">
-                          <div class="rounded-lg overflow-hidden border" style="height: 80px; position: relative;">
-                             <VImg :src="url" cover height="80" />
-                             <VBtn 
-                               icon="tabler-x" 
-                               size="x-small" 
-                               color="error" 
-                               class="position-absolute" 
-                               style="top: 4px; right: 4px; width: 20px; height: 20px;"
-                               @click="facilityForm.galleryUrls.splice(idx, 1); facilityForm.gallery_files.splice(idx, 1);"
-                             />
-                          </div>
-                       </VCol>
-                    </VRow>
-                    <VFileInput
-                      v-model="facilityForm.gallery_files"
-                      multiple
-                      accept="image/*"
-                      label="Add More Gallery Images"
-                      prepend-icon="tabler-images"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details
-                      @update:model-value="handleGalleryUpload"
-                    >
-                      <template #selection="{ fileNames }">
-                        <span class="text-caption font-weight-bold text-primary">{{ fileNames.length }} images selected</span>
-                      </template>
-                    </VFileInput>
-                 </div>
-
-                <VDivider class="mb-6" />
-
-                <!-- Protocol Configuration -->
-                <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">Protocol & Logic</div>
-                <VRow class="mb-2">
-                   <VCol cols="12">
-                      <VSelect
-                        v-model="facilityForm.protocol_type"
-                        :items="protocolOptions"
-                        item-title="label"
-                        item-value="value"
-                        label="Booking Protocol *"
-                        class="mb-2"
-                      />
-                   </VCol>
-                   
-                   <!-- Conditional Duration for Sessions/Minutes -->
-                   <VCol cols="12" v-if="['SESSION_BASED', 'MINUTES_BASED'].includes(facilityForm.protocol_type)">
-                      <div class="d-flex gap-2 align-center">
-                         <AppTextField
-                           v-model.number="facilityForm.session_duration_value"
-                           :label="facilityForm.protocol_type === 'SESSION_BASED' ? 'Session Duration *' : 'Slot Duration *'"
-                           type="number"
-                           style="flex: 2;"
-                         />
-                         <VSelect
-                           v-model="facilityForm.session_duration_unit"
-                           :items="['minutes', 'hours']"
-                           label="Unit"
-                           style="flex: 1;"
-                           class="mt-1"
-                         />
-                      </div>
-                   </VCol>
-                </VRow>
-
-                <VDivider class="my-6" />
-
-                <!-- Pricing Info -->
-                <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">Pricing Strategy</div>
-                <VRow>
-                   <VCol cols="12">
-                      <VSelect
-                        v-model="facilityForm.pricing_strategy"
-                        :items="strategyOptions"
-                        item-title="label"
-                        item-value="value"
-                        label="Pricing Strategy *"
-                        class="mb-2"
-                      />
-                   </VCol>
-
-                   <VCol cols="12">
-                      <AppTextField
-                         v-model.number="facilityForm.base_price"
-                         :label="facilityForm.pricing_strategy === 'FIXED' ? 'Total Fixed Price ($) *' : 'Base Price ($) *'"
-                         type="number"
-                         :hint="facilityForm.pricing_strategy === 'FIXED' ? 'This is the total price for the session' : 'Price will be multiplied by duration'"
-                         persistent-hint
-                      />
-                   </VCol>
-
-                   <VCol cols="12" v-if="facilityForm.protocol_type === 'SESSION_BASED'">
-                      <AppTextField
-                        v-model.number="facilityForm.duration_value"
-                        label="Total Sessions in Package"
-                        type="number"
-                        placeholder="e.g. 10"
-                        hint="Number of sessions included in this fixed price"
-                        persistent-hint
-                      />
-                   </VCol>
-
-                   <VCol cols="12" v-if="facilityForm.pricing_strategy === 'PER_UNIT'">
-                      <VSelect
-                        v-model="facilityForm.billing_unit"
-                        :items="billingUnitOptions"
-                        item-title="label"
-                        item-value="value"
-                        label="Billing Unit *"
-                      />
-                   </VCol>
-                </VRow>
-
-                <VRow class="mt-4">
-                   <VCol cols="12" md="6">
-                      <AppTextField
-                        v-model.number="facilityForm.daily_capacity"
-                        label="Daily Capacity"
-                        type="number"
-                        placeholder="Max bookings/day"
-                      />
-                   </VCol>
-                   <VCol cols="12" md="6">
-                      <AppTextField
-                        v-model.number="facilityForm.monthly_limit"
-                        label="Monthly Limit"
-                        type="number"
-                        placeholder="Max bookings/month"
-                      />
-                   </VCol>
-                </VRow>
-
-                <div class="mt-4">
-                  <VSwitch v-model="facilityForm.is_active" label="Available for Booking" color="success" />
+                <div 
+                  class="position-absolute d-flex gap-2" 
+                  style="top: 8px; right: 8px;"
+                >
+                  <VBtn 
+                    icon="tabler-trash" 
+                    size="x-small" 
+                    color="error"
+                    variant="elevated"
+                    elevation="2"
+                    @click="facilityForm.imageUrl = null; facilityForm.image_file = null;"
+                  />
                 </div>
-
-                <div class="mt-auto pt-6">
-                   <VBtn block color="primary" type="submit" size="large" :loading="submitting">
-                      {{ isEdit ? 'Save Changes' : 'Create Item' }}
-                   </VBtn>
-                   <VBtn 
-                      v-if="isEdit && facilityForm.ruleId && normalizedPerms.can_delete" 
-                      block variant="text" color="error" class="mt-2"
-                      @click="deleteFacility({ ruleId: facilityForm.ruleId }); facilityDrawerOpen=false;" 
-                    >
-                      Delete Item
-                   </VBtn>
+              </div>
+              
+              <div
+                v-else
+                class="upload-box mb-3 d-flex flex-column align-center justify-center cursor-pointer border-dashed rounded-lg bg-var-theme-background pa-4 text-center"
+                style="min-height: 100px; border-width: 2px;"
+                @click="$refs.serviceImageInput.click()"
+              >
+                <VAvatar
+                  color="primary"
+                  variant="tonal"
+                  rounded="lg"
+                  size="36"
+                  class="mb-2"
+                >
+                  <VIcon 
+                    icon="tabler-camera" 
+                    size="18"
+                  />
+                </VAvatar>
+                <div class="text-caption font-weight-bold text-primary">
+                  Upload Primary Image
                 </div>
-             </VForm>
-          </div>
-       </div>
+                <input
+                  ref="serviceImageInput"
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  @change="e => handleImageUpload(e.target.files[0])"
+                >
+              </div>
+            </div>
+
+            <!-- Gallery Images -->
+            <div class="text-subtitle-2 font-weight-bold mb-3 text-medium-emphasis text-uppercase">
+              Service Gallery (Additional Images)
+            </div>
+            <div class="mb-6">
+              <div class="gallery-grid">
+                <div
+                  v-for="(url, idx) in facilityForm.galleryUrls"
+                  :key="idx"
+                  class="gallery-item rounded-lg overflow-hidden border"
+                >
+                  <VImg
+                    :src="url"
+                    cover
+                    height="100%"
+                    width="100%"
+                  />
+                  <VBtn 
+                    icon="tabler-x" 
+                    size="x-small" 
+                    color="error" 
+                    variant="elevated"
+                    class="gallery-remove-btn"
+                    @click="removeGalleryImage(idx)"
+                  />
+                </div>
+                
+                <div
+                  class="gallery-add-box rounded-lg d-flex flex-column align-center justify-center cursor-pointer border-dashed bg-var-theme-background"
+                  @click="$refs.galleryImagesInput.click()"
+                >
+                  <VIcon 
+                    icon="tabler-plus" 
+                    size="24"
+                    color="medium-emphasis"
+                  />
+                  <span class="text-caption font-weight-medium text-medium-emphasis mt-1">Add More</span>
+                  <input
+                    ref="galleryImagesInput"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    hidden
+                    @change="e => handleGalleryUpload(Array.from(e.target.files))"
+                  >
+                </div>
+              </div>
+            </div>
+
+            <VDivider class="mb-6" />
+
+            <!-- PRICING & PROTOCOL INTEGRATION -->
+            <VCard
+              variant="tonal"
+              color="success"
+              class="pa-4 mb-6 border-0"
+            >
+              <h4 class="text-subtitle-1 font-weight-bold mb-4 text-success">
+                Booking Protocol & Pricing
+              </h4>
+                  
+              <VRow>
+                <VCol
+                  cols="12"
+                  md="6"
+                >
+                  <VSelect
+                    v-model="facilityForm.protocol_type"
+                    :items="protocolOptions"
+                    item-title="label"
+                    item-value="value"
+                    label="Duration Basis (Behavior) *"
+                    class="mb-4"
+                    density="comfortable"
+                    variant="outlined"
+                    bg-color="surface"
+                  />
+                </VCol>
+                <VCol
+                  cols="12"
+                  md="6"
+                >
+                  <VSelect
+                    v-model="facilityForm.pricing_strategy"
+                    :items="strategyOptions"
+                    item-title="label"
+                    item-value="value"
+                    label="Pricing Strategy *"
+                    class="mb-4"
+                    density="comfortable"
+                    variant="outlined"
+                    bg-color="surface"
+                  />
+                </VCol>
+              </VRow>
+
+              <VRow>
+                <VCol
+                  cols="12"
+                  md="6"
+                >
+                  <AppTextField
+                    v-model.number="facilityForm.base_price"
+                    :label="facilityForm.pricing_strategy === 'FIXED' ? 'Base Price (₹) *' : 'Base Price (₹) *'"
+                    type="number"
+                    :hint="facilityForm.pricing_strategy === 'FIXED' ? 'This is the total price for the session' : 'Price will be multiplied by duration'"
+                    persistent-hint
+                    required
+                    density="comfortable"
+                    variant="outlined"
+                    bg-color="surface"
+                    prepend-inner-icon="tabler-currency-rupee"
+                    :rules="[v => v >= 0 || 'Price cannot be negative']"
+                  />
+                </VCol>
+                <VCol
+                  cols="12"
+                  md="6"
+                >
+                  <!-- Standard Slot Duration (MINUTES based) -->
+                  <AppTextField
+                    v-if="['MINUTES_BASED', 'DAY_BASED'].includes(facilityForm.protocol_type) || !facilityForm.protocol_type"
+                    v-model.number="facilityForm.session_duration_value"
+                    :label="facilityForm.protocol_type === 'DAY_BASED' ? 'Days *' : 'Slot Duration *'"
+                    type="number"
+                    placeholder="e.g. 30"
+                    density="comfortable"
+                    variant="outlined"
+                    bg-color="surface"
+                    prepend-inner-icon="tabler-clock"
+                    style="flex: 2;"
+                  >
+                    <template
+                      v-if="facilityForm.protocol_type !== 'DAY_BASED'"
+                      #append-inner
+                    >
+                      <VSelect
+                        v-model="facilityForm.session_duration_unit"
+                        :items="['minutes', 'hours']"
+                        density="compact"
+                        variant="plain"
+                        hide-details
+                        style="width: 90px;"
+                      />
+                    </template>
+                  </AppTextField>
+
+                  <!-- Session Duration (SESSIONS/HOURS based) -->
+                  <div
+                    v-else-if="facilityForm.protocol_type === 'SESSION_BASED'"
+                    class="d-flex align-center gap-2"
+                  >
+                    <AppTextField
+                      v-model.number="facilityForm.session_duration_value"
+                      label="Session Duration *"
+                      type="number"
+                      placeholder="e.g. 1"
+                      density="comfortable"
+                      variant="outlined"
+                      bg-color="surface"
+                      style="flex: 2;"
+                    />
+                    <VSelect
+                      v-model="facilityForm.session_duration_unit"
+                      :items="['minutes', 'hours']"
+                      label="Unit"
+                      density="comfortable"
+                      variant="outlined"
+                      bg-color="surface"
+                      style="flex: 1;"
+                      class="mt-1"
+                    />
+                  </div>
+
+                  <!-- Legacy Duration Value (Total Sessions in a package) -->
+                  <AppTextField
+                    v-if="facilityForm.protocol_type === 'SESSION_BASED'"
+                    v-model.number="facilityForm.duration_value"
+                    label="Total Sessions in Package"
+                    type="number"
+                    placeholder="e.g. 10"
+                    class="mt-4"
+                    density="comfortable"
+                    variant="outlined"
+                    bg-color="surface"
+                    prepend-inner-icon="tabler-hash"
+                    hint="Number of sessions included in this fixed price package"
+                    persistent-hint
+                  />
+
+                  <!-- Billing Unit (If PER_UNIT) -->
+                  <VSelect
+                    v-if="facilityForm.pricing_strategy === 'PER_UNIT'"
+                    v-model="facilityForm.billing_unit"
+                    :items="billingUnitOptions"
+                    item-title="label"
+                    item-value="value"
+                    label="Billing Unit *"
+                    class="mt-4"
+                    density="comfortable"
+                    variant="outlined"
+                    bg-color="surface"
+                  />
+                </VCol>
+              </VRow>
+
+              <VRow class="mt-2">
+                <VCol
+                  cols="12"
+                  md="6"
+                >
+                  <AppTextField
+                    v-model.number="facilityForm.daily_capacity"
+                    label="Daily Capacity"
+                    type="number"
+                    placeholder="Max per day"
+                    density="comfortable"
+                    variant="outlined"
+                    bg-color="surface"
+                    hint="Global limit for this facility"
+                    persistent-hint
+                  />
+                </VCol>
+                <VCol
+                  cols="12"
+                  md="6"
+                >
+                  <AppTextField
+                    v-model.number="facilityForm.monthly_limit"
+                    label="Monthly Limit"
+                    type="number"
+                    placeholder="Max per month"
+                    density="comfortable"
+                    variant="outlined"
+                    bg-color="surface"
+                  />
+                </VCol>
+              </VRow>
+            </VCard>
+
+            <div class="mt-4">
+              <VSwitch
+                v-model="facilityForm.is_active"
+                label="Available for Booking"
+                color="success"
+              />
+            </div>
+
+            <div class="mt-auto pt-6">
+              <VBtn
+                block
+                color="primary"
+                type="submit"
+                size="large"
+                :loading="submitting"
+              >
+                {{ isEdit ? 'Save Changes' : 'Create Item' }}
+              </VBtn>
+              <VBtn 
+                v-if="isEdit && facilityForm.ruleId && normalizedPerms.can_delete" 
+                block
+                variant="text"
+                color="error"
+                class="mt-2"
+                @click="deleteFacility({ ruleId: facilityForm.ruleId }); facilityDrawerOpen=false;" 
+              >
+                Delete Item
+              </VBtn>
+            </div>
+          </VForm>
+        </div>
+      </div>
     </VNavigationDrawer>
 
-     <!-- Permission Denied Dialog -->
-    <VDialog v-model="showPermissionDialog" max-width="450">
-        <VCard>
-            <VCardText class="text-center pa-8">
-                <VAvatar color="error" variant="tonal" size="64" class="mb-4">
-                    <VIcon icon="tabler-lock" size="32" />
-                </VAvatar>
-                <h3 class="text-h5 font-weight-bold mb-2">Permission Denied</h3>
-                <p class="text-body-1 text-medium-emphasis mb-6">
-                    Your current plan does not allow you to <strong>{{ permissionDeniedAction }}</strong>.
-                    <br>Only <strong>View</strong> and <strong>Create</strong> (Category) actions are allowed in your tier.
-                </p>
-                <div class="d-flex justify-center gap-3">
-                    <VBtn variant="text" color="secondary" @click="showPermissionDialog = false">Close</VBtn>
-                    <VBtn color="primary" :to="{ name: 'provider-home', hash: '#plans' }">Upgrade Plan</VBtn>
-                </div>
-            </VCardText>
-        </VCard>
+    <!-- Permission Denied Dialog -->
+    <VDialog
+      v-model="showPermissionDialog"
+      max-width="450"
+    >
+      <VCard>
+        <VCardText class="text-center pa-8">
+          <VAvatar
+            color="error"
+            variant="tonal"
+            size="64"
+            class="mb-4"
+          >
+            <VIcon
+              icon="tabler-lock"
+              size="32"
+            />
+          </VAvatar>
+          <h3 class="text-h5 font-weight-bold mb-2">
+            Permission Denied
+          </h3>
+          <p class="text-body-1 text-medium-emphasis mb-6">
+            Your current plan does not allow you to <strong>{{ permissionDeniedAction }}</strong>.
+            <br>Only <strong>View</strong> and <strong>Create</strong> (Category) actions are allowed in your tier.
+          </p>
+          <div class="d-flex justify-center gap-3">
+            <VBtn
+              variant="text"
+              color="secondary"
+              @click="showPermissionDialog = false"
+            >
+              Close
+            </VBtn>
+            <VBtn
+              color="primary"
+              :to="{ name: 'provider-home', hash: '#plans' }"
+            >
+              Upgrade Plan
+            </VBtn>
+          </div>
+        </VCardText>
+      </VCard>
     </VDialog>
   </div>
 </template>
@@ -1075,6 +1497,48 @@ watch(() => props.serviceId, fetchData)
 .compact-switch {
   :deep(.v-selection-control) {
     min-height: 24px !important;
+  }
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 12px;
+}
+
+.gallery-item {
+  position: relative;
+  aspect-ratio: 1;
+  background-color: rgba(var(--v-theme-on-surface), 0.04);
+
+  .gallery-remove-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.gallery-add-box {
+  aspect-ratio: 1;
+  transition: all 0.2s ease;
+  border-width: 2px;
+  border-color: rgba(var(--v-border-color), 0.5);
+
+  &:hover {
+    border-color: rgba(var(--v-theme-primary), 0.5);
+    background-color: rgba(var(--v-theme-primary), 0.05) !important;
+  }
+}
+
+.upload-box {
+  transition: all 0.2s ease;
+  border-color: rgba(var(--v-border-color), 0.5);
+
+  &:hover {
+    border-color: rgba(var(--v-theme-primary), 0.5);
+    background-color: rgba(var(--v-theme-primary), 0.05) !important;
   }
 }
 

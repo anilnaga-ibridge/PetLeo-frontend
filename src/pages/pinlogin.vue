@@ -23,18 +23,20 @@ const errorMessage = ref('')
 const fetchingPinLength = ref(false)
 
 // Watch phone number and fetch PIN length when valid
-watch(phone, async (newPhone) => {
+watch(phone, async newPhone => {
   // Reset to default if phone is cleared
   if (!newPhone || newPhone.length < 10) {
     pinLength.value = 4
+    
     return
   }
 
   // Fetch PIN length for this phone number
   try {
     fetchingPinLength.value = true
+
     const res = await axios.get(`${API_BASE}/auth/api/auth/check-pin-length/`, {
-      params: { phone_number: newPhone }
+      params: { phone_number: newPhone },
     })
     
     if (res.data?.pin_length) {

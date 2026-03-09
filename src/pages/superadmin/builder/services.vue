@@ -169,7 +169,7 @@ const closeDrawer = () => {
 
             <!-- WORKSPACE -->
             <div class="flex-grow-1 position-relative workplace-bg overflow-hidden">
-               <!-- Added overflow-hidden to contain VWindow -->
+              <!-- Added overflow-hidden to contain VWindow -->
               <VWindow
                 v-model="activeTab"
                 class="h-100"
@@ -211,7 +211,7 @@ const closeDrawer = () => {
                   value="summary"
                   class="h-100 overflow-y-auto"
                 >
-                   <div class="pa-6">
+                  <div class="pa-6">
                     <VFadeTransition hide-on-leave>
                       <StepSummary 
                         v-if="activeTab === 'summary'"

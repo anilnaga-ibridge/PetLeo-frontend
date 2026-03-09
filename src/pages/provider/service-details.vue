@@ -11,6 +11,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 const route = useRoute()
 const permissionStore = usePermissionStore()
 const serviceId = computed(() => route.params.serviceId)
+const providerId = computed(() => userData.value?.provider_id)
 
 console.log('🛣️ ROUTE DEBUG:')
 console.log('  Full route:', route)
@@ -24,16 +25,27 @@ const canEdit = ref(false)
 const canDelete = ref(false)
 const activeTab = ref('overview')
 
-const normalize = (val) => (val || '').toLowerCase().replace(/[- ]/g, '_')
+const loadingAnalytics = ref(false)
+const analyticsStats = ref([])
+const revenueTrend = ref([])
+
+const showBookingsDialog = ref(false)
+const dialogTitle = ref('')
+const dialogBookings = ref([])
+const dialogLoading = ref(false)
+
+const normalize = val => (val || '').toLowerCase().replace(/[- ]/g, '_')
 
 const currentServicePermissions = computed(() => {
   if (!serviceId.value) {
     console.log('🔍 No serviceId from route')
+    
     return {}
   }
   
   if (!permissionStore.permissions || permissionStore.permissions.length === 0) {
     console.log('🔍 Permissions not loaded yet')
+    
     return {}
   }
   
@@ -59,6 +71,7 @@ const currentServicePermissions = computed(() => {
   })
   
   console.log('  Final match:', match || 'NONE')
+  
   return match || {}
 })
 
@@ -112,7 +125,7 @@ const veterinaryFeatures = computed(() => {
     id: cat.category_id,
     name: cat.category_name || formatFeatureName(cat.category_key),
     code: cat.category_key,
-    enabled: !!cat.can_view
+    enabled: !!cat.can_view,
   }))
 })
 
@@ -127,18 +140,20 @@ const canView = computed(() => {
   
   if (servicePermissions.value?.can_view) {
     console.log('  ✅ GRANTED via servicePermissions')
+    
     return true
   }
   
   // Fallback to capability check
   const fallback = !!serviceId.value && permissionStore.hasCapability(serviceId.value)
+
   console.log('  Fallback check:', fallback)
   
   return fallback
 })
 
 // Update other refs
-watch(servicePermissions, (newPerms) => {
+watch(servicePermissions, newPerms => {
   if (newPerms) {
     serviceName.value = newPerms.service_name
     canCreate.value = newPerms.can_create
@@ -147,17 +162,152 @@ watch(servicePermissions, (newPerms) => {
   }
 }, { immediate: true })
 
-onMounted(async () => {
-  // Always fetch fresh permissions to ensure we have the latest access rights
-  await permissionStore.fetchPermissions()
+import { customerApi, providerApi } from '@/plugins/axios'
+import VueApexCharts from 'vue3-apexcharts'
+
+const fetchServiceStats = async () => {
+  if (!serviceId.value) return
   
-  // TODO: Implement analytics fetching
-  // if (!isVeterinary.value && canView.value) {
-  //     fetchServiceAnalytics()
-  // }
+  loadingAnalytics.value = true
+  try {
+    const res = await providerApi.get('/api/provider/dashboard-summary/', {
+      params: { service_id: serviceId.value },
+    })
+    
+    const data = res.data
+    const bookings = data.bookings || {}
+    
+    analyticsStats.value = [
+      {
+        title: 'Total Bookings',
+        value: bookings.total_bookings || 0,
+        change: '+0%', // Backend could provide this later
+        icon: 'tabler-calendar-event',
+        color: 'primary',
+        trend: bookings.trend || [],
+      },
+      {
+        title: 'Pending Bookings',
+        value: bookings.pending_bookings || 0,
+        change: 'Active',
+        icon: 'tabler-clock',
+        color: 'warning',
+      },
+      {
+        title: 'Total Revenue',
+        value: `₹${parseFloat(bookings.total_revenue || 0).toLocaleString()}`,
+        change: '+0%',
+        icon: 'tabler-currency-rupee',
+        color: 'success',
+      },
+      {
+        title: 'Avg. Rating',
+        value: data.average_rating || '0.0',
+        change: `${data.total_ratings || 0} reviews`,
+        icon: 'tabler-star',
+        color: 'info',
+      },
+    ]
+    
+    revenueTrend.value = bookings.trend || []
+  } catch (err) {
+    console.error('Failed to fetch service stats:', err)
+  } finally {
+    loadingAnalytics.value = false
+  }
+}
+
+const fetchRecentActivity = async () => {
+  if (!serviceId.value) return
+
+  try {
+    // Use providerApi (port 8002) - this page is provider-authenticated.
+    // The customer bookings endpoint (/api/pet-owner/bookings/) requires a pet-owner JWT
+    // and cannot be called from a provider session. Instead, use our dashboard-summary
+    // which already carries recent booking data.
+    const res = await providerApi.get('/api/provider/dashboard-summary/', {
+      params: { service_id: serviceId.value },
+    })
+
+    const bookings = res.data?.bookings?.recent || []
+
+    if (bookings.length > 0) {
+      recentActivity.value = bookings.map(b => ({
+        title: b.pet_name || 'Unknown Pet',
+        subtitle: `${b.status} • ${new Date(b.selected_time || b.created_at).toLocaleDateString()}`,
+        icon: b.status === 'COMPLETED' ? 'tabler-circle-check' : 'tabler-circle-dotted',
+        color: b.status === 'COMPLETED' ? 'success' : 'warning',
+      }))
+    } else {
+      // Fallback: show a summary note derived from analyticsStats (already fetched)
+      recentActivity.value = []
+    }
+  } catch (err) {
+    // Non-critical: recent activity is complementary data; fail silently
+    console.warn('Recent activity unavailable (non-critical):', err?.message)
+    recentActivity.value = []
+  }
+}
+
+const chartOptions = computed(() => {
+  const categories = revenueTrend.value.map(d => new Date(d.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }))
+  
+  return {
+    chart: {
+      type: 'area',
+      toolbar: { show: false },
+      zoom: { enabled: false },
+    },
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2 },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.5,
+        opacityTo: 0.1,
+        stops: [0, 90, 100],
+      },
+    },
+    xaxis: {
+      categories: categories,
+      labels: { style: { fontSize: '12px' } },
+    },
+    yaxis: {
+      labels: { 
+        formatter: val => `₹${val}`,
+        style: { fontSize: '12px' },
+      },
+    },
+    tooltip: {
+      y: { formatter: val => `₹${val}` },
+    },
+    colors: ['#7367F0'],
+  }
 })
 
-import { veterinaryApi } from '@/api/veterinary'
+const chartSeries = computed(() => {
+  return [{
+    name: 'Revenue',
+    data: revenueTrend.value.map(d => d.revenue || 0),
+  }]
+})
+
+onMounted(async () => {
+  await permissionStore.fetchPermissions()
+  
+  if (!isVeterinary.value && canView.value) {
+    fetchServiceStats()
+    fetchRecentActivity()
+  }
+})
+
+watch(serviceId, () => {
+  if (!isVeterinary.value && canView.value) {
+    fetchServiceStats()
+    fetchRecentActivity()
+  }
+})
 
 // ... rest of code ...
 
@@ -165,6 +315,51 @@ import { veterinaryApi } from '@/api/veterinary'
 const showUpgradeDialog = ref(false)
 const router = useRouter()
 const recentActivity = ref([])
+
+const handleStatClick = async stat => {
+  // Map card titles to statuses used in customer-bookings.vue
+  let status = 'ALL'
+  if (stat.title === 'Pending Bookings') status = 'PENDING'
+  if (stat.title === 'Total Revenue') status = 'COMPLETED'
+  if (stat.title === 'Total Bookings') status = 'ALL'
+  
+  dialogTitle.value = `${stat.title} - ${serviceName.value}`
+  showBookingsDialog.value = true
+  dialogLoading.value = true
+  dialogBookings.value = []
+  
+  try {
+    const res = await customerApi.get('/api/pet-owner/bookings/bookings/', {
+      params: { 
+        service_id: serviceId.value,
+        status: status,
+      },
+    })
+    
+    dialogBookings.value = res.data.results || res.data || []
+  } catch (err) {
+    console.error('Failed to fetch dialog bookings:', err)
+  } finally {
+    dialogLoading.value = false
+  }
+}
+
+const getStatusColor = status => {
+  switch (status) {
+  case 'PENDING': return 'warning'
+  case 'CONFIRMED': return 'primary'
+  case 'COMPLETED': return 'success'
+  case 'REJECTED': return 'error'
+  case 'CANCELLED': return 'secondary'
+  default: return 'secondary'
+  }
+}
+
+const getPetPhoto = pet => {
+  if (!pet?.photo) return null
+  
+  return pet.photo.startsWith('http') ? pet.photo : `http://localhost:8005${pet.photo}`
+}
 
 const handleOpenDashboard = () => {
   if (permissionStore.hasCapability('VETERINARY_CORE')) {
@@ -250,21 +445,30 @@ const handleOpenDashboard = () => {
           v-if="!isVeterinary"
           value="categories"
         >
-          <VIcon icon="tabler-category" class="me-2" />
+          <VIcon
+            icon="tabler-category"
+            class="me-2"
+          />
           Categories
         </VTab>
         <VTab
           v-if="!isVeterinary"
           value="facilities"
         >
-          <VIcon icon="tabler-building-hospital" class="me-2" />
+          <VIcon
+            icon="tabler-building-hospital"
+            class="me-2"
+          />
           Facilities & Pricing
         </VTab>
         <VTab
           v-if="!isVeterinary"
           value="summary"
         >
-          <VIcon icon="tabler-list-details" class="me-2" />
+          <VIcon
+            icon="tabler-list-details"
+            class="me-2"
+          />
           Summary
         </VTab>
       </VTabs>
@@ -402,9 +606,15 @@ const handleOpenDashboard = () => {
           <!-- REGULAR: Catalog Service UI -->
           <div v-else>
             <VRow v-if="loadingAnalytics">
-                <VCol cols="12" class="text-center py-10">
-                    <VProgressCircular indeterminate color="primary" />
-                </VCol>
+              <VCol
+                cols="12"
+                class="text-center py-10"
+              >
+                <VProgressCircular
+                  indeterminate
+                  color="primary"
+                />
+              </VCol>
             </VRow>
             <VRow v-else>
               <VCol
@@ -416,7 +626,8 @@ const handleOpenDashboard = () => {
               >
                 <VCard
                   elevation="0"
-                  class="border"
+                  class="border h-100 cursor-pointer analytics-card transition-all"
+                  @click="handleStatClick(stat)"
                 >
                   <VCardText>
                     <div class="d-flex justify-space-between align-start mb-4">
@@ -454,17 +665,29 @@ const handleOpenDashboard = () => {
                   class="h-100"
                 >
                   <VCardText
-                    class="d-flex align-center justify-center h-100"
+                    class="pa-0"
                     style="min-height: 300px;"
                   >
-                    <div class="text-center text-medium-emphasis">
-                      <VIcon
-                        icon="tabler-chart-bar"
-                        size="48"
-                        class="mb-2 opacity-50"
-                      />
-                      <p>Chart visualization would go here</p>
+                    <div
+                      v-if="revenueTrend.length === 0"
+                      class="d-flex align-center justify-center h-100 text-medium-emphasis py-10"
+                    >
+                      <div class="text-center">
+                        <VIcon
+                          icon="tabler-chart-bar"
+                          size="48"
+                          class="mb-2 opacity-50"
+                        />
+                        <p>No revenue data available yet</p>
+                      </div>
                     </div>
+                    <VueApexCharts
+                      v-else
+                      type="area"
+                      height="300"
+                      :options="chartOptions"
+                      :series="chartSeries"
+                    />
                   </VCardText>
                 </VCard>
               </VCol>
@@ -479,21 +702,40 @@ const handleOpenDashboard = () => {
                 >
                   <VList lines="two">
                     <template v-if="recentActivity.length > 0">
-                        <template v-for="(activity, index) in recentActivity" :key="index">
-                             <VListItem
-                                :title="activity.title"
-                                :subtitle="activity.subtitle"
-                                :prepend-icon="activity.icon"
-                            />
-                            <VDivider v-if="index < recentActivity.length - 1" inset />
-                        </template>
+                      <template
+                        v-for="(activity, index) in recentActivity"
+                        :key="index"
+                      >
+                        <VListItem
+                          :title="activity.title"
+                          :subtitle="activity.subtitle"
+                        >
+                          <template #prepend>
+                            <VAvatar
+                              :color="activity.color"
+                              variant="tonal"
+                              size="32"
+                              class="me-3"
+                            >
+                              <VIcon
+                                :icon="activity.icon"
+                                size="18"
+                              />
+                            </VAvatar>
+                          </template>
+                        </VListItem>
+                        <VDivider
+                          v-if="index < recentActivity.length - 1"
+                          inset
+                        />
+                      </template>
                     </template>
                     <template v-else>
-                        <VListItem
-                            title="No recent activity"
-                            subtitle="Bookings will appear here"
-                            prepend-icon="tabler-info-circle"
-                        />
+                      <VListItem
+                        title="No recent activity"
+                        subtitle="Bookings will appear here"
+                        prepend-icon="tabler-info-circle"
+                      />
                     </template>
                   </VList>
                 </VCard>
@@ -537,32 +779,138 @@ const handleOpenDashboard = () => {
 
         <!-- 2. CATEGORIES TAB -->
         <VWindowItem value="categories">
-           <ProviderFacilitiesManager
-             :service-id="serviceId"
-             mode="categories"
-             :permissions="currentServicePermissions"
-           />
+          <ProviderFacilitiesManager
+            :service-id="serviceId"
+            mode="categories"
+            :permissions="currentServicePermissions"
+          />
         </VWindowItem>
 
         <!-- 3. FACILITIES TAB -->
         <VWindowItem value="facilities">
-           <ProviderFacilitiesManager
-             :service-id="serviceId"
-             mode="facilities"
-             :permissions="currentServicePermissions"
-           />
+          <ProviderFacilitiesManager
+            :service-id="serviceId"
+            mode="facilities"
+            :permissions="currentServicePermissions"
+          />
         </VWindowItem>
 
         <!-- 4. SUMMARY TAB -->
         <VWindowItem value="summary">
-           <ProviderFacilitiesManager
-             :service-id="serviceId"
-             mode="summary"
-             :permissions="currentServicePermissions"
-           />
+          <ProviderFacilitiesManager
+            :service-id="serviceId"
+            mode="summary"
+            :permissions="currentServicePermissions"
+          />
         </VWindowItem>
-
       </VWindow>
+
+      <!-- BOOKINGS LIST DIALOG -->
+      <VDialog
+        v-model="showBookingsDialog"
+        max-width="800"
+        scrollable
+      >
+        <VCard>
+          <VCardTitle class="pa-4 d-flex justify-space-between align-center">
+            <span class="text-h5 font-weight-bold">{{ dialogTitle }}</span>
+            <VBtn
+              icon="tabler-x"
+              variant="text"
+              color="secondary"
+              @click="showBookingsDialog = false"
+            />
+          </VCardTitle>
+          <VDivider />
+          <VCardText class="pa-4 pt-4">
+            <div
+              v-if="dialogLoading"
+              class="d-flex justify-center py-10"
+            >
+              <VProgressCircular
+                indeterminate
+                color="primary"
+              />
+            </div>
+            
+            <div
+              v-else-if="dialogBookings.length === 0"
+              class="text-center py-10"
+            >
+              <VIcon
+                icon="tabler-calendar-off"
+                size="64"
+                class="mb-4 opacity-50"
+              />
+              <p class="text-h6 text-medium-emphasis">
+                No bookings found for this category
+              </p>
+            </div>
+            
+            <VList
+              v-else
+              lines="two"
+            >
+              <VListItem
+                v-for="booking in dialogBookings"
+                :key="booking.id"
+                class="mb-3 border rounded-lg"
+              >
+                <template #prepend>
+                  <VAvatar
+                    size="48"
+                    rounded="lg"
+                    class="me-3"
+                  >
+                    <VImg
+                      v-if="getPetPhoto(booking.pet_details)"
+                      :src="getPetPhoto(booking.pet_details)"
+                      cover
+                    />
+                    <VIcon
+                      v-else
+                      icon="tabler-paw"
+                    />
+                  </VAvatar>
+                </template>
+                
+                <VListItemTitle class="font-weight-bold">
+                  {{ booking.pet_name }}
+                  <VChip
+                    :color="getStatusColor(booking.status)"
+                    size="x-small"
+                    class="ms-2"
+                  >
+                    {{ booking.status }}
+                  </VChip>
+                </VListItemTitle>
+                
+                <VListItemSubtitle>
+                  {{ booking.owner_details?.full_name }} • {{ new Date(booking.selected_time).toLocaleDateString() }} 
+                  at {{ new Date(booking.selected_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+                </VListItemSubtitle>
+                
+                <template #append>
+                  <div class="text-right">
+                    <div class="font-weight-black text-primary">
+                      ₹{{ parseFloat(booking.total_price || 0).toLocaleString() }}
+                    </div>
+                    <VBtn
+                      variant="tonal"
+                      size="x-small"
+                      color="primary"
+                      class="mt-1"
+                      @click="router.push({ name: 'provider-customer-bookings', query: { search: booking.id } })"
+                    >
+                      View Full Details
+                    </VBtn>
+                  </div>
+                </template>
+              </VListItem>
+            </VList>
+          </VCardText>
+        </VCard>
+      </VDialog>
     </div>
   </component>
 </template>
@@ -582,6 +930,13 @@ const handleOpenDashboard = () => {
 }
 .facility-chip:hover {
   background-color: rgba(var(--v-theme-primary), 0.1) !important;
+}
+
+.analytics-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.08) !important;
+  border-color: rgba(var(--v-theme-primary), 0.3) !important;
+  background-color: rgba(var(--v-theme-primary), 0.02);
 }
 </style>
 

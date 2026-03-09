@@ -35,22 +35,23 @@ const dialog = computed({
 const availableServiceList = computed(() => {
   // Top level services from the tree
   return props.availablePermissions.filter(s => {
-      // Exclude granular veterinary keys (handled as features within Veterinary Management)
-      const hiddenKeys = [
-          // 'VETERINARY_CORE', // <--- UNHIDE THIS so the main service appears!
-          'VETERINARY_VISITS', 
-          'VETERINARY_VITALS', 
-          'VETERINARY_PRESCRIPTIONS', 
-          'VETERINARY_LABS', 
-          'VETERINARY_MEDICINE_REMINDERS', 
-          'VETERINARY_DOCTOR', 
-          'VETERINARY_PHARMACY',
-          'VETERINARY_SCHEDULE',
-          'VETERINARY_SETTINGS' 
-      ]
-      if (s.service_key && hiddenKeys.includes(s.service_key)) return false
+    // Exclude granular veterinary keys (handled as features within Veterinary Management)
+    const hiddenKeys = [
+      // 'VETERINARY_CORE', // <--- UNHIDE THIS so the main service appears!
+      'VETERINARY_VISITS', 
+      'VETERINARY_VITALS', 
+      'VETERINARY_PRESCRIPTIONS', 
+      'VETERINARY_LABS', 
+      'VETERINARY_MEDICINE_REMINDERS', 
+      'VETERINARY_DOCTOR', 
+      'VETERINARY_PHARMACY',
+      'VETERINARY_SCHEDULE',
+      'VETERINARY_SETTINGS', 
+    ]
+
+    if (s.service_key && hiddenKeys.includes(s.service_key)) return false
       
-      return !!s.service_id
+    return !!s.service_id
   })
 })
 
@@ -62,6 +63,7 @@ const selectedServiceObjects = computed(() => {
 // [NEW] Flatten User Capabilities for Filtering
 const userCapabilities = computed(() => {
   const caps = new Set()
+
   console.log('--- Debug: Flattening Available Permissions ---', props.availablePermissions)
   
   if (!props.availablePermissions) return caps
@@ -69,15 +71,17 @@ const userCapabilities = computed(() => {
   props.availablePermissions.forEach(p => {
     if (p.service_key) caps.add(p.service_key.toUpperCase()) // Force Upper
     if (p.categories) {
-       p.categories.forEach(c => {
-         if (c.linked_capability) caps.add(c.linked_capability.toUpperCase())
-         if (c.category_key) caps.add(c.category_key.toUpperCase())
-         // Fallback: if category has 'name' matching a capability key
-         if (c.name) caps.add(c.name.toUpperCase().replace(/\s+/g, '_')) 
-       })
+      p.categories.forEach(c => {
+        if (c.linked_capability) caps.add(c.linked_capability.toUpperCase())
+        if (c.category_key) caps.add(c.category_key.toUpperCase())
+
+        // Fallback: if category has 'name' matching a capability key
+        if (c.name) caps.add(c.name.toUpperCase().replace(/\s+/g, '_')) 
+      })
     }
   })
   console.log('--- Debug: User Capabilities Set ---', Array.from(caps))
+  
   return caps
 })
 
@@ -101,9 +105,10 @@ const fetchTemplates = async () => {
   } catch (e) {
     console.error("Failed to fetch role templates", e)
     error.value = e.response?.data?.error || e.message || "Failed to load role templates."
+
     // Also capture trace if available for debugging
     if (e.response?.data?.trace) {
-       console.error("Backend Trace:", e.response.data.trace)
+      console.error("Backend Trace:", e.response.data.trace)
     }
   }
 }
@@ -133,6 +138,7 @@ const applyTemplate = template => {
   // console.log('Template Features:', template.features)
   
   form.value.veterinaryFeatures = [...template.features]
+
   // console.log('Form Features After:', form.value.veterinaryFeatures)
 }
 
@@ -386,14 +392,17 @@ const isVeterinary = svc => {
 
 const isVetFeatureActive = id => form.value.veterinaryFeatures.includes(id)
 
-const getUniqueCategories = (categories) => {
+const getUniqueCategories = categories => {
   if (!categories) return []
+
   // Deduplicate by name (if present) to avoid UI clutter from bad data
   const seen = new Set()
+  
   return categories.filter(c => {
     const name = c.name || 'General'
     if (seen.has(name)) return false
     seen.add(name)
+    
     return true
   })
 }
@@ -584,7 +593,6 @@ const error = ref(null)
                     <div class="text-caption text-medium-emphasis">
                       Configure Access Rights
                     </div>
-
                   </div>
                 </div>
 
@@ -647,10 +655,10 @@ const error = ref(null)
                   <!-- Render this if clean categories exist in the service -->
                   <div v-if="service.categories && service.categories.length > 0 && !isVeterinary(service)">
                     <div
-                       v-if="isVeterinary(service) && filteredVeterinaryFeatures.length > 0"
-                       class="text-overline font-weight-bold text-medium-emphasis mb-4 px-4"
+                      v-if="isVeterinary(service) && filteredVeterinaryFeatures.length > 0"
+                      class="text-overline font-weight-bold text-medium-emphasis mb-4 px-4"
                     >
-                       Advanced Permissions
+                      Advanced Permissions
                     </div>
                     <div
                       v-if="!service.categories || service.categories.length === 0"
@@ -705,13 +713,13 @@ const error = ref(null)
                           class="my-3"
                         />
 
-                    <!-- Management Permissions Section -->
+                        <!-- Management Permissions Section -->
                         <div
                           v-if="form.permissions[`category:${category.id}`]?.can_view"
                           class="mt-4 bg-grey-lighten-5 rounded px-3 py-2"
                         >
                           <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
-                             Management Capabilities (Admin Only)
+                            Management Capabilities (Admin Only)
                           </div>
                           <div class="d-flex flex-column gap-2">
                             <div class="d-flex align-center justify-space-between">

@@ -22,6 +22,7 @@ watch(userData, newVal => {
     else if (role.includes('INDIVIDUAL')) providerType.value = 'INDIVIDUAL'
   }
 }, { immediate: true })
+
 const workingHours = ref([
   { day: 0, name: 'Monday', active: true, start: '09:00', end: '18:00' },
   { day: 1, name: 'Tuesday', active: true, start: '09:00', end: '18:00' },
@@ -44,6 +45,7 @@ const fetchSettings = async () => {
     // We need to fetch provider type and existing availability
     const profileRes = await providerApi.get('/api/provider/profile/')
     const remoteType = profileRes.data.provider_type || 'INDIVIDUAL'
+
     providerType.value = remoteType
     
     // Sync store if mismatch
@@ -90,10 +92,12 @@ const saveSettings = async () => {
         day_of_week: h.day,
         start_time: h.start,
         end_time: h.end,
-        slot_duration_minutes: slotDuration.value
-      }))
+        slot_duration_minutes: slotDuration.value,
+      })),
     }
+
     await providerApi.post('/api/provider/availability/save-settings/', payload)
+
     // Show success toast
   } catch (err) {
     console.error('Failed to save settings:', err)
@@ -102,12 +106,13 @@ const saveSettings = async () => {
   }
 }
 
-const openPreview = (hour) => {
+const openPreview = hour => {
   // Generate a dummy date for the chosen weekday to preview slots
   const now = new Date()
   const currentWeekday = now.getDay()
   const diff = (hour.day - (currentWeekday - 1) + 7) % 7 // Assuming Monday is 0 in workingHours
   const target = new Date(now)
+
   target.setDate(now.getDate() + diff)
   
   previewDate.value = target.toISOString().split('T')[0]
@@ -118,31 +123,49 @@ onMounted(fetchSettings)
 </script>
 
 <template>
-  <VCard flat border class="availability-settings pa-8 rounded-[32px]">
+  <VCard
+    flat
+    border
+    class="availability-settings pa-8 rounded-[32px]"
+  >
     <div class="d-flex align-center justify-space-between mb-8">
       <div>
         <div class="d-flex align-center gap-3 mb-2">
-           <div class="icon-box-soft">
-             <VIcon icon="tabler-clock" color="primary" size="24" />
-           </div>
-           <h2 class="text-h4 font-weight-black text-slate-800 tracking-tighter mb-0">Schedule & Availability</h2>
+          <div class="icon-box-soft">
+            <VIcon
+              icon="tabler-clock"
+              color="primary"
+              size="24"
+            />
+          </div>
+          <h2 class="text-h4 font-weight-black text-slate-800 tracking-tighter mb-0">
+            Schedule & Availability
+          </h2>
         </div>
-        <p class="text-body-1 text-slate-500 ml-12">Configure your working hours and booking slot durations.</p>
+        <p class="text-body-1 text-slate-500 ml-12">
+          Configure your working hours and booking slot durations.
+        </p>
       </div>
       <VBtn
         color="primary"
         height="54"
         class="rounded-2xl px-8 font-weight-black shadow-primary"
-        @click="saveSettings"
         :loading="saving"
+        @click="saveSettings"
       >
-        <VIcon icon="tabler-device-floppy" class="mr-2" />
+        <VIcon
+          icon="tabler-device-floppy"
+          class="mr-2"
+        />
         Save Schedule
       </VBtn>
     </div>
 
     <VRow>
-      <VCol cols="12" md="5">
+      <VCol
+        cols="12"
+        md="5"
+      >
         <label class="label-tiny uppercase mb-2 d-block">Provider Business Type</label>
         <VSelect
           v-model="providerType"
@@ -161,7 +184,10 @@ onMounted(fetchSettings)
         />
       </VCol>
 
-      <VCol cols="12" md="4">
+      <VCol
+        cols="12"
+        md="4"
+      >
         <label class="label-tiny uppercase mb-2 d-block">Booking Slot Duration</label>
         <VSelect
           v-model="slotDuration"
@@ -179,13 +205,22 @@ onMounted(fetchSettings)
         />
       </VCol>
 
-      <VCol cols="12" class="mt-8">
+      <VCol
+        cols="12"
+        class="mt-8"
+      >
         <div class="d-flex align-center justify-space-between mb-6">
-           <h3 class="text-h6 font-weight-bold text-slate-700">Weekly Hours</h3>
-           <div class="text-caption text-slate-400 font-weight-bold uppercase">
-              <VIcon icon="tabler-info-circle" size="14" class="mr-1" />
-              Set your standard operating hours
-           </div>
+          <h3 class="text-h6 font-weight-bold text-slate-700">
+            Weekly Hours
+          </h3>
+          <div class="text-caption text-slate-400 font-weight-bold uppercase">
+            <VIcon
+              icon="tabler-info-circle"
+              size="14"
+              class="mr-1"
+            />
+            Set your standard operating hours
+          </div>
         </div>
         
         <div class="hours-list rounded-xl border overflow-hidden">
@@ -195,63 +230,69 @@ onMounted(fetchSettings)
             class="hour-row d-flex align-center gap-6 py-4 px-6 border-b border-slate-50 transition-colors hover:bg-slate-50"
             :class="{ 'bg-slate-50 opacity-60': !hour.active }"
           >
-            <div class="d-flex align-center gap-4" style="width: 180px">
-                <VSwitch
-                  v-model="hour.active"
-                  color="success"
-                  hide-details
-                  inset
-                  density="compact"
-                  class="ma-0"
-                />
-                <div class="day-label font-weight-black text-slate-700">
-                  {{ hour.name }}
-                </div>
+            <div
+              class="d-flex align-center gap-4"
+              style="width: 180px"
+            >
+              <VSwitch
+                v-model="hour.active"
+                color="success"
+                hide-details
+                inset
+                density="compact"
+                class="ma-0"
+              />
+              <div class="day-label font-weight-black text-slate-700">
+                {{ hour.name }}
+              </div>
             </div>
 
             <div class="flex-grow-1 d-flex align-center gap-4">
-                <template v-if="hour.active">
-                  <VTextField
-                    v-model="hour.start"
-                    type="time"
-                    variant="outlined"
-                    density="compact"
-                    hide-details
-                    class="time-input luxury-input-small"
-                    rounded="lg"
-                    bg-color="white"
-                  />
-                  <span class="text-slate-300 font-weight-bold text-caption">TO</span>
-                  <VTextField
-                    v-model="hour.end"
-                    type="time"
-                    variant="outlined"
-                    density="compact"
-                    hide-details
-                    class="time-input luxury-input-small"
-                    rounded="lg"
-                    bg-color="white"
-                  />
-                </template>
-                <template v-else>
-                  <div class="closed-badge px-4 py-1 rounded-pill bg-slate-200 text-slate-500 text-caption font-weight-black uppercase">
-                     Closed / Not Accepting Bookings
-                  </div>
-                </template>
+              <template v-if="hour.active">
+                <VTextField
+                  v-model="hour.start"
+                  type="time"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="time-input luxury-input-small"
+                  rounded="lg"
+                  bg-color="white"
+                />
+                <span class="text-slate-300 font-weight-bold text-caption">TO</span>
+                <VTextField
+                  v-model="hour.end"
+                  type="time"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="time-input luxury-input-small"
+                  rounded="lg"
+                  bg-color="white"
+                />
+              </template>
+              <template v-else>
+                <div class="closed-badge px-4 py-1 rounded-pill bg-slate-200 text-slate-500 text-caption font-weight-black uppercase">
+                  Closed / Not Accepting Bookings
+                </div>
+              </template>
             </div>
             
-            <div v-if="hour.active" class="d-flex align-center gap-4">
-                <div class="total-hours text-caption font-weight-bold text-slate-400">
-                    9h 00m
-                </div>
-                <VBtn
-                  icon="tabler-eye"
-                  size="x-small"
-                  variant="text"
-                  color="primary"
-                  title="Check Slots"
-                  @click="openPreview(hour)"
-                />
+            <div
+              v-if="hour.active"
+              class="d-flex align-center gap-4"
+            >
+              <div class="total-hours text-caption font-weight-bold text-slate-400">
+                9h 00m
+              </div>
+              <VBtn
+                icon="tabler-eye"
+                size="x-small"
+                variant="text"
+                color="primary"
+                title="Check Slots"
+                @click="openPreview(hour)"
+              />
             </div>
           </div>
         </div>

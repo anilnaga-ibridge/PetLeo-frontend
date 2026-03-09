@@ -95,6 +95,7 @@ const getHiddenVitals = visit => {
 onMounted(() => {
   fetchQueue()
   loadVitalsForm()
+  fetchSummary()
 })
 
 const getPetIcon = species => {
@@ -121,6 +122,20 @@ const calculateAge = dob => {
   if (years > 0) return `${years}y ${months}m`
   
   return `${months}m`
+}
+
+import DoctorDashboardMetrics from '@/components/veterinary/dashboard/DoctorDashboardMetrics.vue'
+import DoctorCharts from '@/components/veterinary/dashboard/DoctorCharts.vue'
+
+const summaryData = ref({})
+
+const fetchSummary = async () => {
+  if (!activeClinicId.value) return
+  try {
+    summaryData.value = await store.fetchLiveSummary(activeClinicId.value, dateFilter.value)
+  } catch (e) {
+    console.error("Failed to fetch summary:", e)
+  }
 }
 
 const viewMode = ref('cards') // 'cards' | 'table'
@@ -192,102 +207,15 @@ const viewMode = ref('cards') // 'cards' | 'table'
         </div>
       </div>
 
-      <!-- STATS -->
-      <VRow class="mb-8">
-        <VCol
-          cols="12"
-          md="4"
-        >
-          <VCard
-            variant="flat"
-            color="primary-lighten-5"
-            class="border"
-          >
-            <VCardText class="d-flex align-center gap-4">
-              <VAvatar
-                color="primary"
-                variant="tonal"
-                size="48"
-              >
-                <VIcon
-                  icon="tabler-user-check"
-                  size="24"
-                />
-              </VAvatar>
-              <div>
-                <div class="text-h3 font-weight-bold">
-                  {{ stats.ready }}
-                </div>
-                <div class="text-caption text-uppercase font-weight-bold opacity-70">
-                  Ready for Consult
-                </div>
-              </div>
-            </VCardText>
-          </VCard>
-        </VCol>
-        <VCol
-          cols="12"
-          md="4"
-        >
-          <VCard
-            variant="flat"
-            color="warning-lighten-5"
-            class="border"
-          >
-            <VCardText class="d-flex align-center gap-4">
-              <VAvatar
-                color="warning"
-                variant="tonal"
-                size="48"
-              >
-                <VIcon
-                  icon="tabler-stethoscope"
-                  size="24"
-                />
-              </VAvatar>
-              <div>
-                <div class="text-h3 font-weight-bold">
-                  {{ stats.vitalsDone }}
-                </div>
-                <div class="text-caption text-uppercase font-weight-bold opacity-70">
-                  Vitals Recorded
-                </div>
-              </div>
-            </VCardText>
-          </VCard>
-        </VCol>
-        <VCol
-          cols="12"
-          md="4"
-        >
-          <VCard
-            variant="flat"
-            color="error-lighten-5"
-            class="border"
-          >
-            <VCardText class="d-flex align-center gap-4">
-              <VAvatar
-                color="error"
-                variant="tonal"
-                size="48"
-              >
-                <VIcon
-                  icon="tabler-alert-triangle"
-                  size="24"
-                />
-              </VAvatar>
-              <div>
-                <div class="text-h3 font-weight-bold">
-                  {{ stats.urgent }}
-                </div>
-                <div class="text-caption text-uppercase font-weight-bold opacity-70">
-                  Urgent Cases
-                </div>
-              </div>
-            </VCardText>
-          </VCard>
-        </VCol>
-      </VRow>
+      <!-- DASHBOARD REDESIGN -->
+      <DoctorDashboardMetrics
+        :stats="summaryData.my_work"
+        class="mb-6"
+      />
+      <DoctorCharts
+        :bar-data="summaryData.trend"
+        class="mb-8"
+      />
 
       <div v-if="pendingVisits.length > 0">
         <!-- CARD VIEW -->

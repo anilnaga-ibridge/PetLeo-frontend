@@ -4,23 +4,25 @@ const props = defineProps({
   message: String,
   type: {
     type: String,
-    default: 'warning'
+    default: 'warning',
   },
   icon: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const defaultIcon = computed(() => {
   if (props.icon) return props.icon
   if (props.type === 'warning') return 'tabler-alert-circle'
+  
   return 'tabler-info-circle'
 })
 
 const colorClass = computed(() => {
   if (props.type === 'warning') return 'amber'
   if (props.type === 'info') return 'blue'
+  
   return 'primary'
 })
 </script>
@@ -32,7 +34,10 @@ const colorClass = computed(() => {
     :class="[`bg-${colorClass}-lighten-5`, `border-${colorClass}`]"
   >
     <div class="d-flex align-center">
-      <div class="reminder-icon-container me-4" :class="`bg-${colorClass}-lighten-4`">
+      <div
+        class="reminder-icon-container me-4"
+        :class="`bg-${colorClass}-lighten-4`"
+      >
         <VIcon
           :icon="defaultIcon"
           :color="colorClass"
@@ -40,8 +45,12 @@ const colorClass = computed(() => {
         />
       </div>
       <div class="flex-grow-1">
-        <h5 class="text-h6 font-weight-black text-slate-800 mb-1">{{ title }}</h5>
-        <p class="text-body-1 text-slate-600 mb-0 opacity-90">{{ message }}</p>
+        <h5 class="text-h6 font-weight-black text-slate-800 mb-1">
+          {{ title }}
+        </h5>
+        <p class="text-body-1 text-slate-600 mb-0 opacity-90">
+          {{ message }}
+        </p>
       </div>
       <VBtn
         icon="tabler-x"

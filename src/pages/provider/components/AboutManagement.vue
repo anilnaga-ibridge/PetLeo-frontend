@@ -4,11 +4,11 @@ import { ref, onMounted } from 'vue'
 import { providerApi } from '@/plugins/axios'
 
 const profileData = ref({
-    about_text: '',
-    years_of_experience: 0,
-    specializations: '',
-    clinic_name: '',
-    tagline: '',
+  about_text: '',
+  years_of_experience: 0,
+  specializations: '',
+  clinic_name: '',
+  tagline: '',
 })
 
 const loading = ref(false)
@@ -25,8 +25,14 @@ const taglineSuggestions = [
 ]
 
 const popularSpecializations = [
-  'General Medicine', 'Surgery', 'Dental Care', 'Grooming', 
-  'Training', 'Nutrition', 'Emergency Care', 'Vaccinations'
+  'General Medicine',
+  'Surgery',
+  'Dental Care',
+  'Grooming', 
+  'Training',
+  'Nutrition',
+  'Emergency Care',
+  'Vaccinations',
 ]
 
 const generateBio = () => {
@@ -37,7 +43,7 @@ const generateBio = () => {
   profileData.value.about_text = `Welcome to ${name}! With ${exp} years of professional experience, we are dedicated to providing the highest quality care for your beloved pets. Our expert team specializes in${specs}, ensuring every patient receives the individual attention they deserve. We look forward to meeting you and your furry family members!`
 }
 
-const toggleSpecialization = (spec) => {
+const toggleSpecialization = spec => {
   let current = profileData.value.specializations ? profileData.value.specializations.split(',').map(s => s.trim()) : []
   if (current.includes(spec)) {
     current = current.filter(s => s !== spec)
@@ -47,48 +53,60 @@ const toggleSpecialization = (spec) => {
   profileData.value.specializations = current.join(', ')
 }
 
-const isSpecSelected = (spec) => {
+const isSpecSelected = spec => {
   if (!profileData.value.specializations) return false
+  
   return profileData.value.specializations.split(',').map(s => s.trim()).includes(spec)
 }
 
 const fetchProfile = async () => {
-    loading.value = true
-    try {
-        const res = await providerApi.get('/api/provider/my-profile-detailed/')
-        // Since it's a list in ViewSet but we ensure 1-to-1 in backend, it returns the object
-        profileData.value = res.data
-    } catch (err) {
-        console.error('Failed to fetch detailed profile', err)
-        error.value = 'Failed to load profile data.'
-    } finally {
-        loading.value = false
-    }
+  loading.value = true
+  try {
+    const res = await providerApi.get('/api/provider/my-profile-detailed/')
+
+
+    // Since it's a list in ViewSet but we ensure 1-to-1 in backend, it returns the object
+    profileData.value = res.data
+  } catch (err) {
+    console.error('Failed to fetch detailed profile', err)
+    error.value = 'Failed to load profile data.'
+  } finally {
+    loading.value = false
+  }
 }
 
 const saveProfile = async () => {
-    saving.value = true
-    success.value = false
-    error.value = ''
-    try {
-        // Use PATCH for partial updates since get_object_or_create handles initial existence
-        await providerApi.patch(`/api/provider/my-profile-detailed/${profileData.value.id}/`, profileData.value)
-        success.value = true
-    } catch (err) {
-        console.error('Failed to save profile', err)
-        error.value = 'Failed to save changes.'
-    } finally {
-        saving.value = false
-    }
+  saving.value = true
+  success.value = false
+  error.value = ''
+  try {
+    // Use PATCH for partial updates since get_object_or_create handles initial existence
+    await providerApi.patch(`/api/provider/my-profile-detailed/${profileData.value.id}/`, profileData.value)
+    success.value = true
+  } catch (err) {
+    console.error('Failed to save profile', err)
+    error.value = 'Failed to save changes.'
+  } finally {
+    saving.value = false
+  }
 }
 
 onMounted(fetchProfile)
 </script>
 
 <template>
-  <VCard title="About & Experience" subtitle="Tell your customers about who you are and what makes you unique.">
-    <VCardText v-if="loading" class="text-center pa-12">
-      <VProgressCircular indeterminate color="primary" />
+  <VCard
+    title="About & Experience"
+    subtitle="Tell your customers about who you are and what makes you unique."
+  >
+    <VCardText
+      v-if="loading"
+      class="text-center pa-12"
+    >
+      <VProgressCircular
+        indeterminate
+        color="primary"
+      />
     </VCardText>
     
     <VCardText v-else>
@@ -116,7 +134,10 @@ onMounted(fetchProfile)
             </div>
           </VCol>
 
-          <VCol cols="12" md="8">
+          <VCol
+            cols="12"
+            md="8"
+          >
             <AppTextField
               v-model="profileData.clinic_name"
               label="Clinic/Business Name (Optional)"
@@ -124,7 +145,10 @@ onMounted(fetchProfile)
             />
           </VCol>
 
-          <VCol cols="12" md="4">
+          <VCol
+            cols="12"
+            md="4"
+          >
             <AppTextField
               v-model="profileData.years_of_experience"
               type="number"
@@ -174,16 +198,35 @@ onMounted(fetchProfile)
             </div>
           </VCol>
 
-          <VCol cols="12" class="d-flex gap-4">
-            <VBtn type="submit" :loading="saving" color="primary">
+          <VCol
+            cols="12"
+            class="d-flex gap-4"
+          >
+            <VBtn
+              type="submit"
+              :loading="saving"
+              color="primary"
+            >
               Save Profile
             </VBtn>
             
-            <VAlert v-if="success" type="success" variant="tonal" density="compact" class="mb-0 flex-grow-1">
+            <VAlert
+              v-if="success"
+              type="success"
+              variant="tonal"
+              density="compact"
+              class="mb-0 flex-grow-1"
+            >
               Profile updated successfully!
             </VAlert>
             
-            <VAlert v-if="error" type="error" variant="tonal" density="compact" class="mb-0 flex-grow-1">
+            <VAlert
+              v-if="error"
+              type="error"
+              variant="tonal"
+              density="compact"
+              class="mb-0 flex-grow-1"
+            >
               {{ error }}
             </VAlert>
           </VCol>

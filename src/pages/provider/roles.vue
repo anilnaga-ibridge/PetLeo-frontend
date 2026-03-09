@@ -73,7 +73,7 @@ const openEmpDetails = role => {
 const openDialog = (role = null) => {
   // Guard: If called via event listener without args, 'role' might be a PointerEvent
   if (role && (role instanceof Event || !role.id && !role.raw)) {
-     role = null
+    role = null
   }
 
   errorMessage.value = ''
@@ -130,196 +130,196 @@ onMounted(() => {
   <ProviderLayout>
     <div class="pa-4">
       <VCard class="mb-6">
-      <VCardItem class="pb-4">
-        <div class="d-flex justify-space-between align-center flex-wrap gap-4">
-          <VCardTitle>Provider Roles</VCardTitle>
-          <div class="d-flex gap-4 align-center">
-            <VTextField
-              v-model="search"
-              density="compact"
-              label="Search Roles"
-              prepend-inner-icon="tabler-search"
-              hide-details
-              style="max-width: 200px;"
-            />
-            <VBtn
-              prepend-icon="tabler-plus"
-              @click="openDialog(null)"
-            >
-              Create Role
-            </VBtn>
+        <VCardItem class="pb-4">
+          <div class="d-flex justify-space-between align-center flex-wrap gap-4">
+            <VCardTitle>Provider Roles</VCardTitle>
+            <div class="d-flex gap-4 align-center">
+              <VTextField
+                v-model="search"
+                density="compact"
+                label="Search Roles"
+                prepend-inner-icon="tabler-search"
+                hide-details
+                style="max-width: 200px;"
+              />
+              <VBtn
+                prepend-icon="tabler-plus"
+                @click="openDialog(null)"
+              >
+                Create Role
+              </VBtn>
+            </div>
           </div>
-        </div>
-      </VCardItem>
+        </VCardItem>
 
-      <VDataTable
-        :headers="headers"
-        :items="roles"
-        :loading="loading"
-        :search="search"
-        class="text-no-wrap"
-      >
-        <template #item.capabilities_count="{ item }">
-          <VChip
-            size="small"
-            color="primary"
-            variant="tonal"
-            style="cursor: pointer;"
-            @click="openCapDetails(item)"
-          >
-            {{ (item.capabilities || item.raw?.capabilities || []).length }}
-          </VChip>
-        </template>
-
-        <template #item.employees_count="{ item }">
-          <VChip
-            size="small"
-            color="info"
-            variant="tonal"
-            style="cursor: pointer;"
-            @click="openEmpDetails(item)"
-          >
-            {{ (item.employees || item.raw?.employees || []).length }}
-          </VChip>
-        </template>
-
-        <template #item.created_at="{ item }">
-          {{ new Date(item.created_at || item.raw?.created_at).toLocaleDateString() }}
-        </template>
-
-        <template #item.actions="{ item }">
-          <div class="d-flex gap-2">
-            <VBtn
-              icon="tabler-edit"
-              variant="text"
+        <VDataTable
+          :headers="headers"
+          :items="roles"
+          :loading="loading"
+          :search="search"
+          class="text-no-wrap"
+        >
+          <template #item.capabilities_count="{ item }">
+            <VChip
+              size="small"
               color="primary"
+              variant="tonal"
+              style="cursor: pointer;"
+              @click="openCapDetails(item)"
+            >
+              {{ (item.capabilities || item.raw?.capabilities || []).length }}
+            </VChip>
+          </template>
+
+          <template #item.employees_count="{ item }">
+            <VChip
               size="small"
-              @click="openDialog(item.raw || item)"
-            />
+              color="info"
+              variant="tonal"
+              style="cursor: pointer;"
+              @click="openEmpDetails(item)"
+            >
+              {{ (item.employees || item.raw?.employees || []).length }}
+            </VChip>
+          </template>
+
+          <template #item.created_at="{ item }">
+            {{ new Date(item.created_at || item.raw?.created_at).toLocaleDateString() }}
+          </template>
+
+          <template #item.actions="{ item }">
+            <div class="d-flex gap-2">
+              <VBtn
+                icon="tabler-edit"
+                variant="text"
+                color="primary"
+                size="small"
+                @click="openDialog(item.raw || item)"
+              />
+              <VBtn
+                v-if="!(item.is_system_role || item.raw?.is_system_role)"
+                icon="tabler-trash"
+                variant="text"
+                color="error"
+                size="small"
+                @click="deleteRole(item.id || item.raw?.id)"
+              />
+            </div>
+          </template>
+        </VDataTable>
+      </VCard>
+
+      <!-- Role Wizard -->
+      <RoleManagementWizard
+        v-model="dialog"
+        :role="currentRole"
+        :available-permissions="permissionTree"
+        :loading="saving"
+        @save="handleWizardSave"
+      />
+
+      <!-- Capabilities Details Dialog -->
+      <VDialog
+        v-model="capDialog"
+        max-width="500px"
+      >
+        <VCard>
+          <VCardItem>
+            <VCardTitle>Role Capabilities</VCardTitle>
+            <VCardSubtitle v-if="roleDetails">
+              Permissions for {{ roleDetails.name }}
+            </VCardSubtitle>
+          </VCardItem>
+
+          <VCardText class="pt-0">
+            <VList v-if="roleDetails?.capabilities_details?.length">
+              <VListItem
+                v-for="cap in roleDetails.capabilities_details"
+                :key="cap.key"
+                :title="cap.label"
+                :subtitle="cap.group"
+              >
+                <template #prepend>
+                  <VIcon
+                    icon="tabler-shield-check"
+                    color="success"
+                    class="me-2"
+                  />
+                </template>
+              </VListItem>
+            </VList>
+            <div
+              v-else
+              class="pa-4 text-center text-medium-emphasis"
+            >
+              No specific capabilities assigned.
+            </div>
+          </VCardText>
+
+          <VCardActions>
+            <VSpacer />
             <VBtn
-              v-if="!(item.is_system_role || item.raw?.is_system_role)"
-              icon="tabler-trash"
-              variant="text"
-              color="error"
-              size="small"
-              @click="deleteRole(item.id || item.raw?.id)"
-            />
-          </div>
-        </template>
-      </VDataTable>
-    </VCard>
-
-    <!-- Role Wizard -->
-    <RoleManagementWizard
-      v-model="dialog"
-      :role="currentRole"
-      :available-permissions="permissionTree"
-      :loading="saving"
-      @save="handleWizardSave"
-    />
-
-    <!-- Capabilities Details Dialog -->
-    <VDialog
-      v-model="capDialog"
-      max-width="500px"
-    >
-      <VCard>
-        <VCardItem>
-          <VCardTitle>Role Capabilities</VCardTitle>
-          <VCardSubtitle v-if="roleDetails">
-            Permissions for {{ roleDetails.name }}
-          </VCardSubtitle>
-        </VCardItem>
-
-        <VCardText class="pt-0">
-          <VList v-if="roleDetails?.capabilities_details?.length">
-            <VListItem
-              v-for="cap in roleDetails.capabilities_details"
-              :key="cap.key"
-              :title="cap.label"
-              :subtitle="cap.group"
+              color="primary"
+              @click="capDialog = false"
             >
-              <template #prepend>
-                <VIcon
-                  icon="tabler-shield-check"
-                  color="success"
-                  class="me-2"
-                />
-              </template>
-            </VListItem>
-          </VList>
-          <div
-            v-else
-            class="pa-4 text-center text-medium-emphasis"
-          >
-            No specific capabilities assigned.
-          </div>
-        </VCardText>
+              Close
+            </VBtn>
+          </VCardActions>
+        </VCard>
+      </VDialog>
 
-        <VCardActions>
-          <VSpacer />
-          <VBtn
-            color="primary"
-            @click="capDialog = false"
-          >
-            Close
-          </VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+      <!-- Employees Details Dialog -->
+      <VDialog
+        v-model="empDialog"
+        max-width="500px"
+      >
+        <VCard>
+          <VCardItem>
+            <VCardTitle>Assigned Employees</VCardTitle>
+            <VCardSubtitle v-if="roleDetails">
+              Employees with the {{ roleDetails.name }} role
+            </VCardSubtitle>
+          </VCardItem>
 
-    <!-- Employees Details Dialog -->
-    <VDialog
-      v-model="empDialog"
-      max-width="500px"
-    >
-      <VCard>
-        <VCardItem>
-          <VCardTitle>Assigned Employees</VCardTitle>
-          <VCardSubtitle v-if="roleDetails">
-            Employees with the {{ roleDetails.name }} role
-          </VCardSubtitle>
-        </VCardItem>
-
-        <VCardText class="pt-0">
-          <VList v-if="roleDetails?.employees_details?.length">
-            <VListItem
-              v-for="emp in roleDetails.employees_details"
-              :key="emp.email"
-              :title="emp.full_name || 'No Name'"
-              :subtitle="emp.email"
+          <VCardText class="pt-0">
+            <VList v-if="roleDetails?.employees_details?.length">
+              <VListItem
+                v-for="emp in roleDetails.employees_details"
+                :key="emp.email"
+                :title="emp.full_name || 'No Name'"
+                :subtitle="emp.email"
+              >
+                <template #prepend>
+                  <VAvatar
+                    size="32"
+                    color="info"
+                    variant="tonal"
+                    class="me-2"
+                  >
+                    {{ (emp.full_name || emp.email).charAt(0).toUpperCase() }}
+                  </VAvatar>
+                </template>
+              </VListItem>
+            </VList>
+            <div
+              v-else
+              class="pa-4 text-center text-medium-emphasis"
             >
-              <template #prepend>
-                <VAvatar
-                  size="32"
-                  color="info"
-                  variant="tonal"
-                  class="me-2"
-                >
-                  {{ (emp.full_name || emp.email).charAt(0).toUpperCase() }}
-                </VAvatar>
-              </template>
-            </VListItem>
-          </VList>
-          <div
-            v-else
-            class="pa-4 text-center text-medium-emphasis"
-          >
-            No employees currently assigned to this role.
-          </div>
-        </VCardText>
+              No employees currently assigned to this role.
+            </div>
+          </VCardText>
 
-        <VCardActions>
-          <VSpacer />
-          <VBtn
-            color="primary"
-            @click="empDialog = false"
-          >
-            Close
-          </VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
+          <VCardActions>
+            <VSpacer />
+            <VBtn
+              color="primary"
+              @click="empDialog = false"
+            >
+              Close
+            </VBtn>
+          </VCardActions>
+        </VCard>
+      </VDialog>
     </div>
   </ProviderLayout>
 </template>

@@ -594,7 +594,7 @@ export default {
       fetchCategories()
     }
 
-      // DYNAMIC LABELS
+    // DYNAMIC LABELS
     const isVeterinarySelected = computed(() => {
       if (!form.value.service) return false
       const s = services.value.find(x => x.id === form.value.service)
@@ -618,6 +618,8 @@ export default {
     const fetchCapabilities = async () => {
       try {
         const res = await axios.get(BASE_URL + "dynamic-permissions/capabilities/")
+
+
         // Map to simple strings or objects? Combobox likes simple arrays for creation.
         // We will store just the key (string).
         capabilities.value = (res.data.results || res.data).map(c => c.key)
@@ -627,7 +629,7 @@ export default {
     }
 
     onMounted(() => {
-        fetchCapabilities()
+      fetchCapabilities()
     })
 
     return {

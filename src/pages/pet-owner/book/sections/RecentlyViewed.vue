@@ -7,6 +7,7 @@ const viewedProviders = ref([])
 
 const loadRecentlyViewed = () => {
   const history = JSON.parse(localStorage.getItem('recentlyViewed') || '[]')
+
   viewedProviders.value = history
 }
 
@@ -14,7 +15,10 @@ onMounted(loadRecentlyViewed)
 </script>
 
 <template>
-  <section v-if="viewedProviders.length > 0" class="recently-viewed-section py-12 bg-white">
+  <section
+    v-if="viewedProviders.length > 0"
+    class="recently-viewed-section py-12 bg-white"
+  >
     <VContainer>
       <HorizontalCarousel 
         title="Continue where you left off" 

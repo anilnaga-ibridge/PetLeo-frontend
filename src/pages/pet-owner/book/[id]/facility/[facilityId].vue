@@ -18,27 +18,36 @@ const facility = computed(() => {
       if (fac) return { ...fac, parentService: svc, parentCategory: cat }
     }
   }
+  
   return null
 })
 
-const formatPrice = (price) => {
+const formatPrice = price => {
   if (price === '0.00' || !price) return 'Contact for Price'
   const num = parseFloat(price)
   if (isNaN(num)) return price
+  
   return `₹${num.toLocaleString('en-IN')}`
 }
 
 const allImages = computed(() => {
   if (!facility.value) return []
   const images = []
-  if (facility.value.image_url) images.push(facility.value.image_url)
+  
+  // Also push the base image if it comes from the fallback
+  const mainImage = facility.value.image_url || facility.value.image
+  if (mainImage) images.push(mainImage)
+    
   if (facility.value.gallery?.length) {
     facility.value.gallery.forEach(g => {
-      if (g.image_url && g.image_url !== facility.value.image_url) {
-        images.push(g.image_url)
+      // Backend might send either { image_url: '...' } or just a string URL directly
+      const url = typeof g === 'string' ? g : (g.image_url || g.image)
+      if (url && url !== mainImage) {
+        images.push(url)
       }
     })
   }
+  
   return images
 })
 
@@ -48,11 +57,23 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-if="facility" class="facility-detail">
+  <div
+    v-if="facility"
+    class="facility-detail"
+  >
     <!-- Navigation / Breadcrumbs -->
     <div class="d-flex align-center gap-2 mb-8 text-slate-400">
-      <VBtn variant="text" density="compact" class="px-0 text-slate-500 font-weight-bold" @click="router.back()">
-        <VIcon icon="tabler-chevron-left" size="18" class="mr-1" />
+      <VBtn
+        variant="text"
+        density="compact"
+        class="px-0 text-slate-500 font-weight-bold"
+        @click="router.back()"
+      >
+        <VIcon
+          icon="tabler-chevron-left"
+          size="18"
+          class="mr-1"
+        />
         Back to Services
       </VBtn>
       <span class="opacity-30">/</span>
@@ -60,9 +81,16 @@ onMounted(() => {
     </div>
 
     <!-- Main Content Card -->
-    <VCard flat rounded="3xl" class="overflow-hidden border border-slate-100 shadow-sm mb-12">
+    <VCard
+      flat
+      rounded="3xl"
+      class="overflow-hidden border border-slate-100 shadow-sm mb-12"
+    >
       <!-- Media Header -->
-      <div v-if="allImages.length > 1" class="detail-media">
+      <div
+        v-if="allImages.length > 1"
+        class="detail-media"
+      >
         <VCarousel 
           hide-delimiter-background 
           show-arrows="hover" 
@@ -70,15 +98,33 @@ onMounted(() => {
           color="white"
           class="rounded-0"
         >
-          <VCarouselItem v-for="(img, i) in allImages" :key="i" :src="img" cover />
+          <VCarouselItem
+            v-for="(img, i) in allImages"
+            :key="i"
+            :src="img"
+            cover
+          />
         </VCarousel>
       </div>
-      <div v-else-if="allImages.length === 1" class="detail-media">
-        <img :src="allImages[0]" class="detail-img" />
+      <div
+        v-else-if="allImages.length === 1"
+        class="detail-media"
+      >
+        <img
+          :src="allImages[0]"
+          class="detail-img"
+        >
         <div class="media-overlay" />
       </div>
-      <div v-else class="detail-media-placeholder d-flex flex-column align-center justify-center bg-slate-50 text-slate-300">
-        <VIcon icon="tabler-photo-off" size="64" class="opacity-20" />
+      <div
+        v-else
+        class="detail-media-placeholder d-flex flex-column align-center justify-center bg-slate-50 text-slate-300"
+      >
+        <VIcon
+          icon="tabler-photo-off"
+          size="64"
+          class="opacity-20"
+        />
         <span class="mt-4 font-weight-bold uppercase tracking-widest text-tiny opacity-50">No Image Available</span>
       </div>
 
@@ -86,22 +132,74 @@ onMounted(() => {
         <!-- Header Info -->
         <div class="d-flex flex-wrap align-start justify-space-between gap-6 mb-10">
           <div class="flex-grow-1">
-            <div class="d-flex align-center gap-3 mb-3">
-              <VChip size="small" color="primary" variant="tonal" class="font-weight-black uppercase tracking-wider">
-                {{ facility.parentCategory.category_name }}
+            <!-- Explicit Hierarchy -->
+            <div class="d-flex align-center flex-wrap gap-2 mb-4">
+              <VChip
+                size="small"
+                color="indigo"
+                variant="flat"
+                class="font-weight-bold text-caption text-white tracking-wider"
+              >
+                <VIcon
+                  icon="tabler-briefcase"
+                  size="14"
+                  class="mr-1"
+                />
+                Service: {{ facility.parentService.service_name }}
               </VChip>
-              <div v-if="facility.duration" class="slot-info">
-                <VIcon icon="tabler-clock-hour-4" size="16" color="#6366f1" />
-                <span>{{ (facility.duration >= 60 && facility.duration % 60 === 0) ? `${facility.duration / 60} hour(s)` : `${facility.duration} minutes` }}</span>
-              </div>
+              <VIcon
+                icon="tabler-chevron-right"
+                size="14"
+                class="text-slate-300"
+              />
+              <VChip
+                size="small"
+                color="primary"
+                variant="tonal"
+                class="font-weight-bold text-caption tracking-wider"
+              >
+                <VIcon
+                  icon="tabler-category"
+                  size="14"
+                  class="mr-1"
+                />
+                Category: {{ facility.parentCategory.category_name }}
+              </VChip>
             </div>
-            <h1 class="text-h3 font-weight-black text-slate-900 mb-4">{{ facility.name }}</h1>
+            
+            <div class="d-flex align-center flex-wrap gap-4 mb-2">
+              <h1 class="text-h3 font-weight-black text-slate-900">
+                {{ facility.name }}
+              </h1>
+              
+              <!-- Duration Badge moved next to title -->
+              <VChip
+                v-if="facility.duration"
+                size="default"
+                color="success"
+                variant="flat"
+                class="font-weight-bold px-4"
+              >
+                <VIcon
+                  icon="tabler-clock-hour-4"
+                  size="18"
+                  class="mr-2"
+                />
+                {{ (facility.duration >= 60 && facility.duration % 60 === 0) ? `${facility.duration / 60} hour(s)` : `${facility.duration} minutes` }}
+              </VChip>
+            </div>
+            <p class="text-slate-500 font-weight-medium mb-0">
+              Specific Care Option
+            </p>
           </div>
 
           <div class="price-box-large">
             <span class="price-lbl">Starting from</span>
             <span class="price-val">{{ formatPrice(facility.price) }}</span>
-            <span v-if="facility.price !== '0.00'" class="price-unit">per session</span>
+            <span
+              v-if="facility.price !== '0.00'"
+              class="price-unit"
+            >per session</span>
           </div>
         </div>
 
@@ -119,16 +217,28 @@ onMounted(() => {
         </div>
 
         <!-- Inclusions -->
-        <div v-if="facility.inclusions?.length" class="mb-12">
+        <div
+          v-if="facility.inclusions?.length"
+          class="mb-12"
+        >
           <h3 class="text-h5 font-weight-black text-slate-900 mb-6 d-flex align-center gap-3">
-             <div class="title-accent" />
-             What's Included
+            <div class="title-accent" />
+            What's Included
           </h3>
           <VRow>
-            <VCol v-for="inc in facility.inclusions" :key="inc" cols="12" sm="6">
+            <VCol
+              v-for="inc in facility.inclusions"
+              :key="inc"
+              cols="12"
+              sm="6"
+            >
               <div class="inclusion-item">
                 <div class="inc-icon">
-                  <VIcon icon="tabler-circle-check-filled" size="20" color="#10b981" />
+                  <VIcon
+                    icon="tabler-circle-check-filled"
+                    size="20"
+                    color="#10b981"
+                  />
                 </div>
                 <span>{{ inc }}</span>
               </div>
@@ -137,10 +247,14 @@ onMounted(() => {
         </div>
 
         <!-- Call to Action -->
-        <div class="cta-banner rounded-3xl pa-8 d-flex flex-wrap align-center justify-space-between gap-8">
+        <div class="cta-banner rounded-3xl pa-8 d-flex flex-wrap align-center justify-space-between gap-8 mb-12">
           <div>
-            <h4 class="text-h5 font-weight-black text-white mb-1">Ready to book?</h4>
-            <p class="text-white opacity-70 font-weight-medium mb-0">Secure your slot in just a few clicks.</p>
+            <h4 class="text-h5 font-weight-black text-white mb-1">
+              Ready to book?
+            </h4>
+            <p class="text-white opacity-70 font-weight-medium mb-0">
+              Secure your slot in just a few clicks.
+            </p>
           </div>
           <VBtn 
             color="white" 
@@ -148,23 +262,85 @@ onMounted(() => {
             class="px-10 font-weight-black rounded-2xl text-primary cta-glow"
             @click="handleBookNow(facility.parentService, facility)"
           >
-            <VIcon icon="tabler-calendar-heart" size="20" class="mr-2" />
+            <VIcon
+              icon="tabler-calendar-heart"
+              size="20"
+              class="mr-2"
+            />
             Book Now
           </VBtn>
+        </div>
+
+        <!-- Gallery Section -->
+        <div
+          v-if="allImages.length > 1"
+          class="gallery-section"
+        >
+          <h3 class="text-h5 font-weight-black text-slate-900 mb-6 d-flex align-center gap-3">
+            <div class="title-accent" />
+            Gallery
+          </h3>
+          <VRow>
+            <VCol
+              v-for="(img, idx) in allImages.slice(1)"
+              :key="'gal-'+idx"
+              cols="12"
+              sm="6"
+              md="4"
+            >
+              <VCard
+                flat
+                rounded="xl"
+                class="overflow-hidden gallery-card"
+              >
+                <VImg
+                  :src="img"
+                  height="200"
+                  cover
+                  class="gallery-img transition-transform"
+                />
+              </VCard>
+            </VCol>
+          </VRow>
         </div>
       </div>
     </VCard>
   </div>
 
-  <div v-else-if="!provider" class="text-center py-20">
-    <VProgressCircular indeterminate color="primary" />
+  <div
+    v-else-if="!provider"
+    class="text-center py-20"
+  >
+    <VProgressCircular
+      indeterminate
+      color="primary"
+    />
   </div>
 
-  <div v-else class="text-center py-20">
-    <VIcon icon="tabler-alert-triangle" size="48" color="warning" class="mb-4 opacity-50" />
-    <h3 class="text-h5 font-weight-bold">Service Not Found</h3>
-    <p class="text-slate-400">The service you are looking for might have been moved or renamed.</p>
-    <VBtn variant="tonal" color="primary" class="mt-6 rounded-xl" @click="router.back()">Go Back</VBtn>
+  <div
+    v-else
+    class="text-center py-20"
+  >
+    <VIcon
+      icon="tabler-alert-triangle"
+      size="48"
+      color="warning"
+      class="mb-4 opacity-50"
+    />
+    <h3 class="text-h5 font-weight-bold">
+      Service Not Found
+    </h3>
+    <p class="text-slate-400">
+      The service you are looking for might have been moved or renamed.
+    </p>
+    <VBtn
+      variant="tonal"
+      color="primary"
+      class="mt-6 rounded-xl"
+      @click="router.back()"
+    >
+      Go Back
+    </VBtn>
   </div>
 </template>
 
@@ -214,10 +390,11 @@ onMounted(() => {
 
 .price-box-large {
   text-align: right;
-  background: #f8fafc;
-  padding: 16px 24px;
+  background: white;
+  padding: 20px 32px;
   border-radius: 24px;
-  border: 1px solid #f1f5f9;
+  border: 1px solid #eef2ff;
+  box-shadow: 0 12px 36px rgba(99, 102, 241, 0.08);
 }
 
 .price-lbl {
@@ -225,23 +402,24 @@ onMounted(() => {
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #64748b;
+  letter-spacing: 1.5px;
+  color: #94a3b8;
   margin-bottom: 4px;
 }
 
 .price-val {
   display: block;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 950;
-  color: #0f172a;
+  color: #4f46e5;
   letter-spacing: -1px;
-  line-height: 1;
+  line-height: 1.1;
+  margin-bottom: 2px;
 }
 
 .price-unit {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: #94a3b8;
 }
 
@@ -281,6 +459,23 @@ onMounted(() => {
 .cta-glow:hover {
   transform: scale(1.05);
   box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+}
+
+.gallery-card {
+  border: 1px solid #f1f5f9;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.gallery-card:hover {
+  border-color: #6366f1;
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.1);
+  transform: translateY(-4px);
+}
+.gallery-img {
+  transition: transform 0.5s ease;
+}
+.gallery-card:hover .gallery-img {
+  transform: scale(1.05);
 }
 
 @media (max-width: 600px) {

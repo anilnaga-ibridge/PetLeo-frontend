@@ -6,8 +6,8 @@ const props = defineProps({
   modelValue: Boolean,
   pet: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'saved', 'close'])
@@ -33,20 +33,23 @@ const loadingBreeds = ref(false)
 const fetchSpecies = async () => {
   try {
     const res = await superAdminApi.get('/api/superadmin/pet-types/')
+
     speciesList.value = res.data.results || res.data
   } catch (err) {
     console.error('Failed to fetch species:', err)
   }
 }
 
-const fetchBreeds = async (speciesId) => {
+const fetchBreeds = async speciesId => {
   if (!speciesId) {
     breedList.value = []
+    
     return
   }
   loadingBreeds.value = true
   try {
     const res = await superAdminApi.get(`/api/superadmin/pet-breeds/?petType=${speciesId}`)
+
     breedList.value = res.data.results || res.data
   } catch (err) {
     console.error('Failed to fetch breeds:', err)
@@ -55,7 +58,7 @@ const fetchBreeds = async (speciesId) => {
   }
 }
 
-watch(() => form.value.species, (newSpecies) => {
+watch(() => form.value.species, newSpecies => {
   if (!props.pet || form.value.species !== props.pet.species) {
     form.value.breed = ''
   }
@@ -66,12 +69,12 @@ onMounted(fetchSpecies)
 
 const genderOptions = [
   { title: 'Male', value: 'MALE' },
-  { title: 'Female', value: 'FEMALE' }
+  { title: 'Female', value: 'FEMALE' },
 ]
 
 // Validation rules
 const rules = {
-  required: v => !!v || 'This field is required'
+  required: v => !!v || 'This field is required',
 }
 
 const resetForm = () => {
@@ -88,7 +91,7 @@ const resetForm = () => {
 }
 
 // Watch for pet changes (edit mode)
-watch(() => props.pet, (newPet) => {
+watch(() => props.pet, newPet => {
   if (newPet) {
     form.value = {
       name: newPet.name || '',
@@ -107,12 +110,14 @@ watch(() => props.pet, (newPet) => {
   }
 }, { immediate: true })
 
-const handlePhotoChange = (event) => {
+const handlePhotoChange = event => {
   const file = event.target.files[0]
   if (file) {
     photoFile.value = file
+
     const reader = new FileReader()
-    reader.onload = (e) => {
+
+    reader.onload = e => {
       photoPreview.value = e.target.result
     }
     reader.readAsDataURL(file)
@@ -129,6 +134,7 @@ const handleSave = async () => {
   if (!isValid.value) {
     errorMessage.value = 'Please fill in all required fields (*)'
     errorSnackbar.value = true
+    
     return
   }
 
@@ -162,13 +168,13 @@ const handleSave = async () => {
     if (props.pet) {
       // Update existing pet
       await customerApi.patch(`/api/pet-owner/pets/pets/${props.pet.id}/`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
       emit('saved', 'Family member updated successfully! ✨')
     } else {
       // Create new pet
       await customerApi.post('/api/pet-owner/pets/pets/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
       emit('saved', 'New family member added successfully! ✨')
     }
@@ -222,7 +228,7 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
   >
     <div class="glass-wizard-wrapper h-100 d-flex flex-column">
       <!-- Dynamic Mesh Gradient Background -->
-      <div class="mesh-gradient"></div>
+      <div class="mesh-gradient" />
       
       <!-- Luxury Frosted Header -->
       <div class="pa-8 pb-6 glass-header flex-shrink-0">
@@ -231,7 +237,7 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
             <h2 class="text-h2 font-weight-black text-slate-900 tracking-tighter dialog-title">
               {{ dialogTitle }}
             </h2>
-            <div class="title-underline"></div>
+            <div class="title-underline" />
           </div>
           <VBtn 
             icon="tabler-x" 
@@ -245,7 +251,12 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
         <p class="text-h6 text-slate-500 font-weight-medium opacity-80 mt-2">
           {{ props.pet ? 'Refining excellence for your family member. ✨' : 'Add New Family Member' }}
         </p>
-        <p v-if="!props.pet" class="text-caption text-slate-400 mt-1">Embark on a new journey together. 🦴</p>
+        <p
+          v-if="!props.pet"
+          class="text-caption text-slate-400 mt-1"
+        >
+          Embark on a new journey together. 🦴
+        </p>
       </div>
 
       <VCardText class="pa-8 pt-4 scrollable-content-luxury flex-grow-1">
@@ -253,10 +264,28 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
         <div class="text-center mb-10 animate-luxury-pop">
           <div class="photo-lense-container mx-auto">
             <div class="lense-ring primary-glow">
-              <VAvatar size="150" color="white" class="elevation-24 border-8 border-white overflow-hidden">
-                <div v-if="!photoPreview" class="shimmer-loading"></div>
-                <VImg v-if="photoPreview" :src="photoPreview" cover class="pet-photo-prime" />
-                <VIcon v-else icon="tabler-camera-bolt" size="60" color="primary-lighten-4" class="opacity-50" />
+              <VAvatar
+                size="150"
+                color="white"
+                class="elevation-24 border-8 border-white overflow-hidden"
+              >
+                <div
+                  v-if="!photoPreview"
+                  class="shimmer-loading"
+                />
+                <VImg
+                  v-if="photoPreview"
+                  :src="photoPreview"
+                  cover
+                  class="pet-photo-prime"
+                />
+                <VIcon
+                  v-else
+                  icon="tabler-camera-bolt"
+                  size="60"
+                  color="primary-lighten-4"
+                  class="opacity-50"
+                />
               </VAvatar>
             </div>
             <VBtn
@@ -278,7 +307,10 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
 
         <VRow>
           <!-- Pet Name -->
-          <VCol cols="12" class="luxury-row delay-1">
+          <VCol
+            cols="12"
+            class="luxury-row delay-1"
+          >
             <div class="luxury-input-group">
               <label class="luxury-label">Pet Name *</label>
               <VTextField
@@ -294,7 +326,11 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
           </VCol>
           
           <!-- Species Selection -->
-          <VCol cols="12" md="6" class="luxury-row delay-2">
+          <VCol
+            cols="12"
+            md="6"
+            class="luxury-row delay-2"
+          >
             <div class="luxury-input-group">
               <label class="luxury-label">Species</label>
               <VSelect
@@ -312,7 +348,11 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
           </VCol>
 
           <!-- Breed Selection -->
-          <VCol cols="12" md="6" class="luxury-row delay-2">
+          <VCol
+            cols="12"
+            md="6"
+            class="luxury-row delay-2"
+          >
             <div class="luxury-input-group">
               <label class="luxury-label">Breed</label>
               <VSelect
@@ -330,7 +370,11 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
           </VCol>
 
           <!-- Sex Selection -->
-          <VCol cols="12" md="6" class="luxury-row delay-3">
+          <VCol
+            cols="12"
+            md="6"
+            class="luxury-row delay-3"
+          >
             <div class="luxury-input-group">
               <label class="luxury-label">Sex</label>
               <VSelect
@@ -346,7 +390,11 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
           </VCol>
 
           <!-- Date of Birth -->
-          <VCol cols="12" md="6" class="luxury-row delay-3">
+          <VCol
+            cols="12"
+            md="6"
+            class="luxury-row delay-3"
+          >
             <div class="luxury-input-group">
               <label class="luxury-label">Date of Birth</label>
               <VTextField
@@ -362,7 +410,10 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
           </VCol>
 
           <!-- Color / Markings -->
-          <VCol cols="12" class="luxury-row delay-4">
+          <VCol
+            cols="12"
+            class="luxury-row delay-4"
+          >
             <div class="luxury-input-group">
               <label class="luxury-label">Color / Markings</label>
               <VTextField
@@ -385,7 +436,10 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
           :loading="loading"
           @click="handleSave"
         >
-          <VIcon icon="tabler-sparkles" class="me-2" />
+          <VIcon
+            icon="tabler-sparkles"
+            class="me-2"
+          />
           {{ props.pet ? 'Update Profile' : 'Complete Identity' }}
         </VBtn>
       </div>
@@ -399,11 +453,20 @@ const dialogTitle = computed(() => props.pet ? 'Edit Pet Profile' : 'Add New Fam
       :timeout="5000"
     >
       <div class="d-flex align-center">
-        <VIcon icon="tabler-alert-circle" class="me-2" />
+        <VIcon
+          icon="tabler-alert-circle"
+          class="me-2"
+        />
         {{ errorMessage }}
       </div>
       <template #actions>
-        <VBtn variant="text" size="small" @click="errorSnackbar = false">Close</VBtn>
+        <VBtn
+          variant="text"
+          size="small"
+          @click="errorSnackbar = false"
+        >
+          Close
+        </VBtn>
       </template>
     </VSnackbar>
   </VNavigationDrawer>

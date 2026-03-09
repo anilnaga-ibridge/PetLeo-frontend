@@ -20,10 +20,11 @@ definePage({
 })
 
 const selectedCity = ref('')
+
 const filters = ref({
   search: '',
   city: '',
-  category: 'all'
+  category: 'all',
 })
 
 const allProviders = ref([])
@@ -48,7 +49,7 @@ const fetchProviders = async () => {
       services: p.servicesOffered || ['General Care'],
       reviews: p.totalRatings || 0,
       verified: p.isVerified || false,
-      city: p.city
+      city: p.city,
     }))
   } catch (err) {
     console.error('Failed to fetch providers', err)
@@ -61,16 +62,16 @@ const handleSearch = ({ search, city }) => {
   filters.value = { ...filters.value, search, city }
 }
 
-const handleCityUpdate = (newCity) => {
+const handleCityUpdate = newCity => {
   selectedCity.value = newCity
   filters.value = { ...filters.value, city: newCity }
 }
 
-const handleCategorySelect = (category) => {
+const handleCategorySelect = category => {
   filters.value = { 
     ...filters.value, 
     category: category.id,
-    categoryName: category.name === 'All Services' ? null : category.name
+    categoryName: category.name === 'All Services' ? null : category.name,
   }
 }
 
@@ -90,9 +91,7 @@ onMounted(fetchProviders)
       @search="handleSearch" 
     />
 
-    <Categories 
-      @select="handleCategorySelect" 
-    />
+    <Categories @select="handleCategorySelect" />
 
     <Providers 
       id="providers-section"
